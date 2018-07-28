@@ -25,6 +25,11 @@ release
 # Make.properties
 Make.properties
 
+# Codeblocks project files
+*.layout
+*.cbp
+
 # Other files
 *.png
 *.dot
+

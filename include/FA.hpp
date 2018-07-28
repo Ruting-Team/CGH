@@ -56,6 +56,7 @@ namespace cgh{
         typedef typename Global::DFAState2MapIter DFAState2MapIter;
         typedef typename Global::DFAState2MapIter NFAState2MapIter;
         typedef typename Global::CharacterSetIter CharacterSetIter;
+        typedef typename Global::CharacterSetConstIter CharacterSetConstIter;
         typedef typename Global::DFAStateSetMapIter DFAStateSetMapIter;
         typedef typename Global::Char2DFAStateSetMapIter Char2DFAStateSetMapIter;
         
@@ -337,7 +338,7 @@ namespace cgh{
             DFA* dfa = new DFA();
             DFAState* iniState = dfa->mkDFAFinalState();
             dfa->setAlphabet(charSet);
-            for(CharacterSetIter it = charSet.begin(); it != charSet.end(); it++)
+            for(CharacterSetConstIter it = charSet.begin(); it != charSet.end(); it++)
                 iniState->addDFATrans(*it, iniState);
             return *dfa;
         }

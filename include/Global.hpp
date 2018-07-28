@@ -84,6 +84,7 @@ namespace cgh
         typedef vector<Character> Word;
         typedef pair<Character, Character> Char2;
         typedef typename CharacterSet::iterator CharacterSetIter;
+        typedef typename CharacterSet::const_iterator CharacterSetConstIter;
         
         
         /*****************  DEF NFAState  *****************/
