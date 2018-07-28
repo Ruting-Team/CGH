@@ -1,0 +1,30 @@
+
+
+.DS_Store
+*/.DS_Store
+
+release
+
+# Object files
+*.o
+
+# Libraries
+*.so
+*.lib
+*.a
+*.dll
+*.so.*
+*.dylib
+
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Make.properties
+Make.properties
+
+# Other files
+*.png
+*.dot
