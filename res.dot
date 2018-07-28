@@ -1,0 +1,11 @@
+digraph {
+rankdir=LR;
+Q13[color=blue];
+node [shape=doublecircle];
+Q15 Q14 Q13 ;
+node [shape=circle];
+Q13  ->  Q14[label="1"];
+Q13  ->  Q15[label="0"];
+Q15  ->  Q15[label="0"];
+Q14  ->  Q14[label="1"];
+}
