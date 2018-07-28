@@ -29,7 +29,6 @@ public:
 int main(int argc, char const *argv[])
 {
     cout << "Hello, CGH!" << endl;
-    Data
     if(argc > 1)
     {
         string fileName1 = "";
