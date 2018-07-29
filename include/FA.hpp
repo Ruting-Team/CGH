@@ -9,9 +9,11 @@
 #ifndef FA_hpp
 #define FA_hpp
 
+#include <fstream>
+#include <iostream>
 
 #include "State.hpp"
-#include "Parser.hpp"
+
 using namespace std;
 namespace cgh{
     /*****************  DEC  *****************/
