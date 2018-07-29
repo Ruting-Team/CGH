@@ -180,33 +180,7 @@ namespace cgh {
     public:
         
         DFA() : FA(),initialState(NULL){this -> setDeterminateFlag(1);}
-        DFA(const RawFaData& data) : FA()
-        {
-            RawFaDataWithInt* rawdata = dynamic_cast<RawFaDataWithInt*>(data.alphabetAndTransitions);
-            this -> setAlphabet(rawdata -> alphabet);
-            int stateNum = data.stateNumber;
-            vector<DFAState*> stateVector;
-            for(int pos = 0; pos < stateNum; pos++)
-            {
-                if(pos == data.initialState) stateVector.push_back(mkDFAInitialState());
-                else if(data.finalStates.find(pos) != data.finalStates.end()) stateVector.push_back(mkDFAFinalState());
-                else stateVector.push_back(mkDFAState());
-            }
-            if(data.finalStates.find(data.initialState) != data.finalStates.end())
-            {
-                initialState -> setFinalFlag(1);
-                finalStateSet.insert(initialState);
-            }
-            vector<tuple<int, int, int> > transVector = rawdata -> transitions;
-            for(int i = 0; i < transVector.size(); i++)
-            {
-                int sourceState = get<0>(transVector[i]);
-                int targetState = get<2>(transVector[i]);
-                int character = get<1>(transVector[i]);
-                stateVector[sourceState] -> addDFATrans(character, stateVector[targetState]);
-            }
-            this -> setDeterminateFlag(1);
-        }
+    
         DFA(const DFA& dfa)
         {
             if(dfa.initialState)
@@ -607,22 +581,12 @@ namespace cgh {
             
             // cout initial
             f << "Q"<<initialState -> getID() << "[color=blue];\n";
-            f << "node [shape=doublecircle];\n";
-            
-            
-            
+
             // cout final states
             for (DFAStateSetConstIter iter = finalStateSet.begin(); iter != finalStateSet.end(); iter++) {
-                f << "Q" << (*iter) -> getID() << " ";
+                f << "Q" << (*iter) -> getID() << " [shape=doublecircle];\n";
             }
-            f << ";\n";
-            
-            
-            
-            
-            f << "node [shape=circle];\n";
-            
-            
+         
             
             // cout trisitions
             for(DFAStateSetConstIter iter = stateSet.begin(); iter != stateSet.end(); iter++)

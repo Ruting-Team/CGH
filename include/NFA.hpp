@@ -381,32 +381,7 @@ namespace cgh {
                 makeCopyTransByDFA(dfa.initialState, state2Map);
             }
         }
-        NFA(const RawFaData& data) : FA()
-        {
-            RawFaDataWithInt* rawdata = dynamic_cast<RawFaDataWithInt*>(data.alphabetAndTransitions);
-            this->setAlphabet(rawdata->alphabet);
-            int stateNum = data.stateNumber;
-            vector<NFAState*> stateVector;
-            for(int pos = 0; pos < stateNum; pos++)
-            {
-                if(pos == data.initialState) stateVector.push_back(mkNFAInitialState());
-                else if(data.finalStates.find(pos) != data.finalStates.end()) stateVector.push_back(mkNFAFinalState());
-                else stateVector.push_back(mkNFAState());
-            }
-            if(data.finalStates.find(data.initialState) != data.finalStates.end())
-            {
-                initialState->setFinalFlag(1);
-                finalStateSet.insert(initialState);
-            }
-            vector<tuple<int, int, int> > transVector = rawdata->transitions;
-            for(int i = 0; i < transVector.size(); i++)
-            {
-                int sourceState = get<0>(transVector[i]);
-                int targetState = get<2>(transVector[i]);
-                int character = get<1>(transVector[i]);
-                stateVector[sourceState]->addNFATrans(character, stateVector[targetState]);
-            }
-        }
+        
         ~NFA()
         {
             initialState = NULL;
@@ -817,8 +792,7 @@ namespace cgh {
         }
         
         
-        
-        
+    
         void output()const{
             if(!initialState) return;
             cout<<initialState->getID()<<endl;
@@ -828,6 +802,7 @@ namespace cgh {
                 dynamic_cast<NFAState*>((*it))->output();
             }
         }
+        
         void print(string filename)const
         {
             ofstream f;
@@ -838,21 +813,13 @@ namespace cgh {
             
             // cout initial
             f << "Q"<<initialState->getID() << "[color=blue];\n";
-            f << "node [shape=doublecircle];\n";
-            
             
             
             // cout final states
             for (NFAStateSetConstIter iter = finalStateSet.begin(); iter != finalStateSet.end(); iter++) {
-                f << "Q" << (*iter)->getID() << " ";
+                f << "Q" << (*iter) -> getID() << " [shape=doublecircle];\n";
             }
             f << ";\n";
-            
-            
-            
-            
-            f << "node [shape=circle];\n";
-            
             
             
             // cout trisitions
