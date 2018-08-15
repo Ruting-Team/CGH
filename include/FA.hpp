@@ -333,7 +333,7 @@ namespace cgh{
         static NFA& EmptyNFA()
         {
             NFA* nfa = new NFA();
-            return *nfa;
+            return *nfa; 
         }
         static DFA& CompleteFA(const CharacterSet &charSet)
         {
