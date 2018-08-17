@@ -63,20 +63,20 @@ namespace cgh {
         void makeCopyTrans(DFAState *state, DFAState2Map& state2map)
         {
             DFATransMap& map = state -> getDFATransMap();
-            DFAState* preState = state2map[state];
+            DFAState* sourceState = state2map[state];
             for(DFATransMapIter mapIt = map.begin(); mapIt != map.end(); mapIt++)
             {
-                DFAState* postState;
+                DFAState* targetState;
                 DFAState2MapIter state2MapIt = state2map.find(mapIt -> second);
                 if(state2MapIt == state2map.end())
                 {
-                    if(mapIt -> second -> isFinal()) postState = mkDFAFinalState();
-                    else postState = mkDFAState();
-                    state2map[mapIt -> second] = postState;
+                    if(mapIt -> second -> isFinal()) targetState = mkDFAFinalState();
+                    else targetState = mkDFAState();
+                    state2map[mapIt -> second] = targetState;
                     makeCopyTrans(mapIt -> second, state2map);
                 }
-                else postState = state2MapIt -> second;
-                preState -> addDFATrans(mapIt -> first, postState);
+                else targetState = state2MapIt -> second;
+                sourceState -> addDFATrans(mapIt -> first, targetState);
             }
         }
         void getTransMapByStatePair(const DFAState2 &statePair, Char2DFAState2Map& char2DFAState2Map)
@@ -91,50 +91,50 @@ namespace cgh {
             }
         }
         
-        void makeDFAIntersectionTrans(DFAState *preState, DFAStatePairMap &dfaStatePairMap, const Char2DFAState2Map &char2DFAState2Map, DFA *dfa)
+        void makeDFAIntersectionTrans(DFAState *sourceState, DFAStatePairMap &dfaStatePairMap, const Char2DFAState2Map &char2DFAState2Map, DFA *dfa)
         {
             Char2DFAState2Map map;
             for(Char2DFAState2MapConstIter mapIt = char2DFAState2Map.begin(); mapIt!= char2DFAState2Map.end(); mapIt++)
             {
                 DFAStatePairMapIter pairMapIt = dfaStatePairMap.find(mapIt -> second);
-                DFAState* postState;
+                DFAState* targetState;
                 if(pairMapIt == dfaStatePairMap.end())
                 {
                     map.clear();
                     getTransMapByStatePair(mapIt -> second, map);
                     if(mapIt -> second.first -> isFinal() && mapIt -> second.second -> isFinal())
-                        postState = dfa -> mkDFAFinalState();
-                    else postState = dfa -> mkDFAState();
-                    dfaStatePairMap[mapIt -> second] = postState;
-                    makeDFAIntersectionTrans(postState, dfaStatePairMap, map, dfa);
+                        targetState = dfa -> mkDFAFinalState();
+                    else targetState = dfa -> mkDFAState();
+                    dfaStatePairMap[mapIt -> second] = targetState;
+                    makeDFAIntersectionTrans(targetState, dfaStatePairMap, map, dfa);
                 }
-                else postState = dynamic_cast<DFAState*>(dfaStatePairMap[mapIt -> second]);
-                preState -> addDFATrans(mapIt -> first, postState);
+                else targetState = dfaStatePairMap[mapIt -> second];
+                sourceState -> addDFATrans(mapIt -> first, targetState);
             }
         }
         void makeDFAComplementTrans(DFAState *state, DFAState* trapState, DFAState2Map &state2map, DFA *dfa)
         {
             CharacterSet charSet;
             DFATransMap& map = state -> getDFATransMap();
-            DFAState* preState = dynamic_cast<DFAState*>(state2map[state]);
+            DFAState* sourceState = state2map[state];
             for(DFATransMapIter mapIt = map.begin(); mapIt != map.end(); mapIt++)
             {
-                DFAState* postState;
+                DFAState* targetState;
                 DFAState2MapIter state2MapIter = state2map.find(mapIt -> second);
                 if(state2MapIter == state2map.end())
                 {
-                    if(mapIt -> second -> isFinal()) postState = dfa -> mkDFAState();
-                    else postState = dfa -> mkDFAFinalState();
-                    state2map[mapIt -> second] = postState;
+                    if(mapIt -> second -> isFinal()) targetState = dfa -> mkDFAState();
+                    else targetState = dfa -> mkDFAFinalState();
+                    state2map[mapIt -> second] = targetState;
                     makeDFAComplementTrans(mapIt -> second, trapState, state2map, dfa);
                 }
-                else postState = state2MapIter -> second;
-                preState -> addDFATrans(mapIt -> first, postState);
+                else targetState = state2MapIter -> second;
+                sourceState -> addDFATrans(mapIt -> first, targetState);
                 charSet.insert(mapIt -> first);
             }
             for(CharacterSetIter it = this -> alphabet.begin(); it != this -> alphabet.end(); it++)
                 if(charSet.find(*it) == charSet.end())
-                    preState -> addDFATrans(*it, trapState);
+                    sourceState -> addDFATrans(*it, trapState);
         }
         void getReachableStateSet(DFAStateSet& reachableStateSet, DFAStateSet& workSet)
         {
@@ -486,8 +486,8 @@ namespace cgh {
                 for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
                     if(reachableStateSet.find(*it) == reachableStateSet.end())
                     {
-                        DFAStateSet postStateSet = (*it) -> getTargetStateSet();
-                        for(DFAStateSetIter sIt = postStateSet.begin(); sIt != postStateSet.end(); sIt++)
+                        DFAStateSet targetStateSet = (*it) -> getTargetStateSet();
+                        for(DFAStateSetIter sIt = targetStateSet.begin(); sIt != targetStateSet.end(); sIt++)
                             if(reachableStateSet.find(*sIt) != reachableStateSet.end())
                                 (*it) -> delDFATrans(*sIt);
                         set.insert(*it);
@@ -516,8 +516,8 @@ namespace cgh {
             for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
                 if(liveStateSet.find(*it) == liveStateSet.end())
                 {
-                    DFAStateSet preStateSet = reverseMap.find(*it) -> second;
-                    for(DFAStateSetIter sIt = preStateSet.begin(); sIt != preStateSet.end(); sIt++)
+                    DFAStateSet sourceStateSet = reverseMap.find(*it) -> second;
+                    for(DFAStateSetIter sIt = sourceStateSet.begin(); sIt != sourceStateSet.end(); sIt++)
                         if(liveStateSet.find(*sIt) != liveStateSet.end())
                             (*sIt) -> delDFATrans(*it);
                     set.insert(*it);

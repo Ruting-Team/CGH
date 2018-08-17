@@ -19,12 +19,11 @@ namespace cgh{
     public:
         typedef Global<Character> Global;
         typedef typename Global::CharacterSet CharacterSet;
-        typedef typename Global::CharacterSetIter CharacterSetIter;
         
         typedef typename Global::NFAStateSet NFAStateSet;
         typedef typename Global::NFATransMap NFATransMap;
-        typedef typename Global::NFAMapIter NFAMapIter;
         
+        typedef typename Global::NFAMapIter NFAMapIter;
         typedef typename Global::NFAStateSetIter NFAStateSetIter;
         typedef typename Global::NFATransMapIter NFATransMapIter;
         
@@ -34,16 +33,15 @@ namespace cgh{
         
     private:
         NFATransMap nfaTransMap;
+        
+    private:
+        
         void getTargetStateSet(NFAStateSet& stateSet)
         {
-            NFAStateSet tempSet;
             for(NFATransMapIter it = nfaTransMap.begin(); it != nfaTransMap.end(); it++)
-            {
-                tempSet.clear();
-                getTargetStateSetByChar(tempSet, it->first);
-                if(tempSet.size() > 0) stateSet.insert(tempSet.begin(), tempSet.end());
-            }
+                getTargetStateSetByChar(stateSet, it->first);
         }
+        
         void getTargetStateSetByChar(NFAStateSet& stateSet, Character character)
         {
             if(character == Global::epsilon)
@@ -54,15 +52,14 @@ namespace cgh{
             NFAStateSet epsilonClosure;
             getEpsilonClosure(epsilonClosure);
             epsilonClosure.insert(this);
-            for(NFAStateSetIter it = epsilonClosure.begin(); it != epsilonClosure.end(); it++)
+            for(NFAState* nfaState : epsilonClosure)
             {
-                NFAState* nfaState = *it;
-                NFATransMapIter mapIt = nfaState->nfaTransMap.find(character);
+                NFATransMapIter mapIt = nfaState -> nfaTransMap.find(character);
                 if(mapIt != nfaState->nfaTransMap.end())
-                    for(NFAStateSetIter it = mapIt->second.begin(); it != mapIt->second.end(); it++)
+                    for(NFAState* state : mapIt -> second)
                     {
-                        (*it)->getEpsilonClosure(stateSet);
-                        stateSet.insert(*it);
+                        state -> getEpsilonClosure(stateSet);
+                        stateSet.insert(state);
                     }
             }
         }
@@ -72,51 +69,57 @@ namespace cgh{
         bool addNFATrans(Character character, NFAState *target)
         {
             NFATransMapIter mapIt = nfaTransMap.find(character);
-            if(mapIt == nfaTransMap.end())
+            if(mapIt == nfaTransMap.end())//there is no trans which label is character, create a new state set.
             {
                 NFAStateSet stateSet;
                 stateSet.insert(target);
                 nfaTransMap[character] = stateSet;
                 return true;
             }
-            else
-                return mapIt->second.insert(target).second;
+            else//insert target into exist state set.
+                return mapIt -> second.insert(target).second;
         }
         bool addEpsilonTrans(NFAState *target)
         {
             return addNFATrans(Global::epsilon, target);
         }
+        
         bool delNFATrans(Character character, const NFAState *target)
         {
             NFATransMapIter mapIt = nfaTransMap.find(character);
-            if(mapIt == nfaTransMap.end())
+            if(mapIt == nfaTransMap.end())//there is no trans which label is character
                 return false;
             else
             {
-                NFAStateSetIter sIt = mapIt->second.find(target);
-                if(sIt == mapIt->second.end()) return false;
-                if(mapIt->second.size() == 1) nfaTransMap.erase(mapIt);
-                else mapIt->second.erase(sIt);
+                NFAStateSetIter sIt = mapIt -> second.find(target);
+                if(sIt == mapIt -> second.end()) return false;
+                if(mapIt -> second.size() == 1) nfaTransMap.erase(mapIt);
+                else mapIt -> second.erase(sIt);
                 return true;
             }
         }
+        
+        //if this has the target state then delete it and return true
+          //if this only has one target state then delete the map
+          //else delete the state
+        //else return false
         bool delNFATrans(const NFAState *target)
         {
             CharacterSet charSet;
             int count = 0;
             for(NFATransMapIter it = nfaTransMap.begin(); it != nfaTransMap.end(); it++)
             {
-                NFAStateSetIter sIt = it->second.find(const_cast<NFAState*>(target));
-                if(sIt != it->second.end())
+                NFAStateSetIter sIt = it -> second.find(const_cast<NFAState*>(target));
+                if(sIt != it -> second.end())
                 {
                     count++;
-                    if(it->second.size() == 1) charSet.insert(it->first);
-                    else it->second.erase(sIt);
+                    if(it -> second.size() == 1) charSet.insert(it -> first);
+                    else it -> second.erase(sIt);
                 }
             }
             if(count == 0) return false;
-            for(CharacterSetIter it = charSet.begin(); it != charSet.end(); it++)
-                nfaTransMap.erase(*it);
+            for(Character c : charSet)
+                nfaTransMap.erase(c);
             return true;
         }
         bool delNFATrans(Character character)
@@ -131,21 +134,16 @@ namespace cgh{
             NFATransMapIter mapIt = nfaTransMap.find(Global::epsilon);
             if(mapIt == nfaTransMap.end()) return;
             NFAStateSet workSet;
-            for(NFAStateSetIter it = mapIt->second.begin(); it != mapIt->second.end(); it++)
-                if(epsilonClosure.insert(*it).second) workSet.insert(*it);
-            for(NFAStateSetIter it = workSet.begin(); it != workSet.end(); it++)
-                (*it)->getEpsilonClosure(epsilonClosure);
+            for(NFAState* state : mapIt -> second)
+                if(epsilonClosure.insert(state).second) workSet.insert(state);
+            for(NFAState* state : workSet)
+                state -> getEpsilonClosure(epsilonClosure);
         }
         const NFAStateSet getTargetStateSet()
         {
             NFAStateSet stateSet;
-            NFAStateSet tempSet;
             for(NFATransMapIter it = nfaTransMap.begin(); it != nfaTransMap.end(); it++)
-            {
-                tempSet.clear();
-                getTargetStateSetByChar(tempSet, it->first);
-                if(tempSet.size() > 0) stateSet.insert(tempSet.begin(), tempSet.end());
-            }
+                getTargetStateSetByChar(stateSet, it -> first);
             return stateSet;
             
         }
@@ -156,15 +154,14 @@ namespace cgh{
             if(character == Global::epsilon) return epsilonClosure;
             epsilonClosure.insert(this);
             NFAStateSet stateSet;
-            for(NFAStateSetIter it = epsilonClosure.begin(); it != epsilonClosure.end(); it++)
+            for(NFAState* nfaState : epsilonClosure)
             {
-                NFAState* nfaState = *it;
-                NFATransMapIter mapIter = nfaState->nfaTransMap.find(character);
-                if(mapIter != nfaState->nfaTransMap.end())
-                    for(NFAStateSetIter it = mapIter->second.begin(); it != mapIter->second.end(); it++)
+                NFATransMapIter mapIter = nfaState -> nfaTransMap.find(character);
+                if(mapIter != nfaState -> nfaTransMap.end())
+                    for(NFAState* state : mapIter -> second)
                     {
-                        (*it)->getEpsilonClosure(stateSet);
-                        stateSet.insert(*it);
+                        state -> getEpsilonClosure(stateSet);
+                        stateSet.insert(state);
                     }
             }
             return stateSet;
@@ -177,12 +174,11 @@ namespace cgh{
             return NFAMapIter(it, b);
         }
         void output(){
-            NFATransMapIter iter;
-            for(iter = nfaTransMap.begin(); iter != nfaTransMap.end(); iter++) {
-                NFAStateSet set = iter->second;
-                NFAStateSetIter sIter;
-                for(sIter = set.begin(); sIter != set.end(); sIter++)
-                    cout<< getID()<<" "<<iter->first<<" "<<(*sIter)->getID()<<endl;
+            for(NFATransMapIter it = nfaTransMap.begin(); it != nfaTransMap.end(); it++)
+            {
+                NFAStateSet set = it -> second;
+                for(NFAState* state : set)
+                    cout<< getID() <<" "<< it -> first <<" "<<state -> getID()<<endl;
             }
         }
         friend NFA<Character>;

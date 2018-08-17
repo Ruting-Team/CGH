@@ -12,6 +12,7 @@
 #include "State.hpp"
 namespace cgh{
     template <class Character> class DFA;
+    
     template <class Character>
     class DFAState : public State
     {
@@ -22,21 +23,19 @@ namespace cgh{
         
         typedef typename Global::DFAStateSet DFAStateSet;
         typedef typename Global::DFATransMap DFATransMap;
-        typedef typename Global::DFAMapIter DFAMapIter;
         
+        typedef typename Global::DFAMapIter DFAMapIter;
         typedef typename Global::DFAStateSetIter DFAStateSetIter;
         typedef typename Global::DFATransMapIter DFATransMapIter;
         
-        typedef typename Global::DFAStateSetConstIter DFAStateSetConstIter;
-        typedef typename Global::DFATransMapConstIter DFATransMapConstIter;
-        
-        
     private:
         DFATransMap dfaTransMap;
+        
+    private:
         void getTargetStateSet(DFAStateSet& stateSet)
         {
             for(DFATransMapIter it = dfaTransMap.begin(); it != dfaTransMap.end(); it++)
-                stateSet.insert(it->second);
+                stateSet.insert(it -> second);
         }
     public:
         DFATransMap& getDFATransMap() {return dfaTransMap;}
@@ -50,7 +49,7 @@ namespace cgh{
         bool delDFATrans(Character character, const DFAState *target)
         {
             DFATransMapIter mapIt = dfaTransMap.find(character);
-            if(mapIt != dfaTransMap.end() && mapIt->second == target)
+            if(mapIt != dfaTransMap.end() && mapIt -> second == target)
             {
                 dfaTransMap.erase(mapIt);
                 return true;
@@ -64,8 +63,8 @@ namespace cgh{
                 if(it->second == target)
                     charSet.insert(it->first);
             if(charSet.size() == 0) return false;
-            for(CharacterSetIter it = charSet.begin(); it != charSet.end(); it++)
-                dfaTransMap.erase(*it);
+            for(Character c : charSet)
+                dfaTransMap.erase(c);
             return true;
         }
         bool delDFATrans(Character character)
