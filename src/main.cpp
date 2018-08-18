@@ -118,7 +118,7 @@ void testBinaryOp(string fileName1, string fileName2, string op)
         cout<<"nfa2:"<<endl;
         nfa2 -> output();
         cout<<endl;
-        if(op == "-i")
+        if(op.find("-i") != string::npos)
         {
             cout<<"intersection:"<<endl;
             DFA<char> &res = ((*nfa1 & *nfa2)).determine().minimize();
@@ -127,7 +127,7 @@ void testBinaryOp(string fileName1, string fileName2, string op)
                 res.print("res.dot");
             delete &res;
         }
-        else if(op == "-u")
+        else if(op.find("-u") != string::npos)
         {
             cout<<"union:"<<endl;
             DFA<char> &res = ((*nfa1 | *nfa2)).determine().minimize();
@@ -136,7 +136,7 @@ void testBinaryOp(string fileName1, string fileName2, string op)
                 res.print("res.dot");
             delete &res;
         }
-        else if(op == "-cat")
+        else if(op.find("-cat") != string::npos)
         {
             cout<<"concat:"<<endl;
             DFA<char> &res = (nfa1 -> concat(*nfa2)).determine().minimize();
