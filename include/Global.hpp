@@ -14,6 +14,7 @@
 #include <set>
 #include <list>
 #include <queue>
+#include <stack>
 #include <regex>
 #include <string>
 #include <vector>

@@ -9,13 +9,13 @@
 #include "NFA.hpp"
 #include "DFA.hpp"
 #include "NuXmvSolver.hpp"
-#include "parser.hpp"
+#include "Parser.hpp"
 
 #include <map>
 
 using namespace std;
 using namespace cgh;
-template<> int Global<int>::epsilon = -1;
+template<> char Global<char>::epsilon = 0;
 
 map<string, string> config; /* config */
 
@@ -44,9 +44,9 @@ void readConfig(string fileName)
 * test construct NFA
 */
 void testDump(string fileName) {
-    if (config["type"] == "int") {
-        Parser<int> parser;
-        NFA<int>* nfa = parser.parse(fileName);
+    if (config["type"] == "char") {
+        Parser<char> parser;
+        NFA<char>* nfa = parser.parse(fileName);
         cout<<"nfa:"<<endl;
         nfa->output();
         cout<<endl;
@@ -58,155 +58,195 @@ void testDump(string fileName) {
 * test unitary operation
 */
 void testUnitaryOp(string fileName, string op) {
-    if (config["type"] == "int") {
-        Parser<int> parser;
-        NFA<int>& nfa = *(parser.parse(fileName));
-        cout<<"nfa:"<<endl;
-        nfa.output();
-        cout<<endl;
-        
-        if(op == "-d")
+    NFA<char> *nfa;
+    if(op.find("-reg") != string::npos)
+        nfa = new NFA<char>(fileName);
+    else
+        if(config["type"] == "char")
         {
-            cout<<"determinate:"<<endl;
-            DFA<int> &res = nfa.determine();
-            res.output();
-            res.print("res.dot");
+            Parser<char> parser;
+            nfa = parser.parse(fileName);
         }
-        else if(op == "-m")
-        {
-            cout<<"minimize:"<<endl;
-            DFA<int> &res = nfa.determine().minimize();
-            res.output();
-            res.print("res.dot");
-        }
-        
-        delete &nfa;
+    cout<<"nfa:"<<endl;
+    nfa -> output();
+    cout<<endl;
+    
+    if(op.find("-d") != string::npos)
+    {
+        cout<<"determinate:"<<endl;
+        DFA<char> &res = nfa -> determine();
+        res.output();
+        res.print("res.dot");
+        delete &res;
     }
+    else if(op.find("-m") != string::npos)
+    {
+        cout<<"minimize:"<<endl;
+        DFA<char> &temp = nfa -> determine();
+        DFA<char> &res = temp.minimize();
+        delete &temp;
+        res.output();
+        res.print("res.dot");
+        delete &res;
+    }
+    delete nfa;
+    
 }
+
 
 
 void testBinaryOp(string fileName1, string fileName2, string op)
 {
-    if (config["type"] == "int") {
-        Parser<int> parser;
-        
-        if(op != "-a")
+    if(op.find("-a") == string::npos)
+    {
+        NFA<char> *nfa1;
+        NFA<char> *nfa2;
+        if(op.find("-reg") != string::npos)
         {
-            NFA<int>& nfa1 = *(parser.parse(fileName1));
-            NFA<int>& nfa2 = *(parser.parse(fileName2));
-            cout<<"nfa1:"<<endl;
-            nfa1.output();
-            cout<<"nfa2:"<<endl;
-            nfa2.output();
-            cout<<endl;
-            if(op == "-i")
-            {
-                cout<<"intersection:"<<endl;
-                DFA<int> &res = ((nfa1 & nfa2)).determine().minimize();
-                res.output();
-                if(!res.isEmpty())
-                    res.print("res.dot");
-            }
-            else if(op == "-u")
-            {
-                cout<<"union:"<<endl;
-                DFA<int> &res = ((nfa1 | nfa2)).determine().minimize();
-                res.output();
-                if(!res.isEmpty())
-                    res.print("res.dot");
-            }
-            else if(op == "-cat")
-            {
-                cout<<"concat:"<<endl;
-                DFA<int> &res = (nfa1.concat(nfa2)).determine().minimize();
-                res.output();
-                if(!res.isEmpty())
-                    res.print("res.dot");
-            }
-            
-            delete &nfa1;
-            delete &nfa2;
+            nfa1 = new NFA<char>(fileName1);
+            nfa2 = new NFA<char>(fileName2);
         }
         else
+            if(config["type"] == "char")
+            {
+                Parser<char> parser;
+                nfa1 = parser.parse(fileName1);
+                nfa2 = parser.parse(fileName2);
+            }
+        cout<<"nfa1:"<<endl;
+        nfa1 -> output();
+        cout<<"nfa2:"<<endl;
+        nfa2 -> output();
+        cout<<endl;
+        if(op.find("-i") != string::npos)
         {
-            NFA<int>& nfa = *(parser.parse(fileName1));
-            string str = fileName2;
-            Global<int>::Word word;
-            for(int i = 0; i < str.size(); i++)
-                word.push_back((int)(str[i] - '0'));
-            
-            cout<<"nfa:"<<endl;
-            nfa.output();
-            cout<<endl;
-            cout<<"word:" + str<<endl;
-            if(nfa.isAccepted(word)) cout<<"Accepted"<<endl;
-            else cout<<"Not Accepted"<<endl;
-            
-            delete &nfa;
+            cout<<"intersection:"<<endl;
+            DFA<char> &res = ((*nfa1 & *nfa2)).determine().minimize();
+            res.output();
+            if(!res.isEmpty())
+                res.print("res.dot");
+            delete &res;
         }
+        else if(op.find("-u") != string::npos)
+        {
+            cout<<"union:"<<endl;
+            DFA<char> &res = ((*nfa1 | *nfa2)).determine().minimize();
+            res.output();
+            if(!res.isEmpty())
+                res.print("res.dot");
+            delete &res;
+        }
+        else if(op.find("-cat") != string::npos)
+        {
+            cout<<"concat:"<<endl;
+            DFA<char> &res = (nfa1 -> concat(*nfa2)).determine().minimize();
+            res.output();
+            if(!res.isEmpty())
+                res.print("res.dot");
+            delete &res;
+        }
+        
+        delete nfa1;
+        delete nfa2;
     }
+    else
+    {
+        NFA<char> *nfa;
+        if(op.find("-reg") != string::npos)
+            nfa = new NFA<char>(fileName1);
+        else
+            if(config["type"] == "char")
+            {
+                Parser<char> parser;
+                nfa = parser.parse(fileName1);
+            }
+        string str = fileName2;
+        Global<char>::Word word;
+        for(int i = 0; i < str.size(); i++)
+            word.push_back((char)(str[i]));
+        
+        cout<<"nfa:"<<endl;
+        DFA<char> &res = nfa -> determine();
+        res.output();
+        cout<<endl;
+        cout<<"word:" + str<<endl;
+        if(res.isAccepted(word)) cout<<"Accepted"<<endl;
+        else cout<<"Not Accepted"<<endl;
+        delete &res;
+        delete nfa;
+    }
+        
+        
 }
 
 void testMulOp(vector<string> fileNames, string op)
 {
-    if (config["type"] == "int")
+    if (config["type"] == "char")
     {
-        Parser<int> parser;
+        Parser<char> parser;
         
-        if(op == "-mc")
+        if(op.find("-mc") != string::npos)
         {
             // multiple concatenation
-            Global<int>::FAList faList;
+            Global<char>::FAList faList;
             for(int i = 0; i < fileNames.size(); i++)
             {
-                NFA<int> *nfa = parser.parse(fileNames[i]);
+                NFA<char>* nfa;
+                if(op.find("-reg") != string::npos)
+                    nfa = new NFA<char>(fileNames[i]);
+                else
+                    nfa = parser.parse(fileNames[i]);
                 cout<<"nfa" + to_string(i + 1) + ":"<<endl;
                 nfa->output();
                 cout<<endl;
                 faList.push_back(nfa);
             }
             cout<<"multiConcatination:"<<endl;
-            DFA<int>& res = (FA<int>::multiConcatination(faList)).determine().minimize();
+            DFA<char>& res = (FA<char>::multiConcatination(faList)).determine().minimize();
             
             // delete
-            for(typename Global<int>::FAListIter iter = faList.begin(); iter != faList.end(); iter++)
-                delete dynamic_cast<NFA<int>*>(*iter);
+            for(typename Global<char>::FAListIter iter = faList.begin(); iter != faList.end(); iter++)
+                delete dynamic_cast<NFA<char>*>(*iter);
             res.output();
             if(!res.isEmpty())
                 res.print("res.dot");
         }
         else {
-            Global<int>::FASet faSet;
+            Global<char>::FASet faSet;
             for(int i = 0; i < fileNames.size(); i++)
             {
-                NFA<int> *nfa = parser.parse(fileNames[i]);
+                NFA<char>* nfa;
+                if(op.find("-reg") != string::npos)
+                    nfa = new NFA<char>(fileNames[i]);
+                else
+                    nfa = parser.parse(fileNames[i]);
                 cout<<"nfa" + to_string(i + 1) + ":"<<endl;
                 nfa->output();
                 cout<<endl;
                 faSet.insert(nfa);
             }
             
-            if(op == "-mi")
+            if(op.find("-mi") != string::npos)
             {
                 // multiple intersection
                 cout<<"multiIntersection:"<<endl;
-                DFA<int>& res = (FA<int>::multiIntersection(faSet)).determine().minimize();
+                DFA<char>& res = (FA<char>::multiIntersection(faSet)).determine().minimize();
                 res.output();
                 if(!res.isEmpty())
                     res.print("res.dot");
             }
-            else if(op == "-mu")
+            else if(op.find("-mu") != string::npos)
             {
                 // multiple union
                 cout<<"multiUnion:"<<endl;
-                DFA<int>& res = (FA<int>::multiUnion(faSet)).determine().minimize();
+                DFA<char>& res = (FA<char>::multiUnion(faSet)).determine().minimize();
                 res.output();
                 if(!res.isEmpty())
                     res.print("res.dot");
             }
             // delete 
-            for(typename Global<int>::FASetIter iter = faSet.begin(); iter != faSet.end(); iter++)
-                delete dynamic_cast<NFA<int>*>(*iter);
+            for(typename Global<char>::FASetIter iter = faSet.begin(); iter != faSet.end(); iter++)
+                delete dynamic_cast<NFA<char>*>(*iter);
         }
     }
 }

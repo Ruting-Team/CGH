@@ -9,18 +9,8 @@
 #ifndef State_hpp
 #define State_hpp
 
-#include <climits>
-#include <set>
-#include <list>
-#include <queue>
-#include <regex>
-#include <string>
-#include <vector>
-#include <stdio.h>
-#include <iostream>
-#include <unordered_map>
-#include <unordered_set>
 #include "Global.hpp"
+
 namespace cgh{
     using namespace std;
     
