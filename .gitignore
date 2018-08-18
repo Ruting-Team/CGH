@@ -23,7 +23,8 @@ release
 *.app
 
 # Make.properties
-Make.properties
+./Make.properties
+cgh_bin
 
 # Codeblocks project files
 *.layout
