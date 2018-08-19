@@ -14,6 +14,7 @@ namespace cgh {
     template <class Character> class NFA;
     template <class Character> class NFAState;
     
+    
     template<class Character>
     class Char
     {
@@ -74,23 +75,26 @@ namespace cgh {
     };
     
     
-    class RegEx2NFA
+    class RegEx
     {
     protected:
         unordered_set<char> optSet;
+        string regEx;
     public:
-        RegEx2NFA() {}
-//        virtual void mkComplementRegEx(const string& regEx, vector<int>& res);
-//        virtual void mkPostfixEx();
-//        virtual void mkNFA(const string& regEx, NFA<char>* nfa) = 0;
-        
+        RegEx() {}
+        //        virtual void mkComplementRegEx(const string& regEx, vector<int>& res);
+        //        virtual void mkPostfixEx();
+        //        virtual void mkNFA(const string& regEx, NFA<char>* nfa) = 0;
+        string getRegEx(){return regEx;}
+        virtual bool isRegEx() = 0;
         bool isOpt(char c) { return optSet.find(c) != optSet.end(); }
+        bool isUnintOpt(char c) { return c == '*' || c == '+'; }
         virtual bool isLeft(char c) = 0;
         virtual bool isRight(char c) = 0;
     };
     
     template<class Character>
-    class BasicRegEx2NFA : public RegEx2NFA
+    class BasicRegEx : public RegEx
     {
     public:
         typedef Global<Character> Global;
@@ -100,7 +104,7 @@ namespace cgh {
         
         typedef typename Global::NFAState2Map NFAState2Map;
     public:
-        BasicRegEx2NFA()
+        BasicRegEx()
         {
             optSet.insert('(');
             optSet.insert(')');
@@ -108,10 +112,43 @@ namespace cgh {
             optSet.insert('*');
             optSet.insert('|');
         }
-        bool isLeft(char c) { return c != '|' && c != '('; }
-        bool isRight(char c) { return optSet.find(c) == optSet.end() || c == '('; }
-        void mkComplementRegEx(const string& regEx, vector<BasicChar*>& res)
+        BasicRegEx(const string& str)
         {
+            regEx = str;
+            optSet.insert('(');
+            optSet.insert(')');
+            optSet.insert('+');
+            optSet.insert('*');
+            optSet.insert('|');
+        }
+        bool isRegEx()
+        {
+            int count = 0;
+            for(ID i = 0; i < regEx.size(); i++)
+            {
+                if(regEx[i] == '|')
+                {
+                    if(i == regEx.size() -1)
+                        return false;
+                    else if(isLeftOpt(regEx[i + 1]))
+                        return false;
+                }
+                else if(regEx[i] == '(') count++;
+                else if(regEx[i] == ')') count--;
+                else if(isUnintOpt(regEx[i]))
+                    if(i < regEx.size() -1)
+                        if(isUnintOpt(regEx[i + 1]))
+                            return false;
+            }
+            if(count != 0) return false;
+            return true;
+        }
+        bool isLeft(char c) { return c != '|' && c != '('; }
+        bool isLeftOpt(char c) { return optSet.find(c) != optSet.end() && c != '(';}
+        bool isRight(char c) { return optSet.find(c) == optSet.end() || c == '('; }
+        void mkComplementRegEx(vector<BasicChar*>& res)
+        {
+            if(!isRegEx()) return;
             ID length = regEx.length();
             for(ID i = 0; i < length; i++)
             {
@@ -132,14 +169,14 @@ namespace cgh {
                     else
                         res.push_back(new BasicChar(regEx[i], 0));
                     if(i < length - 1 && isLeft(regEx[i]) && isRight(regEx[i + 1]))
-                      res.push_back(new BasicChar(128, 3));
+                        res.push_back(new BasicChar(128, 3));
                 }
             }
         }
-        void toPostfixEx(const string& regEx, vector<BasicChar*>& res)
+        void toPostfixEx(vector<BasicChar*>& res)
         {
             vector<BasicChar*> source;
-            mkComplementRegEx(regEx, source);
+            mkComplementRegEx(source);
             if(source.size() == 1)
             {
                 if(!source[0] -> isOpt())
@@ -181,10 +218,10 @@ namespace cgh {
             }
         }
         
-        NFA* mkNFA(const string regEx)
+        NFA* mkNFA()
         {
             vector<BasicChar*> postfix;
-            toPostfixEx(regEx, postfix);
+            toPostfixEx(postfix);
             stack<BasicChar*> stack;
             for(BasicChar* basicChar: postfix)
             {
@@ -285,7 +322,7 @@ namespace cgh {
                             }
                             delete rhsNFA;
                         }
-                    
+                        
                     }
                     else if(basicChar -> isCatOpt())
                     {
@@ -350,3 +387,5 @@ namespace cgh {
 }
 
 #endif /* RegularExp_hpp */
+
+
