@@ -54,6 +54,7 @@ namespace cgh {
         bool isUnintOpt() { return this -> isOpt() && ( character == '*' || character == '+'); }
         bool isStar() { return this -> isOpt() && character == '*'; }
         bool isPlus() { return this -> isOpt() && character == '+'; }
+        bool isQustion() { return this -> isOpt() && character == '?';}
         
         BasicChar(int c, char t):Char<Character>(t) { character = c; }
         BasicChar(int c):Char<Character>() { character = c; }
@@ -88,7 +89,7 @@ namespace cgh {
         string getRegEx(){return regEx;}
         virtual bool isRegEx() = 0;
         bool isOpt(char c) { return optSet.find(c) != optSet.end(); }
-        bool isUnintOpt(char c) { return c == '*' || c == '+'; }
+        bool isUnintOpt(char c) { return c == '*' || c == '+' || c == ':'; }
         virtual bool isLeft(char c) = 0;
         virtual bool isRight(char c) = 0;
     };
@@ -110,6 +111,7 @@ namespace cgh {
             optSet.insert(')');
             optSet.insert('+');
             optSet.insert('*');
+            optSet.insert('?');
             optSet.insert('|');
         }
         BasicRegEx(const string& str)
@@ -119,6 +121,7 @@ namespace cgh {
             optSet.insert(')');
             optSet.insert('+');
             optSet.insert('*');
+            optSet.insert('?');
             optSet.insert('|');
         }
         bool isRegEx()
@@ -164,7 +167,7 @@ namespace cgh {
                         res.push_back(new BasicChar(regEx[i], 1));
                     else if(regEx[i] == '|')
                         res.push_back(new BasicChar(regEx[i], 2));
-                    else if(regEx[i] == '*' || regEx[i] == '+')
+                    else if(regEx[i] == '*' || regEx[i] == '+' || regEx[i] == '?')
                         res.push_back(new BasicChar(regEx[i], 4));
                     else
                         res.push_back(new BasicChar(regEx[i], 0));
@@ -246,6 +249,23 @@ namespace cgh {
                             for(NFAState* state : rhsNFA -> getFinalStateSet())
                                 state -> addEpsilonTrans(rhsNFA -> getInitialState());
                             rhsNFA -> addFinalState(rhsNFA -> getInitialState());
+                        }
+                    }
+                    else if(basicChar -> isQustion())
+                    {
+                        if(!rhsNFA)
+                        {
+                            rhsNFA = new NFA();
+                            NFAState* iState = rhsNFA -> mkNFAInitialState();
+                            NFAState* fState = rhsNFA -> mkNFAFinalState();
+                            iState -> addNFATrans(rhsChar -> getChar(), fState);
+                            iState -> addEpsilonTrans(iState);
+                            stack.top() -> setNFA(rhsNFA);
+                        }                            
+                        else
+                        {
+                            NFAState* state = rhsNFA -> getInitialState();
+                            state -> addEpsilonTrans(state);                            
                         }
                     }
                     else if(basicChar -> isPlus())
@@ -368,6 +388,7 @@ namespace cgh {
                                 NFAState* state = lhsNFA -> mkNFAState();
                                 for(NFAState* finState : lhsNFA -> getFinalStateSet())
                                     finState -> addEpsilonTrans(state);
+                                lhsNFA -> clearFinalStateSet();                                
                                 NFAState2Map state2Map;
                                 NFAState* iniState = rhsNFA -> getInitialState();
                                 state2Map[iniState] = state;
