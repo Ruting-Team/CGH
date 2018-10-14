@@ -388,8 +388,8 @@ namespace cgh {
         }
         NFA(const string& regEx)
         {
-            BasicRegEx2NFA<Character> basicRegEx2NFA;
-            *this = *basicRegEx2NFA.mkNFA(regEx);
+            BasicRegEx<Character> basicRegEx(regEx);
+            *this = *basicRegEx.mkNFA();
         }
         
         ~NFA()
@@ -847,7 +847,7 @@ namespace cgh {
             f.close();
         }
         friend FA;
-        friend BasicRegEx2NFA<Character>;
+        friend BasicRegEx<Character>;
         
     };
 }
