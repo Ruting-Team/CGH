@@ -348,12 +348,14 @@ namespace cgh {
             if (unFinalStateSet.size() != 0) {
                 equiClass.push(unFinalStateSet);
             } else {
+                (dfa -> stateSet).erase(unFinalState);
                 delete unFinalState;
             }
             if (finalStatesSet.size() != 0) {
                 equiClass.push(finalStatesSet);
             } else {
-                delete unFinalState;
+                (dfa -> stateSet).erase(finalState);
+                delete finalState;
             }
             size_t curSize = equiClass.size();
             

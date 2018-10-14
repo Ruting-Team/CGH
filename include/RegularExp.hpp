@@ -258,14 +258,13 @@ namespace cgh {
                             rhsNFA = new NFA();
                             NFAState* iState = rhsNFA -> mkNFAInitialState();
                             NFAState* fState = rhsNFA -> mkNFAFinalState();
+                            rhsNFA -> addFinalState(iState);
                             iState -> addNFATrans(rhsChar -> getChar(), fState);
-                            iState -> addEpsilonTrans(iState);
                             stack.top() -> setNFA(rhsNFA);
-                        }                            
+                        }
                         else
                         {
-                            NFAState* state = rhsNFA -> getInitialState();
-                            state -> addEpsilonTrans(state);                            
+                            rhsNFA -> addFinalState(rhsNFA -> getInitialState());
                         }
                     }
                     else if(basicChar -> isPlus())
