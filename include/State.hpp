@@ -39,10 +39,10 @@ namespace cgh{
     public:
         ID getID(){return id;}
         void setID(ID i){id = i;}
-        bool isFinal(){return (flag & 1) == 1;}
-        bool isVisited(){return (flag & 1<<1) == (1<<1);}
-        bool isValid(){return (flag & (1<<2)) == (1<<2);}
-        bool hasEpsilonTrans(){return (flag & (1<<3)) == (1<<3);}
+        bool isFinal() const {return (flag & 1) == 1;}
+        bool isVisited() const {return (flag & 1<<1) == (1<<1);}
+        bool isValid() const {return (flag & (1<<2)) == (1<<2);}
+        bool hasEpsilonTrans() const {return (flag & (1<<3)) == (1<<3);}
         
         friend NFA<class Character>;
         friend DFA<class Character>;
