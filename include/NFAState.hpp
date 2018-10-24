@@ -33,16 +33,8 @@ namespace cgh{
     public:
         typedef Global<Character> Global;
         typedef typename Global::CharacterSet CharacterSet;
-        
         typedef typename Global::NFAStateSet NFAStateSet;
         typedef typename Global::NFATransMap NFATransMap;
-        
-        typedef typename Global::NFAMapIter NFAMapIter;
-        typedef typename Global::NFAStateSetIter NFAStateSetIter;
-        typedef typename Global::NFATransMapIter NFATransMapIter;
-        
-        typedef typename Global::NFAStateSetConstIter NFAStateSetConstIter;
-        typedef typename Global::NFATransMapConstIter NFATransMapConstIter;
         
     private:
         NFATransMap nfaTransMap; ///< A transition map for this state, the key is character and the value is a set of states.
@@ -62,7 +54,7 @@ namespace cgh{
             epsilonClosure.insert(this);
             for (NFAState* nfaState : epsilonClosure) {
                 NFATransMap& transMap = nfaState -> getNFATransMap();
-                NFATransMapIter mapIt = transMap.find(character);
+                auto mapIt = transMap.find(character);
                 if (mapIt != transMap.end()) {
                     for(NFAState* state : mapIt -> second) {
                         state -> getEpsilonClosure(stateSet);
@@ -73,7 +65,7 @@ namespace cgh{
         }
 
         void getEpsilonClosure(NFAStateSet& epsilonClosure) {
-            NFATransMapIter mapIt = nfaTransMap.find(Global::epsilon);
+            auto mapIt = nfaTransMap.find(Global::epsilon);
             if (mapIt != nfaTransMap.end()) { 
                 NFAStateSet workSet;
                 for (NFAState* state : mapIt -> second)
@@ -127,12 +119,12 @@ namespace cgh{
         /// \param target The target state in the transition.
         /// Returns a boolean representing whether the transition is deleted successfully.
         bool delNFATrans(Character character, const NFAState *target) {
-            NFATransMapIter mapIt = nfaTransMap.find(character);
+            auto mapIt = nfaTransMap.find(character);
             if (mapIt == nfaTransMap.end()) {
                 return false;
             } else {
                 NFAStateSet& stateSet = mapIt -> second;
-                NFAStateSetIter sIt = stateSet.find(target);
+                auto sIt = stateSet.find(target);
                 if (sIt == stateSet.end()) return false;
                 if (stateSet.size() == 1) {
                     nfaTransMap.erase(mapIt);
@@ -154,7 +146,7 @@ namespace cgh{
             CharacterSet charSet;
             for (auto& mapPair : nfaTransMap) {
                 NFAStateSet& stateSet = mapPair.second;
-                NFAStateSetIter sIt = stateSet.find(const_cast<NFAState*>(target));
+                auto sIt = stateSet.find(const_cast<NFAState*>(target));
                 if (sIt != stateSet.end()) {
                     count++;
                     if (stateSet.size() == 1) {
@@ -200,9 +192,9 @@ namespace cgh{
             NFAStateSet stateSet;
             for (NFAState* nfaState : epsilonClosure) {
                 NFATransMap& transMap = nfaState -> getNFATransMap();
-                NFATransMapIter mapIter = transMap.find(character);
-                if (mapIter != transMap.end()) {
-                    for(NFAState* state : mapIter -> second) {
+                auto mapIt = transMap.find(character);
+                if (mapIt != transMap.end()) {
+                    for(NFAState* state : mapIt -> second) {
                         state -> getEpsilonClosure(stateSet);
                         stateSet.insert(state);
                     }
@@ -217,7 +209,7 @@ namespace cgh{
         /// \return A const set of states in NFA.
         const NFAStateSet getEpsilonClosure() {
             NFAStateSet epsilonClosure;
-            NFATransMapIter mapIt = nfaTransMap.find(Global::epsilon);
+            auto mapIt = nfaTransMap.find(Global::epsilon);
             if (mapIt == nfaTransMap.end()) return epsilonClosure;
             NFAStateSet workSet;
             for (NFAState* state : mapIt -> second)
@@ -228,10 +220,10 @@ namespace cgh{
         }
 
         void output() {
-            for (NFATransMapIter it = nfaTransMap.begin(); it != nfaTransMap.end(); it++) {
-                NFAStateSet set = it -> second;
+            for (auto& mapPair : nfaTransMap)
+                NFAStateSet set = mapPair.second;
                 for (NFAState* state : set)
-                    cout << getID() << " " << it -> first << " " << state -> getID() << endl;
+                    cout << getID() << " " << mapPair.first << " " << state -> getID() << endl;
             }
         }
 
