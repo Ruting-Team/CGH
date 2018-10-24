@@ -60,8 +60,7 @@ namespace cgh{
             NFAStateSet epsilonClosure;
             getEpsilonClosure(epsilonClosure);
             epsilonClosure.insert(this);
-            for (NFAState* nfaState : epsilonClosure) 
-            {
+            for (NFAState* nfaState : epsilonClosure) {
                 NFATransMap& transMap = nfaState -> getNFATransMap();
                 NFATransMapIter mapIt = transMap.find(character);
                 if (mapIt != transMap.end()) {
@@ -150,12 +149,10 @@ namespace cgh{
         /// Otherwise do nothing and return false;
         /// \param target The target state in the transition.
         /// \return A boolean representing whether the target state is deleted successfully.
-        bool delNFATrans(const NFAState *target)
-        {
+        bool delNFATrans(const NFAState *target) {
             int count = 0;
             CharacterSet charSet;
-            for (auto mapPair : nfaTransMap)
-            {
+            for (auto& mapPair : nfaTransMap) {
                 NFAStateSet& stateSet = mapPair.second;
                 NFAStateSetIter sIt = stateSet.find(const_cast<NFAState*>(target));
                 if (sIt != stateSet.end()) {
@@ -183,8 +180,7 @@ namespace cgh{
 
         /// \brief Gets a set of all the target states for this state.
         /// \return A const set of states in NFA.
-        const NFAStateSet getTargetStateSet()
-        {
+        const NFAStateSet getTargetStateSet() {
             NFAStateSet stateSet;
             for (auto& mapPair : nfaTransMap)
                 getTargetStateSetByChar(stateSet, mapPair.first);
@@ -196,20 +192,17 @@ namespace cgh{
         /// If this state has no transition with the label param character, then return a empty set.
         /// \param character The label in a transition, which is a template class.
         /// \return A const set of states in NFA.
-        const NFAStateSet getTargetStateSetByChar(Character character)
-        {
+        const NFAStateSet getTargetStateSetByChar(Character character) {
             NFAStateSet epsilonClosure;
             getEpsilonClosure(epsilonClosure);
             if (character == Global::epsilon) return epsilonClosure;
             epsilonClosure.insert(this);
             NFAStateSet stateSet;
-            for (NFAState* nfaState : epsilonClosure)
-            {
+            for (NFAState* nfaState : epsilonClosure) {
                 NFATransMap& transMap = nfaState -> getNFATransMap();
                 NFATransMapIter mapIter = transMap.find(character);
                 if (mapIter != transMap.end()) {
-                    for(NFAState* state : mapIter -> second)
-                    {
+                    for(NFAState* state : mapIter -> second) {
                         state -> getEpsilonClosure(stateSet);
                         stateSet.insert(state);
                     }
@@ -234,10 +227,8 @@ namespace cgh{
             return epsilonClosure;
         }
 
-        void output()
-        {
-            for (NFATransMapIter it = nfaTransMap.begin(); it != nfaTransMap.end(); it++)
-            {
+        void output() {
+            for (NFATransMapIter it = nfaTransMap.begin(); it != nfaTransMap.end(); it++) {
                 NFAStateSet set = it -> second;
                 for (NFAState* state : set)
                     cout << getID() << " " << it -> first << " " << state -> getID() << endl;
