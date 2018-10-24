@@ -14,35 +14,33 @@
 namespace cgh{
     using namespace std;
     
-    
     template <class Character> class DFA;
     template <class Character> class NFA;
     template <class Character> class DFAState;
     template <class Character> class NFAState;
-    
-    
 
-    class State
-    {
+    class State {
         static ID counter;
+
     protected:
         ID id;
         Flag flag;
-        State():id(counter++),flag(0){}
-        State(ID id):id(id),flag(0){}
-        virtual ~State(){}
+        State() : id (counter++), flag(0) {}
+        State(ID id) : id(id), flag(0) {}
+        virtual ~State() {}
+
     public:
-        void setFinalFlag(bool b){flag = b ? (flag | 1):(flag & ~1);}
-        void setVisitedFlag(bool b){flag = b ? (flag | (1<<1)):(flag & ~(1<<1));}
-        void setValidFlag(bool b){flag = b ? (flag | (1<<2)):(flag & ~(1<<2));}
-        void setEpsilonFlag(bool b){flag = b ? (flag | (1<<3)):(flag & ~(1<<3));}
-    public:
-        ID getID(){return id;}
-        void setID(ID i){id = i;}
+        void setID(ID i) {id = i;}
+        void setFinalFlag(bool b) {flag = b ? (flag | 1) : (flag & ~1);}
+        void setVisitedFlag(bool b) {flag = b ? (flag | (1 << 1)) : (flag & ~(1 << 1));}
+        void setValidFlag(bool b) {flag = b ? (flag | (1 << 2)) : (flag & ~(1 << 2));}
+        void setEpsilonFlag(bool b) {flag = b ? (flag | (1 << 3)) : (flag & ~(1 << 3));}
+
+        ID getID() const {return id;}
         bool isFinal() const {return (flag & 1) == 1;}
-        bool isVisited() const {return (flag & 1<<1) == (1<<1);}
-        bool isValid() const {return (flag & (1<<2)) == (1<<2);}
-        bool hasEpsilonTrans() const {return (flag & (1<<3)) == (1<<3);}
+        bool isVisited() const {return (flag & 1 << 1) == (1 << 1);}
+        bool isValid() const {return (flag & (1 << 2)) == (1 << 2);}
+        bool hasEpsilonTrans() const {return (flag & (1 << 3)) == (1 << 3);}
         
         friend NFA<class Character>;
         friend DFA<class Character>;
