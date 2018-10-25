@@ -32,7 +32,6 @@ namespace cgh {
         typedef typename Global::DFAStateSetConstIter DFAStateSetConstIter;
         typedef typename Global::DFATransMapConstIter DFATransMapConstIter;
         
-        
         typedef typename Global::DFAState2 DFAState2;
         typedef typename Global::DFAState2Map DFAState2Map;
         typedef typename Global::DFAState2DFAStateSetMap DFAState2DFAStateSetMap;
@@ -52,19 +51,16 @@ namespace cgh {
         typedef typename Global::Char2DFAState2MapConstIter Char2DFAState2MapConstIter;
         typedef typename Global::DFAState2DFAStateSetMapConstIter DFAState2DFAStateSetMapConstIter;
         
-        
-        
-        
     private:
         DFAState* initialState;
         DFAStateSet stateSet;
         DFAStateSet finalStateSet;
     private:
-        void makeCopyTrans(DFAState *state, DFAState2Map& state2map)
+        void makeCopyTrans(const DFAState* state, DFAState2Map& state2map)
         {
-            DFATransMap& map = state -> getDFATransMap();
-            DFAState* sourceState = state2map[state];
-            for(DFATransMapIter mapIt = map.begin(); mapIt != map.end(); mapIt++)
+            const DFATransMap& map = state -> getDFATransMap();
+            DFAState* sourceState = state2map.at(const_cast<DFAState*>(state));
+            for(DFATransMapConstIter mapIt = map.begin(); mapIt != map.end(); mapIt++)
             {
                 DFAState* targetState;
                 DFAState2MapIter state2MapIt = state2map.find(mapIt -> second);
@@ -112,12 +108,12 @@ namespace cgh {
                 sourceState -> addDFATrans(mapIt -> first, targetState);
             }
         }
-        void makeDFAComplementTrans(DFAState *state, DFAState* trapState, DFAState2Map &state2map, DFA *dfa)
+        void makeDFAComplementTrans(const DFAState *state, DFAState* trapState, DFAState2Map &state2map, DFA *dfa)
         {
             CharacterSet charSet;
-            DFATransMap& map = state -> getDFATransMap();
-            DFAState* sourceState = state2map[state];
-            for(DFATransMapIter mapIt = map.begin(); mapIt != map.end(); mapIt++)
+            const DFATransMap& map = state -> getDFATransMap();
+            DFAState* sourceState = state2map.at(const_cast<DFAState*>(state));
+            for(DFATransMapConstIter mapIt = map.begin(); mapIt != map.end(); mapIt++)
             {
                 DFAState* targetState;
                 DFAState2MapIter state2MapIter = state2map.find(mapIt -> second);
@@ -179,13 +175,13 @@ namespace cgh {
         }
     public:
         
-        DFA() : FA(),initialState(NULL){this -> setDeterminateFlag(1);}
+        DFA() : FA(), initialState(NULL) {this -> setDeterminateFlag(1);}
     
         DFA(const DFA& dfa)
         {
             if(dfa.initialState)
             {
-                this -> flag = dfa.flag;
+                this -> flag = dfa.flag; 
                 this -> setAlphabet(dfa.getAlphabet());
                 DFAState* iniState = mkDFAInitialState();
                 if(dfa.initialState -> isFinal())
@@ -198,9 +194,9 @@ namespace cgh {
         }
         ~DFA()
         {
-            initialState = NULL;
-            for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-                delete *it;
+            initialState = NULL; 
+            for(DFAState* state : stateSet)
+                delete state;
         }
         
         DFAState *mkDFAState()
@@ -211,7 +207,6 @@ namespace cgh {
         }
         DFAState *mkDFAInitialState()
         {
-            
             initialState = mkDFAState();
             return initialState;
         }
@@ -233,26 +228,26 @@ namespace cgh {
         const DFAState* getInitialState() const {return initialState;}
         void clearFinalStateSet()
         {
-            for(DFAStateSetIter it = finalStateSet.begin(); it != finalStateSet.end(); it++)
-                (*it) -> setFinalFlag(0);
+            for(DFAState* state : finalStateSet)
+                state -> setFinalFlag(0);
             finalStateSet.clear();
         }
         static bool hasFinalState(const DFAStateSet& stateSet)
         {
-            for(DFAStateSetConstIter it = stateSet.begin(); it != stateSet.end(); it++)
-                if((*it) -> isFinal()) return true;
+            for(const DFAState* state : stateSet)
+                if(state -> isFinal()) return true;
             return false;
         }
         static bool allFinalState(const DFAStateSet& stateSet)
         {
-            for(DFAStateSetConstIter it = stateSet.begin(); it != stateSet.end(); it++)
-                if(!(*it) -> isFinal()) return false;
+            for(const DFAState* state : stateSet)
+                if(!state -> isFinal()) return false;
             return true;
         }
         bool isNULL() const {if(!initialState) return true; return false;}
         FA &operator &(const FA &fa)
         {
-            DFA* dfa = new DFA();
+            DFA* dfa = new DFA(); 
             if(isNULL() || fa.isNULL()) return *dfa;
             DFA &tempDFA = const_cast<FA&>(fa).determine();
             dfa -> setAlphabet(this -> alphabet);
@@ -307,15 +302,15 @@ namespace cgh {
             return *nfa;
         }
         
-        static bool isEqual(DFAState *s1, DFAState *s2, DFAState2Map &stateMap)
+        static bool isEqual(const DFAState *s1, const DFAState *s2, DFAState2Map &stateMap)
         {
-            DFATransMap &transMap1 = s1  ->  getDFATransMap();
-            DFATransMap &transMap2 = s2  ->  getDFATransMap();
+            const DFATransMap &transMap1 = s1  ->  getDFATransMap();
+            const DFATransMap &transMap2 = s2  ->  getDFATransMap();
             if (transMap1.size() != transMap2.size()) return false;
-            for (DFATransMapIter it = transMap1.begin(); it != transMap1.end(); ++it)
+            for (DFATransMapConstIter it = transMap1.begin(); it != transMap1.end(); ++it)
             {
                 if (transMap2.count(it  ->  first) == 0) return false;
-                else if (stateMap[it  ->  second] != stateMap[transMap2[it  ->  first]])
+                else if (stateMap.at(it  ->  second) != stateMap.at(transMap2.at(it  ->  first)))
                     return false;
             }
             return true;
