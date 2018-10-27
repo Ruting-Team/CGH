@@ -95,7 +95,6 @@ namespace cgh
         /***************** NFAState  *****************/
         
         typedef unordered_set<NFAState*> NFAStateSet;
-        typedef unordered_map<NFATransMap, bool> NFAMapIter;
         typedef unordered_map<NFAState*, NFAState*> NFAState2Map;
         typedef unordered_map<Character, NFAStateSet> NFATransMap;
         typedef unordered_map<NFAState*, DFAState*> NFAState2DFAStateMap;
@@ -116,7 +115,6 @@ namespace cgh
         
         typedef pair<DFAState*, DFAState*> DFAState2;
         typedef unordered_set<DFAState*> DFAStateSet;
-        typedef unordered_map<DFATransMap, bool> DFAMapIter;
         typedef unordered_map<Character, DFAState*> DFATransMap;
         typedef unordered_map<DFAState*, DFAState*> DFAState2Map;
         typedef unordered_map<DFAState2, DFAState*> DFAStatePairMap;

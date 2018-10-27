@@ -38,7 +38,6 @@ namespace cgh {
         typedef typename Global::DFAStateSet DFAStateSet;
         typedef typename Global::NFATransMap NFATransMap;
         typedef typename Global::DFATransMap DFATransMap;
-        typedef typename Global::NFAMapIter NFAMapIter;
         typedef typename Global::NFAStateSetIter NFAStateSetIter;
         typedef typename Global::NFATransMapIter NFATransMapIter;
         typedef typename Global::DFATransMapIter DFATransMapIter;

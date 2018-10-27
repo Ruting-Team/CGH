@@ -26,7 +26,6 @@ namespace cgh {
         typedef typename Global::CharacterSetIter CharacterSetIter;
         typedef typename Global::DFAStateSet DFAStateSet;
         typedef typename Global::DFATransMap DFATransMap;
-        typedef typename Global::DFAMapIter DFAMapIter;
         typedef typename Global::DFAStateSetIter DFAStateSetIter;
         typedef typename Global::DFATransMapIter DFATransMapIter;
         typedef typename Global::DFAStateSetConstIter DFAStateSetConstIter;
