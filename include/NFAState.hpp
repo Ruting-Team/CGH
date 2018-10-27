@@ -221,11 +221,9 @@ namespace cgh{
 
         void output() {
             for (auto& mapPair : nfaTransMap)
-                NFAStateSet set = mapPair.second;
-                for (NFAState* state : set)
+                for (NFAState* state : mapPair.second)
                     cout << getID() << " " << mapPair.first << " " << state -> getID() << endl;
             }
-        }
 
         friend NFA<Character>;
     };
