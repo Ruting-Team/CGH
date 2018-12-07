@@ -47,14 +47,25 @@ namespace cgh{
         typedef typename Global::DFAState2NFAStateMap DFAState2NFAStateMap;
         
     protected:
-        Flag flag; /// < Records some attributes for this FA.
-        CharacterSet alphabet;/// < A set of characters which in the label on the transitions.
+        Flag flag;              /// < Records some attributes for this FA.
+        CharacterSet alphabet;  /// < A set of characters which in the label on the transitions.
 
         /// \brief Default construction without arguments, initialize flag to 0.
         FA():flag(0){}
+
+        /// \brief Construct FA from file.
+        /// \param file The FA description file.
         FA(FILE *file){}//todo
+
+        /// \brief Virtual desconstruction fuction.
         virtual ~FA(){}
+
+        /// \brief Sets this FA to determinate or not by param b.
+        /// \param b If b is true means determinate otherwise not.
         void setDeterminateFlag(bool b){flag = b ? (flag | 1):(flag & ~1);}
+
+        /// \brief Sets this FA to reachable or not by param b.
+        /// \param b If b is true means reachable otherwise not.
         void setReachableFlag(bool b){flag = b ? (flag | (1<<1)):(flag & ~(1<<1));}
     private:
         static void getTransMapByStateSet(const DFAStateSet& stateSet, Char2DFAStateSetMap& nfaTransMap) {
@@ -105,36 +116,89 @@ namespace cgh{
         /// \return A boolean representing reachability.
         bool isReachable() const {return (flag & 1 << 1) == (1 << 1);}
 
+        /// \brief Gets the alphabet.
+        /// \return A reference set of Characters.
         CharacterSet& getAlphabet() {return alphabet;}
+
+        /// \brief Gets the alphabet.
+        /// \return A const reference set of Characters.
         const CharacterSet& getAlphabet() const {return alphabet;}
         
+        /// \brief Sets alphabet given a set of Character.
+        ///
+        /// Clears current alphabet and copy param charSet to alphabet.
+        /// \param charSet a const reference set of Character. 
         void setAlphabet(const CharacterSet &charSet) {
             alphabet.clear();
             alphabet.insert(charSet.begin(),charSet.end());
         }
+
+        /// \brief Sets alphabet given a ordered_set of Character.
+        ///
+        /// Clears current alphabet and copy param charSet to alphabet.
+        /// \param charSet a const reference ordered_set of Character. 
         void setAlphabet(const set<Character> &charSet) {
             alphabet.clear();
             alphabet.insert(charSet.begin(),charSet.end());
         }
         
-        
+        /// \brief Gets whether this FA is NULL.
+        /// \return A boolean.
         virtual bool isNULL() const = 0;
-        virtual FA& operator &(const FA &fa) = 0;//intersection
-        virtual FA& operator |(const FA &fa) = 0;//union
-        virtual DFA& operator !( void ) = 0;//complement
+
+        /// \brief Gets a FA which is intersection of this FA and param fa.
+        /// \param fa A const reference FA.
+        /// \return A reference of FA.
+        virtual FA& operator &(const FA &fa) = 0;
+
+        /// \brief Gets a FA which is union of this FA and param fa.
+        /// \param fa A const reference FA.
+        /// \return A reference of FA.
+        virtual FA& operator |(const FA &fa) = 0;
+
+        /// \brief Gets a FA which is comlement of this FA.
+        /// \return A reference of FA.
+        virtual DFA& operator !( void ) = 0;
         
+        /// \brief Gets a DFA which determined by FA.
+        /// \return A reference of FA.
         virtual DFA& determine( void ) = 0;
+
+        /// \brief Gets a DFA which nondetermined by FA.
+        /// \return A reference of FA.
         virtual NFA& nondetermine( void ) = 0;
-        virtual FA& concat(const FA &fa) = 0;//concatination
+
+        /// \brief Gets a FA which is concatination of this FA and param fa.
+        /// \param fa A const reference FA.
+        /// \return A reference of FA.
+        virtual FA& concat(const FA &fa) = 0;
         
+        /// \brief Gets a FA which is right quotient by param character of this FA.
+        /// \param character A Character.
+        /// \return A reference of FA.
         virtual FA& rightQuotient(Character character) = 0;
+
+        /// \brief Gets a FA which is left quotient by param character of this FA.
+        /// \param character A Character.
+        /// \return A reference of FA.
         virtual FA& leftQuotient(Character character) = 0;
         
+        /// \brief Removes all unreachable states from initial state.
         virtual void removeUnreachableState() = 0;
+
+        /// \brief Removes all dead states which cannot reach final states.
         virtual void removeDeadState() = 0;
         
-        //        virtual Word getOneRun() = 0;
-        virtual bool isAccepted(const Word &word) = 0;//accepted
+        //virtual Word getOneRun() = 0; todo
+        
+        /// \brief Judges whether this FA is accepted by read a param word. 
+        /// \param word A const reference of vector of Character.
+        /// \return A boolean.
+        virtual bool isAccepted(const Word &word) = 0;
+
+        /// \brief Judges whether this FA is accepted by read a param character. 
+        /// \param word A const Character.
+        /// \return A boolean.
         virtual bool isAccepted(Character character) = 0;
         
         virtual void output()const = 0;
@@ -328,8 +392,6 @@ namespace cgh{
                 iniState->addDFATrans(character, iniState);
             return *dfa;
         }
-        
-        
         
         friend DFA;
         friend NFA;
