@@ -64,8 +64,6 @@ namespace cgh
 
     class PDSState;
     typedef unordered_set<PDSState*> PDSStateSet;
-    typedef typename PDSStateSet::iterator PDSStateSetIter;
-    typedef typename PDSStateSet::const_iterator PDSStateSetConstIter;
     
     /****************** Global ******************/
 

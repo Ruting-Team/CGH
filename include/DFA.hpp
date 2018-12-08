@@ -174,7 +174,10 @@ namespace cgh {
         }
     public:
         
-        DFA() : FA(), initialState(NULL) {this -> setDeterminateFlag(1);}
+        DFA() : FA(), initialState(NULL) {this -> setDeterministicFlag(1);}
+
+        DFA(const CharacterSet& charSet) : FA(charSet), initialState(NULL) {this -> setDeterministicFlag(1);}
+
     
         DFA(const DFA& dfa)
         {
@@ -188,7 +191,7 @@ namespace cgh {
                 DFAState2Map state2Map;
                 state2Map[dfa.initialState] = iniState;
                 makeCopyTrans(dfa.initialState, state2Map);
-                this -> setDeterminateFlag(1);
+                this -> setDeterministicFlag(1);
             }
         }
         ~DFA()
@@ -243,29 +246,29 @@ namespace cgh {
                 if(!state -> isFinal()) return false;
             return true;
         }
-        bool isNULL() const {if(!initialState) return true; return false;}
-        FA &operator &(const FA &fa)
+        bool isNULL() const {
+            if (!initialState) return true;
+            if (finalStateSet.size() == 0) return true;
+            return false;
+        }
+
+        FA& operator & (const FA& fa)
         {
-            DFA* dfa = new DFA(); 
-            if(isNULL() || fa.isNULL()) return *dfa;
-            DFA &tempDFA = const_cast<FA&>(fa).determine();
-            dfa -> setAlphabet(this -> alphabet);
-            DFAState2 statePair(initialState, tempDFA.initialState);
-            DFAState* iniState = dfa -> mkDFAInitialState();
-            if(initialState -> isFinal() && tempDFA.initialState -> isFinal()) dfa -> addFinalState(iniState);
-            DFAStatePairMap pairMapping;
-            pairMapping[statePair] = iniState;
+            if (isNULL() || fa.isNULL()) return FA::EmptyDFA();
+            const DFA& dfa = fa.determinize();
+            DFA* res = new DFA(this -> alphabet); 
+            DFAState2 statePair(initialState, dfa.initialState);
+            DFAState* iniState = res -> mkDFAInitialState();
+            if (initialState -> isFinal() && dfa.initialState -> isFinal()) 
+                res -> addFinalState(iniState);
+            DFAStatePairMap pairMap;
+            pairMap[statePair] = iniState;
             Char2DFAState2Map char2DFAState2Map;
             getTransMapByStatePair(statePair, char2DFAState2Map);
-            makeDFAIntersectionTrans(iniState, pairMapping, char2DFAState2Map, dfa);
-            if(!fa.isDeterminate()) delete &tempDFA;
-            if(dfa -> finalStateSet.size() == 0)
-            {
-                delete dfa;
-                return FA::EmptyDFA();
-            }
-            dfa -> setReachableFlag(1);
-            return *dfa;
+            makeDFAIntersectionTrans(iniState, pairMap, char2DFAState2Map, res);
+            if(!fa.isDeterministic()) delete &dfa;
+            res -> setReachableFlag(1);
+            return *res;
         }
         FA &operator |(const FA &fa)
         {
@@ -290,12 +293,23 @@ namespace cgh {
             return *dfa;
         }
         
-        DFA &determine( void )
+        DFA& determinize( void )
+        {
+            return *this;
+        }
+
+        const DFA& determinize( void ) const
         {
             return *this;
         }
         
-        NFA &nondetermine( void )
+        NFA& nondeterminize( void )
+        {
+            NFA* nfa = new NFA(*this);
+            return *nfa;
+        }
+
+        const NFA& nondeterminize( void ) const
         {
             NFA* nfa = new NFA(*this);
             return *nfa;

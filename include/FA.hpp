@@ -51,7 +51,11 @@ namespace cgh{
         CharacterSet alphabet;  /// < A set of characters which in the label on the transitions.
 
         /// \brief Default construction without arguments, initialize flag to 0.
-        FA():flag(0){}
+        FA() : flag(0){}
+
+        /// \brief Construct FA with alphabet.
+        /// \param charSet The alphabet.
+        FA(const CharacterSet& charSet) : flag(0), alphabet(charSet.begin(), charSet.end()) {}
 
         /// \brief Construct FA from file.
         /// \param file The FA description file.
@@ -60,13 +64,21 @@ namespace cgh{
         /// \brief Virtual desconstruction fuction.
         virtual ~FA(){}
 
-        /// \brief Sets this FA to determinate or not by param b.
-        /// \param b If b is true means determinate otherwise not.
-        void setDeterminateFlag(bool b){flag = b ? (flag | 1):(flag & ~1);}
+        /// \brief Sets this FA to deterministic or not by param b.
+        /// \param b If b is true means deterministic otherwise not.
+        void setDeterministicFlag(bool b){flag = b ? (flag | 1):(flag & ~1);}
 
         /// \brief Sets this FA to reachable or not by param b.
         /// \param b If b is true means reachable otherwise not.
         void setReachableFlag(bool b){flag = b ? (flag | (1<<1)):(flag & ~(1<<1));}
+
+        /// \brief Gets a DFA which determinized by FA.
+        /// \return A reference of DFA.
+        virtual const DFA& determinize( void ) const = 0;
+
+        /// \brief Gets a NFA which nondeterminized by FA.
+        /// \return A reference of NFA.
+        virtual const NFA& nondeterminize( void ) const = 0;
     private:
         static void getTransMapByStateSet(const DFAStateSet& stateSet, Char2DFAStateSetMap& nfaTransMap) {
             DFATransMap& transMap = (*stateSet.begin()) -> getDFATransMap();
@@ -103,17 +115,17 @@ namespace cgh{
         }
 
     public:
-        /// \brief Judges whether this FA is determinate or not.
+        /// \brief Judges whether this FA is deterministic or not.
         ///
-        /// ture means determinate, false means nonderminate.
-        /// \return A boolean representing determinacy.
-        bool isDeterminate() const {return (flag & 1) == 1;}
+        /// ture means deterministic, false means nondeterministic.
+        /// \return A boolean.
+        bool isDeterministic() const {return (flag & 1) == 1;}
 
         /// \brief Judges whether this FA is reachable or not.
         ///
         /// ture means reachable, false means unreachable.
         /// reachable means all the states in this FA can be reached from initial state.
-        /// \return A boolean representing reachability.
+        /// \return A boolean.
         bool isReachable() const {return (flag & 1 << 1) == (1 << 1);}
 
         /// \brief Gets the alphabet.
@@ -146,39 +158,39 @@ namespace cgh{
         /// \return A boolean.
         virtual bool isNULL() const = 0;
 
-        /// \brief Gets a FA which is intersection of this FA and param fa.
+        /// \brief Gets a FA which is the intersection of this FA and param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
         virtual FA& operator &(const FA &fa) = 0;
 
-        /// \brief Gets a FA which is union of this FA and param fa.
+        /// \brief Gets a FA which is the union of this FA and param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
         virtual FA& operator |(const FA &fa) = 0;
 
-        /// \brief Gets a FA which is comlement of this FA.
-        /// \return A reference of FA.
+        /// \brief Gets a FA which is the complement of this FA.
+        /// \return A reference of DFA.
         virtual DFA& operator !( void ) = 0;
         
-        /// \brief Gets a DFA which determined by FA.
-        /// \return A reference of FA.
-        virtual DFA& determine( void ) = 0;
+        /// \brief Gets a DFA which determinized by FA.
+        /// \return A reference of DFA.
+        virtual DFA& determinize( void ) = 0;
 
-        /// \brief Gets a DFA which nondetermined by FA.
-        /// \return A reference of FA.
-        virtual NFA& nondetermine( void ) = 0;
+        /// \brief Gets a NFA which nondeterminized by FA.
+        /// \return A reference of NFA.
+        virtual NFA& nondeterminize( void ) = 0;
 
-        /// \brief Gets a FA which is concatination of this FA and param fa.
+        /// \brief Gets a FA which is the concatination of this FA and param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
         virtual FA& concat(const FA &fa) = 0;
         
-        /// \brief Gets a FA which is right quotient by param character of this FA.
+        /// \brief Gets a FA which is the right quotient by param character of this FA.
         /// \param character A Character.
         /// \return A reference of FA.
         virtual FA& rightQuotient(Character character) = 0;
 
-        /// \brief Gets a FA which is left quotient by param character of this FA.
+        /// \brief Gets a FA which is the left quotient by param character of this FA.
         /// \param character A Character.
         /// \return A reference of FA.
         virtual FA& leftQuotient(Character character) = 0;
@@ -191,12 +203,12 @@ namespace cgh{
         
         //virtual Word getOneRun() = 0; todo
         
-        /// \brief Judges whether this FA is accepted by read a param word. 
+        /// \brief Judges whether this FA is accepted by a param word. 
         /// \param word A const reference of vector of Character.
         /// \return A boolean.
         virtual bool isAccepted(const Word &word) = 0;
 
-        /// \brief Judges whether this FA is accepted by read a param character. 
+        /// \brief Judges whether this FA is accepted by a param character. 
         /// \param word A const Character.
         /// \return A boolean.
         virtual bool isAccepted(Character character) = 0;
@@ -204,6 +216,9 @@ namespace cgh{
         virtual void output()const = 0;
         virtual void print(string filename)const = 0;
         
+        /// \brief Gets a FA which is the diference set from this FA to param fa.
+        /// \param fa A const reference FA.
+        /// \return A reference of FA.
         FA& operator -(const FA &fa) {
             DFA& tempDFA = !const_cast<FA&>(fa);
             FA& res = *this & tempDFA;
@@ -212,19 +227,19 @@ namespace cgh{
         }
         
         
-        static FA& intersectionFA(const FA& lhsfa, const FA& rhsfa) {
+        static FA& intersect_FA(const FA& lhsfa, const FA& rhsfa) {
             return const_cast<FA&>(lhsfa) & rhsfa;
         }
 
-        static FA& unionFA(const FA& lhsfa, const FA& rhsfa) {
+        static FA& union_FA(const FA& lhsfa, const FA& rhsfa) {
             return const_cast<FA&>(lhsfa) | rhsfa;
         }
 
-        static FA& concat(const FA& lhsfa, const FA& rhsfa) {
+        static FA& concat_FA(const FA& lhsfa, const FA& rhsfa) {
             return const_cast<FA&>(lhsfa).concat(rhsfa);
         }
 
-        static FA& minus(const FA& lhsfa, const FA& rhsfa)
+        static FA& minus_FA(const FA& lhsfa, const FA& rhsfa)
         {
             return const_cast<FA&>(lhsfa) - rhsfa;
         }
