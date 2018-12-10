@@ -239,7 +239,7 @@ namespace cgh {
                         if(!rhsNFA)
                         {
                             rhsNFA = new NFA();
-                            NFAState* state = rhsNFA -> mkNFAInitialState();
+                            NFAState* state = rhsNFA -> mkInitialState();
                             rhsNFA -> addFinalState(state);
                             state -> addNFATrans(rhsChar -> getChar(), state);
                             stack.top() -> setNFA(rhsNFA);
@@ -256,8 +256,8 @@ namespace cgh {
                         if(!rhsNFA)
                         {
                             rhsNFA = new NFA();
-                            NFAState* iState = rhsNFA -> mkNFAInitialState();
-                            NFAState* fState = rhsNFA -> mkNFAFinalState();
+                            NFAState* iState = rhsNFA -> mkInitialState();
+                            NFAState* fState = rhsNFA -> mkFinalState();
                             rhsNFA -> addFinalState(iState);
                             iState -> addNFATrans(rhsChar -> getChar(), fState);
                             stack.top() -> setNFA(rhsNFA);
@@ -272,15 +272,15 @@ namespace cgh {
                         if(!rhsNFA)
                         {
                             rhsNFA = new NFA();
-                            NFAState* iniState = rhsNFA -> mkNFAInitialState();
-                            NFAState* finState = rhsNFA -> mkNFAFinalState();
+                            NFAState* iniState = rhsNFA -> mkInitialState();
+                            NFAState* finState = rhsNFA -> mkFinalState();
                             iniState -> addNFATrans(rhsChar -> getChar(), finState);
                             finState -> addNFATrans(rhsChar -> getChar(), finState);
                             stack.top() -> setNFA(rhsNFA);
                         }
                         else
                         {
-                            NFAState* finState = rhsNFA -> mkNFAState();
+                            NFAState* finState = rhsNFA -> mkState();
                             NFAState2Map state2Map;
                             for(NFAState* state : rhsNFA -> getFinalStateSet())
                                 state -> addEpsilonTrans(finState);
@@ -302,15 +302,15 @@ namespace cgh {
                             if(!lhsNFA)
                             {
                                 lhsNFA = new NFA();
-                                NFAState* iniState = lhsNFA -> mkNFAInitialState();
-                                NFAState* finState = lhsNFA -> mkNFAFinalState();
+                                NFAState* iniState = lhsNFA -> mkInitialState();
+                                NFAState* finState = lhsNFA -> mkFinalState();
                                 iniState -> addNFATrans(stack.top() -> getChar(), finState);
                                 iniState -> addNFATrans(rhsChar -> getChar(), finState);
                                 stack.top() -> setNFA(lhsNFA);
                             }
                             else
                             {
-                                lhsNFA -> getInitialState() -> addNFATrans(rhsChar -> getChar(), lhsNFA -> mkNFAFinalState());
+                                lhsNFA -> getInitialState() -> addNFATrans(rhsChar -> getChar(), lhsNFA -> mkFinalState());
                             }
                         }
                         else
@@ -319,8 +319,8 @@ namespace cgh {
                             if(!lhsNFA)
                             {
                                 lhsNFA = new NFA();
-                                NFAState* state = lhsNFA -> mkNFAInitialState();
-                                state -> addNFATrans(stack.top() -> getChar(), lhsNFA -> mkNFAFinalState());
+                                NFAState* state = lhsNFA -> mkInitialState();
+                                state -> addNFATrans(stack.top() -> getChar(), lhsNFA -> mkFinalState());
                                 NFAState2Map state2Map;
                                 NFAState* iniState = rhsNFA -> getInitialState();
                                 state2Map[iniState] = state;
@@ -352,14 +352,14 @@ namespace cgh {
                             if(!lhsNFA)
                             {
                                 lhsNFA = new NFA();
-                                NFAState* state = lhsNFA -> mkNFAState();
-                                lhsNFA -> mkNFAInitialState() -> addNFATrans(stack.top() -> getChar(), state);
-                                state -> addNFATrans(rhsChar -> getChar(), lhsNFA -> mkNFAFinalState());
+                                NFAState* state = lhsNFA -> mkState();
+                                lhsNFA -> mkInitialState() -> addNFATrans(stack.top() -> getChar(), state);
+                                state -> addNFATrans(rhsChar -> getChar(), lhsNFA -> mkFinalState());
                                 stack.top() -> setNFA(lhsNFA);
                             }
                             else
                             {
-                                NFAState* state = lhsNFA -> mkNFAState();
+                                NFAState* state = lhsNFA -> mkState();
                                 for(NFAState* finState : lhsNFA -> getFinalStateSet())
                                     finState -> addNFATrans(rhsChar -> getChar(), state);
                                 lhsNFA -> clearFinalStateSet();
@@ -372,8 +372,8 @@ namespace cgh {
                             if(!lhsNFA)
                             {
                                 lhsNFA = new NFA();
-                                NFAState* state = lhsNFA -> mkNFAState();
-                                lhsNFA -> mkNFAInitialState() -> addNFATrans(stack.top() -> getChar(), state);
+                                NFAState* state = lhsNFA -> mkState();
+                                lhsNFA -> mkInitialState() -> addNFATrans(stack.top() -> getChar(), state);
                                 NFAState2Map state2Map;
                                 NFAState* iniState = rhsNFA -> getInitialState();
                                 state2Map[iniState] = state;
@@ -384,7 +384,7 @@ namespace cgh {
                             }
                             else
                             {
-                                NFAState* state = lhsNFA -> mkNFAState();
+                                NFAState* state = lhsNFA -> mkState();
                                 for(NFAState* finState : lhsNFA -> getFinalStateSet())
                                     finState -> addEpsilonTrans(state);
                                 lhsNFA -> clearFinalStateSet();                                
