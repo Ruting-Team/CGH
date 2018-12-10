@@ -126,9 +126,9 @@ namespace cgh {
         // update state info
         for(int pos = 0; pos < stateNumber; pos++)
         {
-            if(pos == initialState) stateVector.push_back(result->mkNFAInitialState());
-            else if(finalStates.find(pos) != finalStates.end()) stateVector.push_back(result->mkNFAFinalState());
-            else stateVector.push_back(result->mkNFAState());
+            if(pos == initialState) stateVector.push_back(result->mkInitialState());
+            else if(finalStates.find(pos) != finalStates.end()) stateVector.push_back(result->mkFinalState());
+            else stateVector.push_back(result->mkState());
         }
         if(finalStates.find(initialState) != finalStates.end())
         {

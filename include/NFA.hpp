@@ -77,9 +77,9 @@ namespace cgh {
                 auto state2MapIt = state2map.find(mapPair.second);
                 if (state2MapIt == state2map.end()) {
                     if (mapPair.second -> isFinal()) {
-                        targetState = mkNFAFinalState();
+                        targetState = mkFinalState();
                     } else {
-                        targetState = mkNFAState();
+                        targetState = mkState();
                     }
                     state2map[mapPair.second] = targetState;
                     cpTransByDFA(mapPair.second, state2map);
@@ -97,9 +97,9 @@ namespace cgh {
                     auto state2MapIt = state2map.find(state);
                     if (state2MapIt == state2map.end()) {
                         if (state -> isFinal()) {
-                            targetState = mkNFAFinalState();
+                            targetState = mkFinalState();
                         } else {
-                            targetState = mkNFAState();
+                            targetState = mkState();
                         }
                         state2map[state] = targetState;
                         cpTransByNFA(state, state2map);
@@ -165,23 +165,43 @@ namespace cgh {
             }
         }
         
-        void mkDFATrans(DFAState* sourceState, NFAStateSet2DFAStateMap &setMap, const NFATransMap &nfaTransMap, DFA* dfa) const {
+        //void mkDFATrans(DFA* dfa, DFAState* sourceState, NFAStateSet2DFAStateMap &setMap, const NFATransMap &nfaTransMap) const {
+
+        //    NFATransMap transMap;
+        //    for (auto& mapPair : nfaTransMap) {
+        //        auto setMapIt = setMap.find(mapPair.second);
+        //        DFAState* targetState = nullptr;
+        //        if (setMapIt == setMap.end()) {
+        //            transMap.clear();
+        //            getTransMapByStateSet(mapPair.second, transMap);
+        //            if (NFA::hasFinalState(mapPair.second)) {
+        //                targetState = dfa -> mkDFAFinalState();
+        //            } else {
+        //                targetState = dfa -> mkDFAState();
+        //            }
+        //            setMap[mapPair.second] = targetState;
+        //            mkDFATrans(dfa, targetState, setMap, transMap);
+        //        } else {
+        //            targetState = setMap[mapPair.second];
+        //        }
+        //        sourceState -> addDFATrans(mapPair.first, targetState);
+        //    }
+        //}
+
+        void determinize(DFA* dfa, DFAState* sourceState, const NFAStateSet& nfaStateSet, NFAStateSet2DFAStateMap &setMap) const {
+
+            if (hasFinalState(nfaStateSet)) dfa -> addFinalState(sourceState);
             NFATransMap transMap;
-            for (auto& mapPair : nfaTransMap) {
+            getTransMapByStateSet(nfaStateSet, transMap);
+            for (auto& mapPair : transMap) {
                 auto setMapIt = setMap.find(mapPair.second);
                 DFAState* targetState = nullptr;
                 if (setMapIt == setMap.end()) {
-                    transMap.clear();
-                    getTransMapByStateSet(mapPair.second, transMap);
-                    if (NFA::hasFinalState(mapPair.second)) {
-                        targetState = dfa -> mkDFAFinalState();
-                    } else {
-                        targetState = dfa -> mkDFAState();
-                    }
+                    targetState = dfa -> mkState();
                     setMap[mapPair.second] = targetState;
-                    mkDFATrans(targetState, setMap, transMap, dfa);
+                    determinize(dfa, targetState, mapPair.second, setMap);
                 } else {
-                    targetState = setMap[mapPair.second];
+                    targetState = setMapIt -> second;
                 }
                 sourceState -> addDFATrans(mapPair.first, targetState);
             }
@@ -295,7 +315,7 @@ namespace cgh {
         //{
         //    if(addNeed2Map(sState, sc, tState, tc1, tc2, needMap, need2Map))
         //    {
-        //        NFAState* midState = mkNFAState();
+        //        NFAState* midState = mkState();
         //        sState -> addNFATrans(sc, midState);
         //        addPostStarTrans(sState, sc, midState, needMap, need2Map);
         //        addPostStarNeedMap(midState, tc2, tState, tc1, needMap, need2Map);
@@ -336,7 +356,7 @@ namespace cgh {
             if (!nfa.isNULL()) {
                 this -> flag = nfa.flag;
                 this -> setAlphabet(nfa.alphabet);
-                NFAState* iniState = mkNFAInitialState();
+                NFAState* iniState = mkInitialState();
                 if (nfa.initialState -> isFinal())
                     addFinalState(iniState);
                 NFAState2Map state2Map;
@@ -349,7 +369,7 @@ namespace cgh {
         //    if (!nfa.isNULL()) {
         //        this -> flag = nfa.flag;
         //        this -> setAlphabet(nfa.alphabet);
-        //        NFAState* iniState = mkNFAInitialState();
+        //        NFAState* iniState = mkInitialState();
         //        if (nfa.initialState -> isFinal())
         //            addFinalState(iniState);
         //        state2Map[nfa.initialState] = iniState;
@@ -364,7 +384,7 @@ namespace cgh {
             {
                 this -> flag = dfa.flag;
                 this -> setAlphabet(dfa.alphabet);
-                NFAState* iniState = mkNFAInitialState();
+                NFAState* iniState = mkInitialState();
                 if (dfa.initialState -> isFinal())
                     addFinalState(iniState);
                 DFAState2NFAStateMap state2Map;
@@ -388,6 +408,10 @@ namespace cgh {
             for (NFAState* state : stateSet) {
                 delete state;
             }
+        }
+
+        FA& copy() {
+            return *(new NFA(*this));
         }
 
         /// \brief Sets initialState to param state.
@@ -464,7 +488,7 @@ namespace cgh {
 
         /// \brief Makes a state in this NFA.
         /// \return A NFAState pointer made by this NFA.
-        NFAState* mkNFAState() {
+        NFAState* mkState() {
             NFAState *state = new NFAState();
             stateSet.insert(state);
             return state;
@@ -472,67 +496,18 @@ namespace cgh {
         
         /// \brief Makes a initialState in this NFA.
         /// \return A NFAState pointer made by this NFA.
-        NFAState* mkNFAInitialState() {
-            initialState = mkNFAState();
+        NFAState* mkInitialState() {
+            initialState = mkState();
             return initialState;
         }
         
         /// \brief Makes a finalState in this NFA.
         /// \return A NFAState pointer made by this NFA.
-        NFAState* mkNFAFinalState() {
-            NFAState *state = mkNFAState();
+        NFAState* mkFinalState() {
+            NFAState *state = mkState();
             state -> setFinalFlag(1);
             finalStateSet.insert(state);
             return state;
-        }
-        
-        FA& operator & (const FA& fa) {
-            if (isNULL() || fa.isNULL()) return FA::EmptyDFA();
-            DFA& dfa1 = this -> determinize();
-            const DFA& dfa2 = fa.determinize();
-            FA& intersection = dfa1 & dfa2;
-            if (!fa.isDeterministic()) delete &dfa2;
-            delete &dfa1;
-            return intersection;
-        }
-
-        FA& operator | (const FA& fa) {
-            if (isNULL()) return const_cast<FA&>(fa);
-            if (fa.isNULL()) return *this;
-            NFA *nfa = new NFA();
-            nfa -> setAlphabet(this -> alphabet);
-            NFAState* iniState = nfa -> mkNFAInitialState();
-            NFAState* state1 = nfa -> mkNFAState();
-            NFAState* state2 = nfa -> mkNFAState();
-            NFAState2Map state2Map1;
-            state2Map1[initialState] = state1;
-            if (initialState -> isFinal()) 
-                nfa -> addFinalState(state1);
-            nfa -> cpTransByNFA(initialState, state2Map1);
-            if (fa.isDeterministic()) {
-                DFAState2NFAStateMap state2Map2;
-                DFA& tempDFA = const_cast<FA&>(fa).determinize();
-                state2Map2[tempDFA.initialState] = state2;
-                if (tempDFA.initialState -> isFinal()) 
-                    nfa -> addFinalState(state2);
-                nfa -> cpTransByDFA(tempDFA.initialState, state2Map2);
-            } else {
-                NFAState2Map state2Map2;
-                NFA& tempNFA = const_cast<FA&>(fa).nondeterminize();
-                state2Map2[tempNFA.initialState] = state2;
-                if(tempNFA.initialState -> isFinal()) nfa -> addFinalState(state2);
-                nfa -> cpTransByNFA(tempNFA.initialState, state2Map2);
-            }
-            iniState -> addEpsilonTrans(state1);
-            iniState -> addEpsilonTrans(state2);
-            return *nfa;
-        }
-
-        DFA& operator ! ( void ) {
-            DFA& tempDFA = determinize();
-            DFA& complement = (!tempDFA);
-            delete &tempDFA;
-            return complement;
         }
 
         DFA& determinize( void ) {
@@ -542,12 +517,8 @@ namespace cgh {
             initialState -> getEpsilonClosure(epsilonClosure);
             epsilonClosure.insert(initialState);
             NFAStateSet2DFAStateMap setMap;
-            NFATransMap nfaTransMap;
-            getTransMapByStateSet(epsilonClosure, nfaTransMap);
-            DFAState *iniState = dfa -> mkDFAInitialState();
-            if (NFA::hasFinalState(epsilonClosure)) dfa -> addFinalState(iniState);
-            setMap[epsilonClosure] = iniState;
-            mkDFATrans(iniState, setMap, nfaTransMap, dfa);
+            DFAState *iniState = dfa -> mkInitialState();
+            determinize(dfa, iniState, epsilonClosure, setMap);
             dfa -> setReachableFlag(1);
             return *dfa;
         }
@@ -564,42 +535,16 @@ namespace cgh {
             return *this;
         }
         
-        FA& concat(const FA& fa) {
-            if (isNULL()) return const_cast<FA&>(fa);
-            if (fa.isNULL()) return *this;
-            NFA *nfa = new NFA(*this);
-            NFAState* state = nfa -> mkNFAState();
-            for (NFAState* state : finalStateSet) {
-                state -> addEpsilonTrans(state);
-            }
-            nfa -> clearFinalStateSet();
-            if(fa.isDeterministic())
-            {
-                DFAState2NFAStateMap state2Map;
-                DFA& tempDFA = const_cast<FA&>(fa).determinize();
-                state2Map[tempDFA.initialState] = state;
-                nfa -> cpTransByDFA(tempDFA.initialState, state2Map);
-                if(tempDFA.initialState -> isFinal()) nfa -> addFinalState(state);
-            }
-            else
-            {
-                NFAState2Map state2Map;
-                NFA& tempNFA = const_cast<FA&>(fa).nondeterminize();
-                state2Map[tempNFA.initialState] = state;
-                nfa -> cpTransByNFA(tempNFA.initialState, state2Map);
-                if(tempNFA.initialState -> isFinal()) nfa -> addFinalState(state);
-            }
-            return *nfa;
-        }
+        
         FA& subset(const NFAState *iState, const NFAState *fState)
         {
             NFA *nfa = new NFA();
             if(isNULL()) return *nfa;
             nfa -> setAlphabet(this -> alphabet);
-            NFAState* iniState = nfa -> mkNFAInitialState();
+            NFAState* iniState = nfa -> mkInitialState();
             NFAState2Map state2Map;
             state2Map[const_cast<State*>(iState)] = iniState;
-            nfa -> makeCopyTransByNFA((const_cast<State*>(iState)), state2Map);
+            nfa -> cpTransByNFA((const_cast<State*>(iState)), state2Map);
             nfa -> clearFinalStateSet();
             NFAState* nfaState = (state2Map[const_cast<State*>(fState)]);
             nfa -> addFinalState(nfaState);
@@ -630,7 +575,7 @@ namespace cgh {
             NFAStateSet set;
             nfa -> initialState -> getTargetStateSetByChar(set, character);
             if(set.size() == 0) return FA::EmptyNFA();
-            NFAState* iniState = nfa -> mkNFAInitialState();
+            NFAState* iniState = nfa -> mkInitialState();
             for(NFAState* state : set)
                 iniState -> addEpsilonTrans(state);
             nfa -> removeUnreachableState();
@@ -752,7 +697,7 @@ namespace cgh {
         //    for(PDSState* state : pds.getStateSet())
         //    {
         //        if(tempSet.find(state) == tempSet.end())
-        //            state2Map[state] = nfa -> mkNFAState();
+        //            state2Map[state] = nfa -> mkState();
         //        else
         //            state2Map[state] = copyMap[state2Map[state]];
         //    }
@@ -797,7 +742,7 @@ namespace cgh {
         //    for(PDSState* state : pds.getStateSet())
         //    {
         //        if(tempSet.find(state) == tempSet.end())
-        //            state2Map[state] = nfa -> mkNFAState();
+        //            state2Map[state] = nfa -> mkState();
         //        else
         //            state2Map[state] = copyMap[state2Map[state]];
         //    }

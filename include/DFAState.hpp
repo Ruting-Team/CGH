@@ -16,8 +16,8 @@ namespace cgh{
     /// \brief States in Deterministic Finite Automaton.
     ///
     /// Example:
-    ///    DFAState<char>* dfaState0 = dfa -> mkDFAState();
-    ///    DFAState<char>* dfaState1 = dfa -> mkDFAState();
+    ///    DFAState<char>* dfaState0 = dfa -> mkState();
+    ///    DFAState<char>* dfaState1 = dfa -> mkState();
     ///    dfaState0 -> addDFATrans('a', dfaState1);
     ///    dfaState0 -> addDFATrans('b', dfaState0);
     ///    dfaState0 -> delDFATrans('a');

@@ -47,8 +47,8 @@ namespace cgh
     private:
         Char2 stack;
     public:
-        Char2 getStack() { return stack; }
-        const Char2 getStack() const { return stack; }
+        Char2& getStack() { return stack; }
+        const Char2& getStack() const { return stack; }
     };
     
     template <class Character>
