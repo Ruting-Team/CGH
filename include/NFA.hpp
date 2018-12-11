@@ -207,58 +207,46 @@ namespace cgh {
             }
         }
         
-        //bool addNeedMap(NFAState *sState, Character sc, NFAState *tState, Character tc, NeedMap &needMap, Need2Map& need2Map)
-        //{
-        //    StateChar stateChar(sState, sc);
-        //    StateCharSet stateCharSet;
-        //    stateCharSet.insert(stateChar);
-        //    NeedMapIter needmapIt = needMap.find(tState);
-        //    if(needmapIt != needMap.end())
-        //    {
-        //        Char2StateCharSetMapIter mapIt = needmapIt -> second.find(tc);
-        //        if(mapIt != needmapIt -> second.end())
-        //        {
-        //            if(!mapIt -> second.insert(stateChar).second)
-        //                return false;
-        //        }
-        //        else
-        //            needmapIt -> second[tc] = stateCharSet;
-        //    }
-        //    else
-        //    {
-        //        Char2StateCharSetMap char2StateCharSetMap;
-        //        char2StateCharSetMap[tc] = stateCharSet;
-        //        needMap[tState] = char2StateCharSetMap;
-        //    }
-        //    return true;
-        //}
-        //bool addNeed2Map(NFAState *sState, Character sc, NFAState *tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map &need2Map)
-        //{
-        //    StateChar stateChar(sState, sc);
-        //    StateChar2 stateChar2(stateChar, tc2);
-        //    StateChar2Set stateChar2Set;
-        //    stateChar2Set.insert(stateChar2);
-        //    Need2MapIter need2MapIt = need2Map.find(tState);
-        //    if(need2MapIt != need2Map.end())
-        //    {
-        //        Char2StateChar2SetMapIter mapIt = need2MapIt -> second.find(tc1);
-        //        if(mapIt != need2MapIt -> second.end())
-        //        {
-        //            if(!mapIt -> second.insert(stateChar2).second)
-        //                return false;
-        //        }
-        //        else
-        //            need2MapIt -> second[tc1] = stateChar2Set;
-        //    }
-        //    else
-        //    {
-        //        Char2StateChar2SetMap char2StateChar2SetMap;
-        //        char2StateChar2SetMap[tc1] = stateChar2Set;
-        //        need2Map[tState] = char2StateChar2SetMap;
-        //    }
-        //    return true;
-        //}
-        //
+        bool addNeedMap(NFAState *sState, Character sc, NFAState *tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
+            StateChar stateChar(sState, sc);
+            StateCharSet stateCharSet;
+            stateCharSet.insert(stateChar);
+            auto needmapIt = needMap.find(tState);
+            if (needmapIt != needMap.end()) {
+                auto mapIt = needmapIt -> second.find(tc);
+                if (mapIt != needmapIt -> second.end()) {
+                    if (!mapIt -> second.insert(stateChar).second) return false;
+                } else {
+                    needmapIt -> second[tc] = stateCharSet;
+                }
+            } else {
+                Char2StateCharSetMap char2StateCharSetMap;
+                char2StateCharSetMap[tc] = stateCharSet;
+                needMap[tState] = char2StateCharSetMap;
+            }
+            return true;
+        }
+        bool addNeed2Map(NFAState *sState, Character sc, NFAState *tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map &need2Map) {
+            StateChar stateChar(sState, sc);
+            StateChar2 stateChar2(stateChar, tc2);
+            StateChar2Set stateChar2Set;
+            stateChar2Set.insert(stateChar2);
+            auto need2MapIt = need2Map.find(tState);
+            if (need2MapIt != need2Map.end()) {
+                auto mapIt = need2MapIt -> second.find(tc1);
+                if (mapIt != need2MapIt -> second.end()) {
+                    if (!mapIt -> second.insert(stateChar2).second) return false;
+                } else {
+                    need2MapIt -> second[tc1] = stateChar2Set;
+                }
+            } else {
+                Char2StateChar2SetMap char2StateChar2SetMap;
+                char2StateChar2SetMap[tc1] = stateChar2Set;
+                need2Map[tState] = char2StateChar2SetMap;
+            }
+            return true;
+        }
+        
         //void addPreStarNeedMap(NFAState *sState, Character sc, NFAState *tState, Character tc, NeedMap &needMap, Need2Map& need2Map)
         //{
         //    if(addNeedMap(sState, sc, tState, tc, needMap, need2Map))
@@ -305,43 +293,41 @@ namespace cgh {
         //}
         //
         //
-        //void addPostStarNeedMap(NFAState *sState, Character sc, NFAState *tState, Character tc, NeedMap &needMap, Need2Map& need2Map)
-        //{
-        //    if(addNeedMap(sState, sc, tState, tc, needMap, need2Map))
-        //        addPostStarTrans(sState, sc, tState, tc, needMap, need2Map);
-        //}
-        //
-        //void addPostStarNeed2Map(NFAState* sState, Character sc, NFAState* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map)
-        //{
-        //    if(addNeed2Map(sState, sc, tState, tc1, tc2, needMap, need2Map))
-        //    {
-        //        NFAState* midState = mkState();
-        //        sState -> addNFATrans(sc, midState);
-        //        addPostStarTrans(sState, sc, midState, needMap, need2Map);
-        //        addPostStarNeedMap(midState, tc2, tState, tc1, needMap, need2Map);
-        //    }
-        //}
-        //
-        //void addPostStarTrans(NFAState *sState, Character sc, NFAState *tState, Character tc, NeedMap& needMap, Need2Map& need2Map)
-        //{
-        //    NFAStateSet stateset = tState -> getTargetStateSetByChar(tc);
-        //    for(NFAState* state : stateset)
-        //        if(sState -> addNFATrans(sc, state))
-        //            addPostStarTrans(sState, sc, state, needMap, need2Map);
-        //}
-        //
-        //void addPostStarTrans(NFAState *sState, Character c, NFAState *tState, NeedMap& needMap, Need2Map& need2Map)
-        //{
-        //    Char2StateCharSetMap map = needMap[sState];
-        //    Char2StateCharSetMapIter mapIt = map.find(c);
-        //    if(mapIt != map.end())
-        //    {
-        //        StateCharSet stateCharSet = mapIt -> second;
-        //        for(StateChar scpair : stateCharSet)
-        //            if(scpair.first -> addNFATrans(scpair.second, tState))
-        //                addPostStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
-        //    }
-        //}
+        void addPostStarNeedMap(NFAState *sState, Character sc, NFAState *tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
+            if (addNeedMap(sState, sc, tState, tc, needMap, need2Map))
+                addPostStarTrans(sState, sc, tState, tc, needMap, need2Map);
+        }
+        
+        void addPostStarNeed2Map(NFAState* sState, Character sc, NFAState* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map) {
+            if (addNeed2Map(sState, sc, tState, tc1, tc2, needMap, need2Map)) {
+                NFAState* midState = mkState();
+                sState -> addNFATrans(sc, midState);
+                addPostStarTrans(sState, sc, midState, needMap, need2Map);
+                addPostStarNeedMap(midState, tc2, tState, tc1, needMap, need2Map);
+            }
+        }
+        
+        void addPostStarTrans(NFAState *sState, Character sc, NFAState *tState, Character tc, NeedMap& needMap, Need2Map& need2Map) {
+            NFAStateSet nfaStateSet;
+            tState -> getTargetStateSetByChar(nfaStateSet, tc);
+            for (NFAState* state : nfaStateSet) {
+                if (sState -> addNFATrans(sc, state)) {
+                    addPostStarTrans(sState, sc, state, needMap, need2Map);
+                }
+            }
+        }
+        
+        void addPostStarTrans(NFAState *sState, Character c, NFAState *tState, NeedMap& needMap, Need2Map& need2Map) {
+            Char2StateCharSetMap map = needMap[sState];
+            auto mapIt = map.find(c);
+            if (mapIt != map.end()) {
+                for (StateChar scpair : mapIt -> second) {
+                    if (scpair.first -> addNFATrans(scpair.second, tState)) {
+                        addPostStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
+                    }
+                }
+            }
+        }
     public:
         /// \brief Default construction function, sets initialState to nullptr.
         NFA() : FA(), initialState(nullptr){}
@@ -365,17 +351,17 @@ namespace cgh {
             }
         }
 
-        //NFA(const NFA& nfa, NFAState2Map& state2Map) {
-        //    if (!nfa.isNULL()) {
-        //        this -> flag = nfa.flag;
-        //        this -> setAlphabet(nfa.alphabet);
-        //        NFAState* iniState = mkInitialState();
-        //        if (nfa.initialState -> isFinal())
-        //            addFinalState(iniState);
-        //        state2Map[nfa.initialState] = iniState;
-        //        cpTransByNFA(nfa.initialState, state2Map);
-        //    }
-        //}
+        NFA(const NFA& nfa, NFAState2Map& state2Map) {
+            if (!nfa.isNULL()) {
+                this -> flag = nfa.flag;
+                this -> setAlphabet(nfa.alphabet);
+                NFAState* iniState = mkInitialState();
+                if (nfa.initialState -> isFinal())
+                    addFinalState(iniState);
+                state2Map[nfa.initialState] = iniState;
+                cpTransByNFA(nfa.initialState, state2Map);
+            }
+        }
 
         /// \brief Copy construction function by DFA.
         /// \param dfa The copied DFA.
@@ -524,7 +510,7 @@ namespace cgh {
         }
 
         const DFA& determinize( void ) const {
-            return determinize();
+            return const_cast<NFA*>(this) -> determinize();
         }
         
         NFA& nondeterminize( void ) {
@@ -730,51 +716,51 @@ namespace cgh {
         //    return *nfa;
         //}
         //
-        //NFA& postStar(const PDS& pds, PDSState2NFAStateMap& state2Map)//todo
-        //{
-        //    NFAState2Map copyMap;
-        //    NFA* nfa = new NFA(*this, copyMap);
-        //    NeedMap needMap;
-        //    Need2Map need2Map;
-        //    PDSStateSet tempSet;
-        //    for(PDSState2NFAStateMapIter it = state2Map.begin(); it != state2Map.end(); it++)
-        //        tempSet.insert(it -> first);
-        //    for(PDSState* state : pds.getStateSet())
-        //    {
-        //        if(tempSet.find(state) == tempSet.end())
-        //            state2Map[state] = nfa -> mkState();
-        //        else
-        //            state2Map[state] = copyMap[state2Map[state]];
-        //    }
-        //    
-        //    for(PDSTrans* trans : pds.pdsPopTransList)
-        //    {
-        //        NFAState* sourceState = state2Map[trans -> getSourceState()];
-        //        NFAState* targetState = state2Map[trans -> getTargetState()];
-        //        Character character = trans -> getChar();
-        //        nfa -> addPostStarNeedMap(targetState, Global::epsilon, sourceState, character, needMap, need2Map);
-        //        
-        //    }
-        //    for(ReplacePDSTrans* trans : pds.pdsReplaceTransList)
-        //    {
-        //        NFAState* sourceState = state2Map[trans -> getSourceState()];
-        //        NFAState* targetState = state2Map[trans -> getTargetState()];
-        //        Character character = trans -> getChar();
-        //        Character stack = trans -> getStack();
-        //        nfa -> addPostStarNeedMap(targetState, stack, sourceState, character, needMap, need2Map);
-        //    }
-        //    for(PushPDSTrans* trans : pds.pdsPushTransList)
-        //    {
-        //        NFAState* sourceState = state2Map[trans -> getSourceState()];
-        //        NFAState* targetState = state2Map[trans -> getTargetState()];
-        //        Character character = trans -> getChar();
-        //        Char2 stack = trans -> getStack();
-        //        nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map);
-        //    }
-        //    nfa -> removeUnreachableState();
-        //    nfa -> removeDeadState();
-        //    return *nfa;
-        //}
+        NFA& postStar(const PDS& pds, PDSState2NFAStateMap& state2Map) {
+            NFAState2Map copyMap;
+            NFA* nfa = new NFA(*this, copyMap);
+            NeedMap needMap;
+            Need2Map need2Map;
+            PDSStateSet pdsStateSet;
+            for (auto& mapPair : state2Map)
+                pdsStateSet.insert(mapPair.first);
+            for (PDSState* state : pds.getStateSet()) {
+                if (pdsStateSet.find(state) == pdsStateSet.end()) {
+                    state2Map[state] = nfa -> mkState();
+                } else {
+                    state2Map[state] = copyMap[state2Map[state]];
+                }
+            }
+            
+            for (PDSTrans* trans : pds.getPopTransList()) {
+                NFAState* sourceState = state2Map[trans -> getSourceState()];
+                NFAState* targetState = state2Map[trans -> getTargetState()];
+                Character character = trans -> getChar();
+                nfa -> addPostStarNeedMap(targetState, Global::epsilon, sourceState, character, needMap, need2Map);
+            }
+
+            for (ReplacePDSTrans* trans : pds.getReplaceTransList()) {
+                NFAState* sourceState = state2Map[trans -> getSourceState()];
+                NFAState* targetState = state2Map[trans -> getTargetState()];
+                Character character = trans -> getChar();
+                Character stack = trans -> getStack();
+                nfa -> addPostStarNeedMap(targetState, stack, sourceState, character, needMap, need2Map);
+            }
+
+            for (PushPDSTrans* trans : pds.getPushTransList()) {
+                NFAState* sourceState = state2Map[trans -> getSourceState()];
+                NFAState* targetState = state2Map[trans -> getTargetState()];
+                Character character = trans -> getChar();
+                Char2& stack = trans -> getStack();
+                nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map);
+            }
+            
+            nfa -> output();
+
+            nfa -> removeUnreachableState();
+            nfa -> removeDeadState();
+            return *nfa;
+        }
         
         
     
@@ -820,6 +806,7 @@ namespace cgh {
             }
             f <<"}\n";
             f.close();
+            system("dot -Tpng -o res.png res.dot");
         }
         friend FA;
         friend BasicRegEx<Character>;

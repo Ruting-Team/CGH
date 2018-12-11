@@ -297,7 +297,7 @@ namespace cgh {
             }
             return true;
         }
-        DFA& minimize()
+        DFA& minimize() 
         {
             DFA* dfa = new DFA();
             removeDeadState();
@@ -395,6 +395,7 @@ namespace cgh {
                 }
             }
             dfa -> setReachableFlag(1);
+            dfa -> setMinimalFlag(1);
             return *dfa;
         }
         
@@ -584,11 +585,17 @@ namespace cgh {
     private:
         DFA* dfa;
         bool del;
+        bool confirm; 
     public:
-        SmartDFA() : dfa(nullptr), del(0) {}
-        SmartDFA(DFA* d, bool f) : dfa(d), del(f) {}
+        SmartDFA() : dfa(nullptr), del(0), confirm(0){}
+        SmartDFA(const DFA* d, bool b, bool c = 0) : dfa(const_cast<DFA*>(d)), del(b) , confirm(c) {}
+        SmartDFA(const SmartDFA& smartDFA) {
+            dfa = smartDFA.dfa;
+            del = smartDFA.del;
+            confirm = 1;
+        }
         ~SmartDFA() {
-            if (del) delete dfa;
+            if (del & confirm) delete dfa;
         }
 
         DFA* getDFA() {return dfa;}

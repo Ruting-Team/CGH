@@ -287,7 +287,7 @@ namespace cgh {
                             rhsNFA -> clearFinalStateSet();
                             rhsNFA -> addFinalState(finState);
                             state2Map[rhsNFA -> getInitialState()] = finState;
-                            rhsNFA -> makeCopyTransByNFA(rhsNFA -> getInitialState(), state2Map);
+                            rhsNFA -> cpTransByNFA(rhsNFA -> getInitialState(), state2Map);
                             rhsNFA -> getFinalStateSet().erase(finState);
                             for(NFAState* state : rhsNFA -> getFinalStateSet())
                                 state -> addEpsilonTrans(finState);
@@ -326,7 +326,7 @@ namespace cgh {
                                 state2Map[iniState] = state;
                                 if(iniState -> isFinal())
                                     lhsNFA -> addFinalState(state);
-                                lhsNFA -> makeCopyTransByNFA(iniState, state2Map);
+                                lhsNFA -> cpTransByNFA(iniState, state2Map);
                                 stack.top() -> setNFA(lhsNFA);
                             }
                             else
@@ -337,7 +337,7 @@ namespace cgh {
                                 state2Map[iniState] = state;
                                 if(iniState -> isFinal())
                                     lhsNFA -> addFinalState(state);
-                                lhsNFA -> makeCopyTransByNFA(iniState, state2Map);
+                                lhsNFA -> cpTransByNFA(iniState, state2Map);
                             }
                             delete rhsNFA;
                         }
@@ -379,7 +379,7 @@ namespace cgh {
                                 state2Map[iniState] = state;
                                 if(iniState -> isFinal())
                                     lhsNFA -> addFinalState(state);
-                                lhsNFA -> makeCopyTransByNFA(iniState, state2Map);
+                                lhsNFA -> cpTransByNFA(iniState, state2Map);
                                 stack.top() -> setNFA(lhsNFA);
                             }
                             else
@@ -393,7 +393,7 @@ namespace cgh {
                                 state2Map[iniState] = state;
                                 if(iniState -> isFinal())
                                     lhsNFA -> addFinalState(state);
-                                lhsNFA -> makeCopyTransByNFA(iniState, state2Map);
+                                lhsNFA -> cpTransByNFA(iniState, state2Map);
                             }
                             delete rhsNFA;
                         }
