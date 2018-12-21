@@ -57,6 +57,7 @@ namespace cgh
     template <class Character> class DFAState;
     template <class Character> class NFAState;
     template <class Character> class PDSTrans;
+    template <class Character> class PopPDSTrans;
     template <class Character> class PushPDSTrans;
     template <class Character> class ReplacePDSTrans;
 
@@ -76,6 +77,7 @@ namespace cgh
         typedef DFAState<Character> DFAState;
         typedef NFAState<Character> NFAState;
         typedef PDSTrans<Character> PDSTrans;
+        typedef PopPDSTrans<Character> PopPDSTrans;
         typedef PushPDSTrans<Character> PushPDSTrans;
         typedef ReplacePDSTrans<Character> ReplacePDSTrans;
         
@@ -158,21 +160,12 @@ namespace cgh
         
         /***************** PDSTrans  *****************/
         
-        typedef list<PDSTrans> PDSTransList;
-        typedef list<PushPDSTrans> PushPDSTransList;
-        typedef list<ReplacePDSTrans> ReplacePDSTransList;
+        typedef list<PDSTrans*> PDSTransList;
+        typedef list<PopPDSTrans*> PopPDSTransList;
+        typedef list<PushPDSTrans*> PushPDSTransList;
+        typedef list<ReplacePDSTrans*> ReplacePDSTransList;
         typedef unordered_map<PDSState*, NFAState*> PDSState2NFAStateMap;
-        
-        typedef typename PDSTransList::iterator PDSTransListIter;
-        typedef typename PushPDSTransList::iterator PushPDSTransListIter;
-        typedef typename ReplacePDSTransList::iterator ReplacePDSTransListIter;
-        typedef typename PDSState2NFAStateMap::iterator PDSState2NFAStateMapIter;
-        
-        typedef typename PDSTransList::const_iterator PDSTransListConstIter;
-        typedef typename PushPDSTransList::const_iterator PushPDSTransListConstIter;
-        typedef typename ReplacePDSTransList::const_iterator ReplacePDSTransListConstIter;
-        
-    };
+   };
     
 };
 #endif /* Global_hpp */

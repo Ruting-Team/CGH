@@ -15,6 +15,7 @@
 namespace cgh {
     template <class Character> class NFA;
 
+    /// \brief A class of Deterministic Finite Automaton.
     template <class Character>
     class DFA : public FA<Character>
     {
@@ -24,165 +25,68 @@ namespace cgh {
         typedef NFA<Character> NFA;
         typedef typename Global::Word Word;
         typedef typename Global::CharacterSet CharacterSet;
-        typedef typename Global::CharacterSetIter CharacterSetIter;
         typedef typename Global::DFAStateSet DFAStateSet;
         typedef typename Global::DFATransMap DFATransMap;
-        typedef typename Global::DFAStateSetIter DFAStateSetIter;
-        typedef typename Global::DFATransMapIter DFATransMapIter;
-        typedef typename Global::DFAStateSetConstIter DFAStateSetConstIter;
-        typedef typename Global::DFATransMapConstIter DFATransMapConstIter;
         
         typedef typename Global::DFAState2 DFAState2;
         typedef typename Global::DFAState2Map DFAState2Map;
         typedef typename Global::DFAState2DFAStateSetMap DFAState2DFAStateSetMap;
-        typedef typename Global::Char2DFAState2Map Char2DFAState2Map;
-        typedef typename Global::DFAStatePairMap DFAStatePairMap;
         typedef typename Global::DFAStateSetMap DFAStateSetMap;
         
-        typedef typename Global::DFAState2MapIter DFAState2MapIter;
-        typedef typename Global::DFAStatePairMapIter DFAStatePairMapIter;
-        typedef typename Global::DFAStateSetMapIter DFAStateSetMapIter;
-        typedef typename Global::Char2DFAState2MapIter Char2DFAState2MapIter;
-        typedef typename Global::DFAState2DFAStateSetMapIter DFAState2DFAStateSetMapIter;
-        
-        typedef typename Global::DFAState2MapConstIter DFAState2MapConstIter;
-        typedef typename Global::DFAStatePairMapConstIter DFAStatePairMapConstIter;
-        typedef typename Global::DFAStateSetMapConstIter DFAStateSetMapConstIter;
-        typedef typename Global::Char2DFAState2MapConstIter Char2DFAState2MapConstIter;
-        typedef typename Global::DFAState2DFAStateSetMapConstIter DFAState2DFAStateSetMapConstIter;
-        
     private:
-        DFAState* initialState;
-        DFAStateSet stateSet;
-        DFAStateSet finalStateSet;
+        DFAState* initialState;     ///< The initial state for this DFA.
+        DFAStateSet stateSet;       ///< The set of states for this DFA.
+        DFAStateSet finalStateSet;  ///< The set of final states for this DFA.
     private:
-        void makeCopyTrans(const DFAState* state, DFAState2Map& state2map)
-        {
-            const DFATransMap& map = state -> getDFATransMap();
-            DFAState* sourceState = state2map.at(const_cast<DFAState*>(state));
-            for(DFATransMapConstIter mapIt = map.begin(); mapIt != map.end(); mapIt++)
-            {
-                DFAState* targetState;
-                DFAState2MapIter state2MapIt = state2map.find(mapIt -> second);
-                if(state2MapIt == state2map.end())
-                {
-                    if(mapIt -> second -> isFinal()) targetState = mkFinalState();
-                    else targetState = mkState();
-                    state2map[mapIt -> second] = targetState;
-                    makeCopyTrans(mapIt -> second, state2map);
-                }
-                else targetState = state2MapIt -> second;
-                sourceState -> addDFATrans(mapIt -> first, targetState);
-            }
-        }
-        void getTransMapByStatePair(const DFAState2 &statePair, Char2DFAState2Map& char2DFAState2Map)
-        {
-            DFATransMap &map1 = statePair.first -> getDFATransMap();
-            DFATransMap &map2 = statePair.second -> getDFATransMap();
-            for(DFATransMapIter mapIt1 = map1.begin(); mapIt1 != map1.end(); mapIt1++)
-            {
-                DFATransMapIter mapIt2 = map2.find(mapIt1 -> first);
-                if(mapIt2 != map2.end())
-                    char2DFAState2Map[mapIt1 -> first] = DFAState2(mapIt1 -> second, mapIt2 -> second);
-            }
-        }
-        
-        void mkIntersection(DFA* dfa, DFAState* sourceState, DFAStatePairMap& dfaStatePairMap)
-        {
-            DFAState2& statePair = dfaStatePairMap[sourceState];
-            if (statePair.first -> isFinal() && statePair.second -> isFinal())
-                dfa -> addFinalState(sourceState);
-            DFATransMap& lhsTransMap = statePair.first -> getDFATransMap();
-            DFATransMap& rhsTransMap = statePair.second -> getDFATransMap();
-            for (auto& mapPair : lhsTransMap) {
-                auto mapIt = rhsTransMap.find(mapPair.first);
-                if (mapIt != rhsTransMap.end()) {
-                    DFAState2 newStatePair(mapPair.second, mapIt -> second);
-                    DFAState* targetState = nullptr;
-                    auto pairMapIt = dfaStatePairMap.find(newStatePair);
-                    if (pairMapIt == dfaStatePairMap.end()) {
-                        targetState = dfa -> mkFinalState();
-                        dfaStatePairMap[newStatePair] = targetState;
-                        mkIntersection(dfa, targetState, dfaStatePairMap);
-                    } else {
-                        targetState = pairMapIt -> second;
-                    }
-                    sourceState -> addDFATrans(mapIt -> first, targetState);
-                }
-            }
+        void cpTrans(DFAState* state, DFAState2Map& state2map) {
+            FA::cpDFATransByDFA(this, state, state2map);
         }
 
-        void makeDFAComplementTrans(const DFAState *state, DFAState* trapState, DFAState2Map &state2map, DFA *dfa)
-        {
-            CharacterSet charSet;
-            const DFATransMap& map = state -> getDFATransMap();
-            DFAState* sourceState = state2map.at(const_cast<DFAState*>(state));
-            for(DFATransMapConstIter mapIt = map.begin(); mapIt != map.end(); mapIt++)
-            {
-                DFAState* targetState;
-                DFAState2MapIter state2MapIter = state2map.find(mapIt -> second);
-                if(state2MapIter == state2map.end())
-                {
-                    if(mapIt -> second -> isFinal()) targetState = dfa -> mkState();
-                    else targetState = dfa -> mkFinalState();
-                    state2map[mapIt -> second] = targetState;
-                    makeDFAComplementTrans(mapIt -> second, trapState, state2map, dfa);
+        void getReachableStateSet(DFAStateSet& reachableStateSet, DFAStateSet& workSet) {
+            if (workSet.size() == 0) return;
+            DFAStateSet newWorkSet, newReachableSet;
+            for (DFAState* state : workSet) {
+                newReachableSet.clear();
+                state -> getTargetStateSet(newReachableSet);
+                for (DFAState* newState : newReachableSet) {
+                    if (reachableStateSet.insert(newState).second)
+                        newWorkSet.insert(newState);
                 }
-                else targetState = state2MapIter -> second;
-                sourceState -> addDFATrans(mapIt -> first, targetState);
-                charSet.insert(mapIt -> first);
             }
-            for(CharacterSetIter it = this -> alphabet.begin(); it != this -> alphabet.end(); it++)
-                if(charSet.find(*it) == charSet.end())
-                    sourceState -> addDFATrans(*it, trapState);
+            getReachableStateSet(reachableStateSet, newWorkSet);
         }
-        void getReachableStateSet(DFAStateSet& reachableStateSet, DFAStateSet& workSet)
-        {
-            if(workSet.size() == 0) return;
-            DFAStateSet tempSet;
-            DFAStateSet set;
-            for(DFAStateSetIter it = workSet.begin(); it != workSet.end(); it++)
-            {
-                tempSet.clear();
-                (*it) -> getTargetStateSet(tempSet);
-                for(DFAStateSetIter sIt = tempSet.begin(); sIt != tempSet.end(); sIt++)
-                    if(reachableStateSet.insert(*sIt).second)
-                        set.insert(*sIt);
-            }
-            getReachableStateSet(reachableStateSet, set);
-        }
-        void getReverseMap(DFAState2DFAStateSetMap& reverseMap)
-        {
-            for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-                reverseMap[*it] = DFAStateSet();
-            for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-            {
-                DFATransMap &dfaTransMap = (*it) -> getDFATransMap();
-                for(DFATransMapIter mapIt = dfaTransMap.begin(); mapIt != dfaTransMap.end(); mapIt++)
-                    reverseMap[mapIt -> second].insert(*it);
+
+        void getReverseMap(DFAState2DFAStateSetMap& reverseMap) {
+            for (DFAState* state : stateSet) {
+                DFATransMap &dfaTransMap = state -> getDFATransMap();
+                for (auto& mapPair : dfaTransMap) {
+                    reverseMap[mapPair.second].insert(state);
+                }
             }
         }
         
-        void getLiveStateSet(const DFAState2DFAStateSetMap& reverseMap, DFAStateSet& liveStateSet, DFAStateSet& workSet)
-        {
-            if(workSet.size() == 0) return;
-            DFAStateSet set;
-            for(DFAStateSetIter it = workSet.begin(); it != workSet.end(); it++)
-            {
-                DFAState2DFAStateSetMapConstIter mapConstIt = reverseMap.find(*it);
-                if(mapConstIt != reverseMap.end())
-                    for(DFAStateSetConstIter it = mapConstIt -> second.begin(); it != mapConstIt -> second.end(); it++)
-                        if(liveStateSet.insert(*it).second)
-                            set.insert(*it);
+        void getLiveStateSet(const DFAState2DFAStateSetMap& reverseMap, DFAStateSet& liveStateSet, DFAStateSet& workSet) {
+            if (workSet.size() == 0) return;
+            DFAStateSet newWorkSet;
+            for (DFAState* state : workSet) {
+                auto mapIt = reverseMap.find(state);
+                if (mapIt != reverseMap.end()) {
+                    for (DFAState* newState : mapIt -> second) {
+                        if (liveStateSet.insert(newState).second)
+                            newWorkSet.insert(newState);
+                    }
+                }
             }
-            getLiveStateSet(reverseMap, liveStateSet, set);
+            getLiveStateSet(reverseMap, liveStateSet, newWorkSet);
         }
     public:
-        
-        DFA() : FA(), initialState(NULL) {this -> setDeterministicFlag(1);}
+        DFA() : FA(), initialState(NULL) {
+            this -> setDeterministicFlag(1);
+        }
 
-        DFA(const CharacterSet& charSet) : FA(charSet), initialState(NULL) {this -> setDeterministicFlag(1);}
-
+        DFA(const CharacterSet& charSet) : FA(charSet), initialState(NULL) {
+            this -> setDeterministicFlag(1);
+        }
     
         DFA(const DFA& dfa)
         {
@@ -191,11 +95,9 @@ namespace cgh {
                 this -> flag = dfa.flag; 
                 this -> setAlphabet(dfa.getAlphabet());
                 DFAState* iniState = mkInitialState();
-                if(dfa.initialState -> isFinal())
-                    addFinalState(iniState);
                 DFAState2Map state2Map;
                 state2Map[dfa.initialState] = iniState;
-                makeCopyTrans(dfa.initialState, state2Map);
+                cpTrans(dfa.initialState, state2Map);
                 this -> setDeterministicFlag(1);
             }
         }
@@ -289,16 +191,14 @@ namespace cgh {
             const DFATransMap &transMap1 = s1  ->  getDFATransMap();
             const DFATransMap &transMap2 = s2  ->  getDFATransMap();
             if (transMap1.size() != transMap2.size()) return false;
-            for (DFATransMapConstIter it = transMap1.begin(); it != transMap1.end(); ++it)
-            {
-                if (transMap2.count(it  ->  first) == 0) return false;
-                else if (stateMap.at(it  ->  second) != stateMap.at(transMap2.at(it  ->  first)))
+            for (auto& mapPair : transMap1) {
+                if (transMap2.count(mapPair.first) == 0) return false;
+                else if (stateMap.at(mapPair.second) != stateMap.at(transMap2.at(mapPair.first)))
                     return false;
             }
             return true;
         }
-        DFA& minimize()
-        {
+        DFA& minimize() {
             DFA* dfa = new DFA();
             removeDeadState();
             removeUnreachableState();
@@ -311,13 +211,13 @@ namespace cgh {
             DFAState *finalState = dfa -> mkState();
             
             DFAState2Map stateMap;
-            for (DFAState *s : stateSet) {
-                if (s -> isFinal()) {
-                    finalStatesSet.insert(s);
-                    stateMap[s] = finalState;
+            for (DFAState *state : stateSet) {
+                if (state -> isFinal()) {
+                    finalStatesSet.insert(state);
+                    stateMap[state] = finalState;
                 } else {
-                    unFinalStateSet.insert(s);
-                    stateMap[s] = unFinalState;
+                    unFinalStateSet.insert(state);
+                    stateMap[state] = unFinalState;
                 }
             }
             
@@ -344,13 +244,13 @@ namespace cgh {
                         continue;
                     }
                     
-                    DFAStateSetIter it = set.begin();
+                    auto it = set.begin();
                     DFAState *lastDfaState = stateMap[*it];
                     
                     //对于一个等价类，重新划分等价类
                     while (set.size() != 0) {
                         it = set.begin();
-                        DFAStateSetIter nextIt = it;
+                        auto nextIt = it;
                         ++nextIt;
                         DFAStateSet newEquiClass;
                         newEquiClass.insert(*it);
@@ -368,8 +268,8 @@ namespace cgh {
                         }
                         equiClass.push(newEquiClass);
                         DFAState *newMapState = dfa -> mkState();
-                        for (DFAState *s : newEquiClass) {
-                            stateMap[s] = newMapState;
+                        for (DFAState *state : newEquiClass) {
+                            stateMap[state] = newMapState;
                         }
                     }
                     (dfa -> stateSet).erase(lastDfaState);
@@ -379,30 +279,29 @@ namespace cgh {
                 curSize = equiClass.size();
             }
             //构造新自动机
-            for (DFAState2MapIter it = stateMap.begin(); it != stateMap.end(); ++it) {
-                if ((it -> first) == initialState) {
-                    dfa -> setInitialState(it -> second);
+            for (auto& mapPair : stateMap) {
+                if (mapPair.first == initialState) {
+                    dfa -> setInitialState(mapPair.second);
                 }
-                if ((it -> first) -> isFinal()) {
-                    dfa -> addFinalState(it -> second);
+                if (mapPair.first -> isFinal()) {
+                    dfa -> addFinalState(mapPair.second);
                 }
-                DFATransMap &firstTransMap = (it -> first) -> getDFATransMap();
-                DFATransMap &secondTransMap = (it -> second) -> getDFATransMap();
+                DFATransMap &firstTransMap = mapPair.first -> getDFATransMap();
+                DFATransMap &secondTransMap = mapPair.second -> getDFATransMap();
                 if (secondTransMap.size() == 0) {
-                    for (DFATransMapIter it1 = firstTransMap.begin(); it1 != firstTransMap.end(); ++it1) {
-                        (it -> second) -> addDFATrans(it1 -> first, (stateMap[it1 -> second]));
+                    for (auto& mapPair1 : firstTransMap) {
+                        mapPair.second -> addDFATrans(mapPair1.first, stateMap[mapPair1.second]);
                     }
                 }
             }
             dfa -> setReachableFlag(1);
+            dfa -> setMinimalFlag(1);
             return *dfa;
         }
         
-        FA &subset(const DFAState *iState, const DFAState *fState)
-        {
-            DFA *dfa = new DFA();
-            if(isNULL()) return *dfa;
-            dfa -> setAlphabet(this -> alphabet);
+        FA &subset(const DFAState *iState, const DFAState *fState) {
+            if (isNULL()) return FA::EmptyDFA();
+            DFA *dfa = new DFA(this -> alphabet);
             DFAState* state = dfa -> mkInitialState();
             DFAState2Map state2Map;
             state2Map[const_cast<State*>(iState)] = state;
@@ -413,24 +312,23 @@ namespace cgh {
             dfa -> removeDeadState();
             return *dfa;
         }
-        FA &rightQuotient(Character character)
-        {
+
+        FA &rightQuotient(Character character) {
             DFA* dfa = new DFA(*this);
             DFAStateSet finSteteSet;
-            for(DFAStateSetIter it = dfa -> stateSet.begin(); it != dfa -> stateSet.end(); it++)
-            {
-                State* state = (*it) -> getTargetStateByChar(character);
-                if(state && state -> isFinal())
-                    finSteteSet.insert(*it);
+            for (DFAState* state : dfa -> stateSet) {
+                State* targetState = state -> getTargetStateByChar(character);
+                if (targetState && targetState -> isFinal())
+                    finSteteSet.insert(state);
             }
             dfa -> clearFinalStateSet();
-            for(DFAStateSetIter it = finSteteSet.begin(); it != finSteteSet.end(); it++)
-                dfa -> addFinalState(*it);
+            for (DFAState* state : finSteteSet) {
+                dfa -> addFinalState(state);
+            }
             return *dfa;
         }
         
-        FA& leftQuotient(Character character)
-        {
+        FA& leftQuotient(Character character) {
             DFAState* state = initialState -> getTargetStateByChar(character);
             if(!state) return FA::EmptyDFA();
             DFA* dfa = new DFA(*this);
@@ -439,96 +337,90 @@ namespace cgh {
             return *dfa;
         }
         
-        void removeUnreachableState()
-        {
-            if(isNULL()) return;
+        void removeUnreachableState() {
+            if (isNULL()) return;
             DFAStateSet reachableStateSet;
             DFAStateSet workSet;
             workSet.insert(initialState);
             reachableStateSet.insert(initialState);
             getReachableStateSet(reachableStateSet, workSet);
-            if(!DFA::hasFinalState(reachableStateSet))
-            {
+            if (!DFA::hasFinalState(reachableStateSet)) {
                 initialState = NULL;
                 return;
             }
-            if(reachableStateSet.size() != this -> stateSet.size())
-            {
-                DFAStateSet set;
-                for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-                    if(reachableStateSet.find(*it) == reachableStateSet.end())
-                    {
-                        DFAStateSet targetStateSet = (*it) -> getTargetStateSet();
-                        for(DFAStateSetIter sIt = targetStateSet.begin(); sIt != targetStateSet.end(); sIt++)
-                            if(reachableStateSet.find(*sIt) != reachableStateSet.end())
-                                (*it) -> delDFATrans(*sIt);
-                        set.insert(*it);
+            if (reachableStateSet.size() != this -> stateSet.size()) {
+                DFAStateSet delSet;
+                for(DFAState* state : stateSet ) {
+                    if (reachableStateSet.count(state) == 0) {
+                        DFAStateSet targetStateSet = state -> getTargetStateSet();
+                        for (DFAState* targetState : targetStateSet) {
+                            if (reachableStateSet.count(targetState) > 0)
+                                state -> delDFATrans(targetState);
+                        }
+                        delSet.insert(state);
                     }
-                for(DFAStateSetIter it = set.begin(); it != set.end(); it++)
-                {
-                    stateSet.erase(*it);
-                    delete *it;
+                }
+                for (DFAState* state : delSet) {
+                    stateSet.erase(state);
+                    delete state;
                 }
             }
             this -> setReachableFlag(1);
         }
-         void removeDeadState()
-        {
-            if(isNULL()) return;
+
+         void removeDeadState() {
+            if (isNULL()) return;
             DFAState2DFAStateSetMap reverseMap;
             getReverseMap(reverseMap);
             DFAStateSet liveStateSet(finalStateSet.begin(), finalStateSet.end());
             getLiveStateSet(reverseMap, liveStateSet, finalStateSet);
-            if(liveStateSet.find(initialState) == liveStateSet.end())
-            {
+            if (liveStateSet.count(initialState) == 0) { 
                 initialState = NULL;
                 return;
             }
-            DFAStateSet set;
-            for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-                if(liveStateSet.find(*it) == liveStateSet.end())
-                {
-                    DFAStateSet sourceStateSet = reverseMap.find(*it) -> second;
-                    for(DFAStateSetIter sIt = sourceStateSet.begin(); sIt != sourceStateSet.end(); sIt++)
-                        if(liveStateSet.find(*sIt) != liveStateSet.end())
-                            (*sIt) -> delDFATrans(*it);
-                    set.insert(*it);
+            DFAStateSet delSet;
+            for (DFAState* state : stateSet) {
+                if (liveStateSet.count(state) == 0) {
+                    DFAStateSet sourceStateSet = reverseMap.find(state) -> second;
+                    for (DFAState* sourceState : sourceStateSet) {
+                        if (liveStateSet.count(sourceState) > 0)
+                            sourceState -> delDFATrans(state);
+                    }
+                    delSet.insert(state);
                 }
-            for(DFAStateSetIter it = set.begin(); it != set.end(); it++)
-            {
-                stateSet.erase(*it);
-                delete *it;
+            }
+            for(DFAState* state : delSet) {
+                stateSet.erase(state);
+                delete state;
             }
         }
         
-         Word getOneRun();
-        bool isAccepted(const Word &word)//accepted
-        {
-            if(isNULL()) return false;
+        //Word getOneRun();
+
+        bool isAccepted(const Word &word) {
+            if (isNULL()) return false;
             DFAState* state = initialState;
-            for(int i = 0; i < word.size(); i++)
-            {
-                state = state -> getTargetStateByChar(word[i]) ;
-                if(!state) return false;
+            for (Character c : word) {
+                state = state -> getTargetStateByChar(c) ;
+                if (!state) return false;
             }
-            if(state -> isFinal()) return true;
+            if (state -> isFinal()) return true;
             return false;
         }
-        bool isAccepted(Character character)
-        {
-            if(isNULL()) return false;
+
+        bool isAccepted(Character character) {
+            if (isNULL()) return false;
             DFAState* state = initialState;
             state = state -> getTargetStateByChar(character) ;
-            if(!state) return false;
-            if(state -> isFinal()) return true;
+            if (!state) return false;
+            if (state -> isFinal()) return true;
             return false;
         }
         
-        bool isEmpty()
-        {
-            if(isNULL()) return true;
-            if(!this -> isReachable()) removeUnreachableState();
-            if(finalStateSet.size() == 0) return true;
+        bool isEmpty() {
+            if (isNULL()) return true;
+            if (!this -> isReachable()) removeUnreachableState();
+            if (finalStateSet.size() == 0) return true;
             return false;
         }
         
@@ -536,7 +428,7 @@ namespace cgh {
         {
             if(isNULL()) return;
             cout<<initialState -> getID()<<endl;
-            for(DFAStateSetConstIter it = stateSet.begin(); it != stateSet.end(); it++)
+            for(auto it = stateSet.begin(); it != stateSet.end(); it++)
             {
                 if((*it) -> isFinal()) cout<<"$"<<(*it) -> getID()<<endl;;
                 (*it) -> output();
@@ -555,17 +447,17 @@ namespace cgh {
             f << "Q"<<initialState -> getID() << "[color=blue];\n";
 
             // cout final states
-            for (DFAStateSetConstIter iter = finalStateSet.begin(); iter != finalStateSet.end(); iter++) {
+            for (auto iter = finalStateSet.begin(); iter != finalStateSet.end(); iter++) {
                 f << "Q" << (*iter) -> getID() << " [shape=doublecircle];\n";
             }
          
             
             // cout trisitions
-            for(DFAStateSetConstIter iter = stateSet.begin(); iter != stateSet.end(); iter++)
+            for(auto iter = stateSet.begin(); iter != stateSet.end(); iter++)
             {
                 DFATransMap& transMap = (*iter) -> getDFATransMap();
                 ID id = (*iter) -> getID();
-                for (DFATransMapIter iter = transMap.begin(); iter != transMap.end(); iter++)
+                for (auto iter = transMap.begin(); iter != transMap.end(); iter++)
                 {
                     f << "Q" << id <<  "  ->  " << "Q" << (iter -> second) -> getID() << "[label=\"" << iter -> first <<"\"];\n";
                 }
@@ -584,11 +476,17 @@ namespace cgh {
     private:
         DFA* dfa;
         bool del;
+        bool confirm; 
     public:
-        SmartDFA() : dfa(nullptr), del(0) {}
-        SmartDFA(DFA* d, bool f) : dfa(d), del(f) {}
+        SmartDFA() : dfa(nullptr), del(0), confirm(0){}
+        SmartDFA(const DFA* d, bool b, bool c = 0) : dfa(const_cast<DFA*>(d)), del(b) , confirm(c) {}
+        SmartDFA(const SmartDFA& smartDFA) {
+            dfa = smartDFA.dfa;
+            del = smartDFA.del;
+            confirm = 1;
+        }
         ~SmartDFA() {
-            if (del) delete dfa;
+            if (del & confirm) delete dfa;
         }
 
         DFA* getDFA() {return dfa;}
