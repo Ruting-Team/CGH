@@ -16,6 +16,8 @@ release
 *.so.*
 *.dylib
 
+tags*
+
 
 # Executables
 *.exe
