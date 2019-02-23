@@ -11,8 +11,8 @@
 
 #include "PDSTransition.hpp"
 
-namespace cgh
-{
+namespace cgh {
+
     template <class Character>
     class PDS
     {

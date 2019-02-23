@@ -10,8 +10,7 @@
 #define PDSTrans_hpp
 #include "Global.hpp"
 #include "State.hpp"
-namespace cgh
-{
+namespace cgh {
     class PDSState : public State
     { 
     public:
