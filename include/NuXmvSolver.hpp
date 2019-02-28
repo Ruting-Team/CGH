@@ -9,422 +9,504 @@
 #ifndef NuXmvSolver_hpp
 #define NuXmvSolver_hpp
 
+#include <vector>
+#include <string>
 #include <stdio.h>
-#include "FA.hpp"
-using namespace cgh;
 using namespace std;
+class Value;
+class StateAtomic;
+class CharAtomic;
+class StateVar;
+class CharVar;
+class Condition;
+class Transition;
+class NuXmvSolver;
 
-class Var
-{
-protected:
-    ID id;
+typedef size_t ID;
+typedef vector<Value*> Values;
+typedef vector<StateAtomic*> StateAtomics;
+typedef vector<CharAtomic*> CharAtomics;
+typedef vector<Transition*> Transitions;
+typedef vector<StateVar*> StateVars;
+typedef vector<CharVar*> CharVars;
+typedef vector<Transition*> Transitions;
+typedef vector<StateAtomics> Configuration;
+typedef vector<Condition*> Conditions;
+
+/// /biref Transition in NuXmv.
+class Transition {
+private:
+    Condition* condition;       ///< the condition for this Transition.
+    StateVar* stateVar;         ///< the target Var for this Transition.
+    Value* value;               ///< the target Value for this Transition.
 public:
-    Var() : id(-1) {}
-    Var(ID i) : id(i){}
-    ID getID() { return id; }
-    void setID(ID i) { id = i; }
-};
-class StateVar : public Var
-{
-public:
-    StateVar() : Var() {}
-    StateVar(ID i) : Var(i) {}
-    string getStr() { return "s" + to_string(id); }
+    /// \brief Default construction function.
+    Transition() : condition(nullptr), value(nullptr), stateVar(nullptr) {}
+
+    /// \brief Construction function with params.
+    /// \param c Condition for this Transition.
+    /// \param v Value for this Transition.
+    Transition(Condition* c, Value* v) : condition(c), value(v), stateVar(nullptr) {}
+
+    /// \brief Desconstruction function.
+    ~Transition() {
+    }
+
+    /// \brief Construction function with params.
+    /// \param c Condition for this Transition.
+    /// \param sVar state Var for this Transition.
+    Transition(Condition* c, StateVar* sVar) : condition(c), value(nullptr), stateVar(sVar) {}
+
+    /// \brief Gets the condition for this Transition.
+    /// \return Condition pointer.
+    Condition* getCondition() {return condition;}
+    Condition* getCondition() const {return condition;}
+
+    /// \brief Gets the stateVar for this Transition.
+    /// \return StateVar pointer.
+    StateVar* getStateVar() {return stateVar;}
+    StateVar* getStateVar() const {return stateVar;}
+
+    /// \brief Gets the value for this Transition.
+    /// \return Value pointer.
+    Value* getValue() {return value;}
+    Value* getValue() const {return value;}
 };
 
-class CharVar : public Var
-{
+/// \brief Values in NuXmv.
+class Value {
+private:
+    ID id;      ///< the identity for this Value.
 public:
-    CharVar() : Var() {}
-    CharVar(ID i) : Var(i) {}
-    void getStrVec(vector<string>& strVec, Size size)
-    {
-        int num = 0;
-        for(ID i = 0; i < size; i++)
-        {
-            string str = "a" + to_string(num++);
-            if(id & (1 << i)) str = str + " = TRUE";
-            else str = str + " = FALSE";
-            strVec.push_back(str);
+    /// \brief Default construction function.
+    Value() : id(0) {}
+
+    /// \brief Constrction with param.
+    /// \param i Id for this Value.
+    Value(ID i) : id(i) {}
+
+    /// \brief Gets Id for this Value.
+    /// \return ID.
+    ID getID() {return id;}
+    ID getID() const {return id;}
+};
+
+/// \brief Variables in NuXmv.
+class Var {
+private:
+    ID id;                  ///< the identity for this Var.
+    Values values;          ///< the available values for this StateVar.
+public:
+    /// \brief Default construction function.
+    Var() : id(0) {}
+
+    /// \brief Constrction with param.
+    /// \param i Id for this Var.
+    /// \param vs available values for this StateVar.
+    Var(ID i, const Values& vs) : id(i), values(vs.begin(), vs.end()) {}
+
+    /// \brief Gets Id for this Var.
+    /// \return ID.
+    ID getID() {return id;}
+    ID getID() const {return id;}
+
+    /// \brief Gets the values for this StateVar.
+    /// \return reference of Value pointer vector.
+    Values& getValues() {return values;}
+    const Values& getValues() const {return values;}
+
+};
+
+/// \brief State Variables in NuXmv.
+class StateVar : public Var {
+private:
+    Value* initValue;           ///< the initial value for this StateVar.
+    Value* trapValue;           ///< the trap Value for this StateVar.
+    Transitions transitions;    ///< the transitions for this StateVar.
+public:
+    /// \brief Default construction function.
+    StateVar() : Var(), initValue(nullptr), trapValue(nullptr) {}
+
+    /// \brief Constrction with param.
+    /// \param i Id for this StateVar.
+    /// \param vs available values for this StateVar.
+    /// \param iValue initial value for this StateVar.
+    /// \param tValue trap value for this StateVar.
+    StateVar(ID i, const Values& vs, Value* iValue, Value* tValue = nullptr) : Var(i, vs), initValue(iValue), trapValue(tValue) {}
+
+    /// \brief Desconstruction function.
+    ~StateVar() {
+        for (Transition* transition : transitions) {
+            delete transition;
         }
     }
-};
 
+    /// \brief Gets the initial Value for this StateVar.
+    /// \return Value pointer.
+    Value* getInitialValue() {return initValue;}
+    Value* getInitialValue() const {return initValue;}
 
-class Trans
-{
-private:
-    StateVar sourceVar;
-    StateVar targetVar;
-    CharVar charVar;
-public:
-    Trans(StateVar sv, CharVar cv, StateVar tv):sourceVar(sv), charVar(cv), targetVar(tv) {}
-    Trans():sourceVar(), charVar(), targetVar() {}
-    string getStr(ID id, Size size)
-    {
-        string preStr = "state" + to_string(id) + " = " + sourceVar.getStr();
-        string sufStr = " : " + targetVar.getStr() + " ;";
-        vector<string> strVec;
-        charVar.getStrVec(strVec, size);
-        for(ID i = 0; i < strVec.size(); i++)
-            preStr = preStr + " & " + strVec[i];
-        preStr = preStr + sufStr;
-        return preStr;
+    /// \brief Gets the trap Value for this StateVar.
+    /// \return Value pointer.
+    Value* getTrapValue() {return trapValue;}
+    Value* getTrapValue() const {return trapValue;}
+
+    /// \brief Gets the transitions for this StateVar.
+    /// \return reference of Transition pointer vector.
+    Transitions& getTransitions() {return transitions;}
+    const Transitions& getTransitions() const {return transitions;}
+
+    /// \brief Adds a transition in the transitions for this StateVar.
+    /// \param condition Condition in the transition.
+    /// \param value Value for this Transition.
+    /// \return Transition pointer
+    Transition* mkTransition(Condition* condition, Value* value) {
+        Transition* transition = new Transition(condition, value);
+        transitions.push_back(transition);
+        return transition;
     }
+
+    /// \brief Adds a transition in the transitions for this StateVar.
+    /// \param condition Condition in the transition.
+    /// \param stateVar StateVar for this Transition.
+    /// \return Transition pointer
+    Transition* mkTransition(Condition* condition, StateVar* stateVar) {
+        Transition* transition = new Transition(condition, stateVar);
+        transitions.push_back(transition);
+        return transition;
+    }
+
+};
+
+/// \brief State Variables in NuXmv.
+class CharVar : public Var {
+public:
+    /// \brief Default construction function.
+    CharVar() : Var() {}
+
+    /// \brief Constrction with param.
+    /// \param i Id for this CharVar.
+    /// \param vs available values for this StateVar.
+    CharVar(ID i, const Values& vs) : Var(i, vs) {}
+};
+
+/// \brief The Atomic in the NuXmv
+///
+/// Example: s1 = c1.
+class Atomic {
+private:
+    Value* value;       ///< the Value for this Atomic.
+    bool flag;          ///< the flag representing positive or not for this Atomic.
+public:
+    /// \brief Default construction function.
+    Atomic() : value(nullptr), flag(true) {}
+
+    /// \brief construcion with params.
+    /// \param v Value for this Atomic.
+    /// \param f flag for this Atomic.
+    Atomic(Value* v, bool f = true) : value(v), flag(f) {}
+
+    /// \brief Gets the Value for this Atomic.
+    /// \return Value pointer.
+    Value* getValue() {return value;}
+    Value* getValue() const {return value;}
+
+    /// \brief Gets the flag for this Atomic.
+    /// \return Boolean.
+    bool isPositive() {return flag;}
+    bool isPositive() const {return flag;}
+};
+
+class StateAtomic : public Atomic {
+private:
+    StateVar* stateVar;     ///< the State Var for this StateAtomic.
+public:
+    /// \brief Default construction function.
+    StateAtomic() : Atomic() {}
+
+    /// \brief construcion with params.
+    /// \param sVar State Var for this StateAtomic
+    /// \param v Value for this StateAtomic.
+    /// \param f flag for this StateAtomic.
+    StateAtomic(StateVar* sVar, Value* v, bool f = true) : Atomic(v, f), stateVar(sVar) {}
+
+    /// \brief Gets the stateVar for this StateAtomic.
+    /// \return StateVar pointer.
+    StateVar* getStateVar() {return stateVar;}
+    StateVar* getStateVar() const {return stateVar;}
+};
+
+class CharAtomic : public Atomic {
+private:
+    CharVar* charVar;     ///< the Char Var for this CharAtomic.
+public:
+    /// \brief Default construction function.
+    CharAtomic() : Atomic() {}
+
+    /// \brief construcion with params.
+    /// \param cVar Char Var for this CharAtomic
+    /// \param v Value for this CharAtomic.
+    /// \param f flag for this CharAtomic.
+    CharAtomic(CharVar* cVar, Value* v, bool f = true) : Atomic(v, f), charVar(cVar) {}
+
+    /// \brief Gets the charVar for this CharAtomic.
+    /// \return CharVar pointer.
+    CharVar* getCharVar() {return charVar;}
+    CharVar* getCharVar() const {return charVar;}
+};
+
+/// \brief Condition in NuXmv.
+class Condition {
+private:
+    StateAtomics stateAtomics;      ///< the state Atomics for this Condition.
+    CharAtomics charAtomics;        ///< the char Atomics for this Condition.
+
+public:
+    /// \brief Defualt construction function.
+    Condition() {}
+
+    /// \brief Adds a State Atomic for this Condition.
+    /// \param stateAtomic Be added in stateAtomics.
+    void mkStateAtomic(StateVar* stateVar, Value* value, bool flag = true) {
+        StateAtomic* stateAtomic = new StateAtomic(stateVar, value, flag);
+        stateAtomics.push_back(stateAtomic);
+    }
+
+    /// \brief Adds a Char Atomic for this Condition.
+    /// \param charAtomic Be added in charAtomics.
+    void mkCharAtomic(CharVar* charVar, Value* value, bool flag = true) {
+        CharAtomic* charAtomic = new CharAtomic(charVar, value, flag);
+        charAtomics.push_back(charAtomic);
+    }
+
+    StateAtomics& getStateAtomics() {return stateAtomics;}
+    CharAtomics& getCharAtomics() {return charAtomics;}
+
 };
 
 
-class Solver
-{
+
+class NuXmvSolver {
 protected:
-    ID id;
-    list<Trans*> transList;
-    list<StateVar> stateVarList;
-    list<StateVar> finalStateVarList;
-    StateVar initialStateVar;
-public:
-    Solver() : id(-1) {}
-    Solver(ID i) : id(i) {}
-    ~Solver()
-    {
-        for(list<Trans*>::iterator it = transList.begin(); it != transList.end(); it++)
-            delete *it;
-    }
-    
-};
+    StateVars stateVars;            ///< the stateVar vector for this NuXmvSolver.
+    CharVars charVars;              ///< the charVar vector for this NuXmvSolver.
+    Values values;                  ///< the whole values for this NuXmvSolver.
+    Configuration configuration;    ///< the vefication configuration for this NuXmvSolver.
+    Conditions conditions;          ///< the all conditions in thie NuXmvSolver.
 
-template <class Character>
-class FASolver : public Solver
-{
-    typedef FA<Character> FA;
-    typedef DFA<Character> DFA;
-    typedef NFA<Character> NFA;
-    typedef Global<Character> Global;
-    typedef typename Global::Char2IDMap Char2IDMap;
-    typedef typename Global::CharacterSet CharacterSet;
-    typedef typename Global::NFAStateSet NFAStateSet;
-    typedef typename Global::DFAStateSet DFAStateSet;
-    typedef typename Global::NFATransMap NFATransMap;
-    typedef typename Global::DFATransMap DFATransMap;
-    typedef typename Global::NFAStateSetIter NFAStateSetIter;
-    typedef typename Global::DFAStateSetIter DFAStateSetIter;
-    typedef typename Global::NFATransMapIter NFATransMapIter;
-    typedef typename Global::DFATransMapIter DFATransMapIter;
-    typedef typename Global::CharacterSetIter CharacterSetIter;
-private:
-    list<Trans*> initialTransList;
-    list<Var> charVarList;
-    Char2IDMap char2IDMap;
-    Size size;
-private:
-    void addTrans(Trans* trans) { transList.push_back(trans); }
-    void addStateVar(StateVar stateVar) { stateVarList.push_back(stateVar); }
-    void addFinalStateVar(StateVar stateVar) { finalStateVarList.push_back(stateVar); }
-    void mkChar2IDMap(CharacterSet& charSet)
-    {
-        size = (ID) log10(charSet.size()) / log10(2);
-        ID num = 0;
-        for(CharacterSetIter it = charSet.begin(); it != charSet.end(); it++)
-            char2IDMap[*it] = num++;
+    string StateVarItem(const StateVar* stateVar) {
+        return "s" + to_string(stateVar -> getID());
     }
     
-    void loadTransAndStateVar(NFA* nfa)
-    {
-        NFAStateSet &stateSet = nfa->getStateSet();
-        for(NFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-        {
-            StateVar stateVar((*it)->getID());
-            addStateVar(stateVar);
-            NFATransMap &map = (*it)->getNFATransMap();
-            for(NFATransMapIter mIt = map.begin(); mIt != map.end(); mIt++)
-            {
-                NFAStateSet &set = mIt->second;
-                for(NFAStateSetIter sIt = set.begin(); it != set.end(); it++)
-                    addTrans(new Trans(stateVar, CharVar(char2IDMap[mIt->first]), StateVar((*sIt)->getID())));
+    string CharVarItem(const CharVar* charVar) {
+        return "c" + to_string(charVar -> getID());
+    }
+
+    string ValueItem(const Value* value) {
+        return "v" + to_string(value -> getID());
+    }
+
+    string StateAtomicItem(const StateAtomic* stateAtomic) {
+        string stateVarItem = StateVarItem(stateAtomic -> getStateVar());
+        string valueItem = ValueItem(stateAtomic -> getValue());
+        if (stateAtomic -> isPositive()) {
+            return stateVarItem + " = " + valueItem;
+        } else {
+            return "!(" + stateVarItem + " = " + valueItem + ")";
+        }
+    }
+
+    string CharAtomicItem(const CharAtomic* charAtomic) {
+        string charVarItem = CharVarItem(charAtomic -> getCharVar());
+        string valueItem = ValueItem(charAtomic -> getValue());
+        if (charAtomic -> isPositive()) {
+            return charVarItem + " = " + valueItem;
+        } else {
+            return "!(" + charVarItem + " = " + valueItem + ")";
+        }
+    }
+
+    string And(const string& lhs, const string& rhs) {
+        if (lhs.length() == 0) return rhs;
+        if (rhs.length() == 0) return lhs;
+        return lhs + " & " + rhs;
+    }
+
+    string Or(const string& lhs, const string& rhs) {
+        if (lhs.length() == 0) return rhs;
+        if (rhs.length() == 0) return lhs;
+        return "(" + lhs + " | " + rhs + ")";
+    }
+
+    string Not(const string& str) {
+        return "(!" + str + ")";
+    }
+
+    string Init(const StateVar* stateVar) {
+        return "init(" + StateVarItem(stateVar) + ")";
+    }
+
+    string Next(const StateVar* stateVar) {
+        return "next(" + StateVarItem(stateVar) + ")";
+    }
+
+    /// \brief Gets string of this Condition.
+    /// \return string.
+    string getStr(Condition* condition) {
+        string res = "";
+        for (StateAtomic* stateAtomic : condition -> getStateAtomics()) {
+            string stateAtomicItem = StateAtomicItem(stateAtomic);
+            res = And(res, stateAtomicItem);
+        }
+        for (CharAtomic* charAtomic : condition -> getCharAtomics()) {
+            string charAtomicItem = CharAtomicItem(charAtomic);
+            res = And(res, charAtomicItem);
+        }
+        return res;
+    }
+public:
+    /// \brief Default construction function.
+    NuXmvSolver() {}
+
+    /// \brief Desconstruction function.
+    ~NuXmvSolver() {
+        for (StateVar* stateVar : stateVars) {
+            delete stateVar;
+        }
+        for (CharVar* charVar : charVars) {
+            delete charVar;
+        }
+        for (Value* value : values) {
+            delete value;
+        }
+        for (Condition* condition : conditions) {
+            delete condition;
+        }
+        for (StateAtomics& stateAtomics : configuration) {
+            for (StateAtomic* stateAtomic : stateAtomics) {
+                delete stateAtomic;
             }
         }
     }
-    void loadFinalStateVar(NFA* nfa)
-    {
-        NFAStateSet &finalStateSet = nfa->getFinalStateSet();
-        for(NFAStateSetIter it = finalStateSet.begin(); it != finalStateSet.end(); it++)
-            addFinalStateVar(StateVar((*it)->getID()));
+
+    /// \brief Makes a StateVar for this NuXmvSolver.
+    /// \param id Id for this StateVar.
+    /// \param values available values for this StateVar.
+    /// \param initValue initial value for this StateVar.
+    /// \param trapValue trap value for this StateVar.
+    /// \return StateVar pointer.
+    StateVar* mkStateVar(ID id, const Values& values, Value* initValue, Value* trapValue = nullptr) {
+        StateVar* stateVar = new StateVar(id, values, initValue, trapValue);
+        stateVars.push_back(stateVar); 
+        return stateVar;
     }
-    
-    void loadTransAndStateVar(NFA* nfa, Char2IDMap& char2IDMap)
-    {
-        NFAStateSet &stateSet = nfa->getStateSet();
-        for(NFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-        {
-            StateVar stateVar((*it)->getID());
-            addStateVar(stateVar);
-            NFATransMap &map = (*it)->getNFATransMap();
-            for(NFATransMapIter mIt = map.begin(); mIt != map.end(); mIt++)
-            {
-                NFAStateSet &set = mIt->second;
-                for(NFAStateSetIter sIt = set.begin(); sIt != set.end(); sIt++)
-                {
-                    addTrans(new Trans(stateVar, CharVar(char2IDMap[mIt->first]), StateVar((*sIt)->getID())));
+
+    /// \brief Makes a CharVar for this NuXmvSolver.
+    /// \param id Id for this CharVar.
+    /// \param values available values for this CharVar.
+    /// \return CharVar pointer.
+    CharVar* mkCharVar(ID id, const Values& values) {
+        CharVar* charVar = new CharVar(id, values);
+        charVars.push_back(charVar);
+        return charVar;
+    }
+
+    /// \brief Makes a Value for this NuXmvSolver.
+    /// \param id Id for this Value.
+    /// \return Value pointer.
+    Value* mkValue(ID id) {
+        Value* value = new Value(id);
+        values.push_back(value);
+        return value;
+    }
+
+    void mkConfiguration(const Configuration& config) {
+        configuration.insert(configuration.end(), config.begin(), config.end());
+    }
+
+    string getVAR() {
+        //cout << "VAR" << endl;
+        string res = "MODULE main\nVAR\n";
+        for (StateVar* stateVar : stateVars) {
+            //cout << stateVar -> getID() << endl;
+            string valueItems = "{";
+            for (Value* value : stateVar -> getValues()) {
+                valueItems += ValueItem(value) + ", ";
+            }
+            valueItems = valueItems.substr(0, valueItems.length() - 2);
+            valueItems += "};\n";
+            res += StateVarItem(stateVar) + " : " + valueItems;
+        }
+        for (CharVar* charVar : charVars) {
+            string valueItems = "{";
+            for (Value* value : charVar -> getValues()) {
+                valueItems += ValueItem(value) + ", ";
+            }
+            valueItems = valueItems.substr(0, valueItems.length() - 2);
+            valueItems += "};\n";
+            res += CharVarItem(charVar) + " : " + valueItems;
+        }
+        return res;
+    }
+
+    string getASSIGN_INIT() {
+        //cout << "INIT" << endl;
+        string res = "ASSIGN\n";
+        for (StateVar* stateVar : stateVars) {
+            res += Init(stateVar) + " := " + ValueItem(stateVar -> getInitialValue()) + ";\n"; 
+        }
+        return res;
+    }
+
+    string getASSIGN_NEXT() {
+        //cout << "NEXT" << endl;
+        string res = "";
+        for (StateVar* stateVar : stateVars) {
+            string transitionStr = Next(stateVar) + " := case\n";
+            Value* trapValue = stateVar -> getTrapValue();
+            for (Transition* transition : stateVar -> getTransitions()) {
+                string conditionStr = getStr(transition -> getCondition());
+                StateVar* targetStateVar = transition -> getStateVar();
+                Value* targetValue = transition -> getValue();
+                if (targetStateVar) {
+                    transitionStr += conditionStr + " : " + StateVarItem(targetStateVar) + ";\n";
+                } else {
+                    transitionStr += conditionStr + " : " + ValueItem(targetValue) + ";\n";
                 }
             }
+            if (trapValue) {
+                transitionStr += "TRUE : " + ValueItem(trapValue) + ";\n";
+            } else {
+                transitionStr += "TRUE : " + StateVarItem(stateVar) + ";\n";
+            }
+            transitionStr += "esac;\n";
+            res += transitionStr;
         }
+        return res;
     }
-    
-    void loadTransAndStateVar(DFA* dfa)
-    {
-        DFAStateSet &stateSet = dfa->getStateSet();
-        for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-        {
-            StateVar stateVar((*it)->getID());
-            addStateVar(stateVar);
-            DFATransMap &map = (*it)->getDFATransMap();
-            for(DFATransMapIter mIt = map.begin(); mIt != map.end(); mIt++)
-                addTrans(new Trans(stateVar, CharVar(char2IDMap[mIt->first]), StateVar(mIt->second->getID())));
-            
-        }
-    }
-    void loadFinalStateVar(DFA* dfa)
-    {
-        DFAStateSet &finalStateSet = dfa->getFinalStateSet();
-        for(DFAStateSetIter it = finalStateSet.begin(); it != finalStateSet.end(); it++)
-            addFinalStateVar(StateVar((*it)->getID()));
-    }
-    
-    void loadTransAndStateVar(DFA* dfa, Char2IDMap& char2IDMap)
-    {
-        DFAStateSet &stateSet = dfa->getStateSet();
-        for(DFAStateSetIter it = stateSet.begin(); it != stateSet.end(); it++)
-        {
-            StateVar stateVar((*it)->getID());
-            addStateVar(stateVar);
-            DFATransMap &map = (*it)->getDFATransMap();
-            for(DFATransMapIter mIt = map.begin(); mIt != map.end(); mIt++)
-                addTrans(new Trans(stateVar, CharVar(char2IDMap[mIt->first]), StateVar(mIt->second->getID())));
-        }
-    }
-public:
-    FASolver() : Solver() {}
-    FASolver(ID i) : Solver(i) {}
-    FASolver(ID i, NFA* nfa, Char2IDMap& char2IDMap) : Solver(i)
-    {
-        initialStateVar.setID(nfa->getInitialState()->getID());
-        loadTransAndStateVar(nfa, char2IDMap);
-        loadFinalStateVar(nfa);
-    }
-    
-    FASolver(ID i, NFA* nfa) : Solver(i)
-    {
-        initialStateVar.setID(nfa->getInitialState()->getID());
-        mkChar2IDMap(nfa->getAlphabet());
-        loadTransAndStateVar(nfa, char2IDMap);
-        loadFinalStateVar(nfa);
-        
-    }
-    
-    FASolver(ID i, DFA* dfa, Char2IDMap& char2IDMap) : Solver(i)
-    {
-        initialStateVar.setID(dfa->getInitialState()->getID());
-        loadTransAndStateVar(dfa, char2IDMap);
-        loadFinalStateVar(dfa);
-    }
-    
-    FASolver(ID i, DFA* dfa) : Solver(i)
-    {
-        initialStateVar.setID(dfa->getInitialState()->getID());
-        mkChar2IDMap(dfa->getAlphabet());
-        loadTransAndStateVar(dfa, char2IDMap);
-        loadFinalStateVar(dfa);
-    }
-    
-    ~FASolver() {}
-    
-    string getStateStr() { return "state" + to_string(id); }
-    string getStateVar()
-    {
-        string str = getStateStr() + " : {";
-        for(list<StateVar>::iterator it = stateVarList.begin(); it != stateVarList.end(); it++)
-            str = str + " " + (*it).getStr() + ",";
-        str = str + " p };";
-        return str;
-    }
-    
-    string getInitialStateVar()
-    {
-        return "init(" + getStateStr() + ") := " + initialStateVar.getStr() + ";";
-    }
-    
-    string getFinalStateVar()
-    {
-        string stateStr = getStateStr();
-        string str = "(" + stateStr + " = " + finalStateVarList.front().getStr();
-        for(list<StateVar>::iterator it = ++finalStateVarList.begin(); it != finalStateVarList.end(); it++)
-            str = str + " | " + stateStr + " = " + (*it).getStr();
-        str = str + ")";
-        return str;
-    }
-    
-    void getCharVar(vector<string>& strVec)
-    {
-        for(list<Var>::iterator it = charVarList.begin(); it != charVarList.end(); it++)
-        {
-            string str = "a" + to_string((*it).getID()) + " : boolean;";
-            strVec.push_back(str);
-        }
-    }
-    
-    void getTrans(vector<string>& strVec, Size size)
-    {
-        strVec.push_back("next(" + getStateStr() + ") := case");
-        for(list<Trans*>::iterator it = transList.begin(); it != transList.end(); it++)
-            strVec.push_back((*it)->getStr(id, size));
-        strVec.push_back("TRUE : p;");
-        strVec.push_back("esac;");
-    }
-    
-    void getTrans(vector<string>& strVec)
-    {
-        strVec.push_back("next(" + getStateStr() + ") := case");
-        for(list<Trans*>::iterator it = transList.begin(); it != transList.end(); it++)
-            strVec.push_back((*it)->getStr(id, size));
-        strVec.push_back("TRUE : p");
-        strVec.push_back("esac;");
-    }
-};
 
-template <class Character>
-class NuXmvSolver
-{
-    typedef Global<Character> Global;
-    typedef DFA<Character> DFA;
-    typedef NFA<Character> NFA;
-    typedef FASolver<Character> FASolver;
-    typedef typename Global::CharacterSet CharacterSet;
-    typedef typename Global::Char2IDMap Char2IDMap;
-    typedef typename Global::CharacterSetIter CharacterSetIter;
-    typedef typename Global::FASet FASet;
-    typedef typename Global::FAList FAList;
-    typedef typename Global::FASetIter FASetIter;
-    typedef typename Global::FAListIter FAListIter;
-private:
-    vector<string> VAR;
-    vector<string> ASSIGN_INI;
-    vector<string> ASSIGN_NEXT;
-    vector<string> INVARSPEC;
-    vector<string> SMV;
-private:
-    void loadFASolver(FASolver& faSolver)
-    {
-        loadVAR(faSolver);
-        loadASSIGN_INI(faSolver);
-        loadASSIGN_NEXT(faSolver);
-        loadINVARSPEC(faSolver);
-    }
-    
-    void loadFASolver(FASolver& faSolver, Size size)
-    {
-        loadVAR(faSolver);
-        loadASSIGN_INI(faSolver);
-        loadASSIGN_NEXT(faSolver, size);
-        loadINVARSPEC(faSolver);
-    }
-    
-    void loadVAR(FASolver& faSolver)
-    {
-        VAR.push_back(faSolver.getStateVar());
-    }
-    void loadASSIGN_INI(FASolver& faSolver)
-    {
-        ASSIGN_INI.push_back(faSolver.getInitialStateVar());
-    }
-    void loadASSIGN_NEXT(FASolver& faSolver)
-    {
-        vector<string> strVec;
-        faSolver.getTrans(strVec);
-        ASSIGN_NEXT.insert(ASSIGN_NEXT.end(), strVec.begin(), strVec.end());
-    }
-    void loadASSIGN_NEXT(FASolver& faSolver, Size size)
-    {
-        vector<string> strVec;
-        faSolver.getTrans(strVec, size);
-        ASSIGN_NEXT.insert(ASSIGN_NEXT.end(), strVec.begin(), strVec.end());
-    }
-    void loadINVARSPEC(FASolver& faSolver)
-    {
-        INVARSPEC.push_back(faSolver.getFinalStateVar());
-    }
-    void getSMV(vector<string>& strVec)
-    {
-        strVec.push_back("MODULE main");
-        strVec.push_back("VAR");
-        for(int i = 0; i < VAR.size(); i++)
-            strVec.push_back(VAR[i]);
-        strVec.push_back("ASSIGN");
-        for(int i = 0; i < ASSIGN_INI.size(); i++)
-            strVec.push_back(ASSIGN_INI[i]);
-        for(int i = 0; i < ASSIGN_NEXT.size(); i++)
-            strVec.push_back(ASSIGN_NEXT[i]);
-        strVec.push_back("INVARSPEC");
-        string str = "!(" + INVARSPEC[0];
-        for(int i = 1; i < INVARSPEC.size(); i++)
-            str = str + " & " + INVARSPEC[i];
-        str = str + ");";
-        strVec.push_back(str);
-    }
-public:
-    NuXmvSolver(FASet& faSet, CharacterSet& charSet)
-    {
-        Size size = (ID) ceil((log10(charSet.size()) / log10(2)));
-        ID num = 0;
-        Char2IDMap char2IDMap;
-        CharacterSetIter it = charSet.begin();
-        for(ID i = 0; (i < (1 << size)) & (it != charSet.end()); i++)
-            char2IDMap[*it++] = i;
-        for(FASetIter it = faSet.begin(); it != faSet.end(); it++)
-        {
-            if((*it)->isDeterminate())
-            {
-                FASolver faSolver(num++, &(*it)->determine(), char2IDMap);
-                loadFASolver(faSolver, size);
+    string getINVARSPEC() {
+        //cout << "INV" << endl;
+        string res = "INVARSPEC\n!(";
+        string configurationStr = "";
+        for (StateAtomics& stateAtomics: configuration) {
+            string stateVarConditionStr = "";
+            for (StateAtomic* stateAtomic : stateAtomics) {
+                stateVarConditionStr = And(stateVarConditionStr, StateAtomicItem(stateAtomic));
             }
-            else
-            {
-                FASolver faSolver(num++, &(*it)->nondetermine(), char2IDMap);
-                loadFASolver(faSolver, size);
-            }
+            configurationStr = Or(configurationStr, stateVarConditionStr);
         }
-        for(ID i = 0; i < size; i++)
-            VAR.push_back("a" + to_string(i) + " : boolean;");
-        getSMV(SMV);
+        res += configurationStr + ");";
+        return res;
     }
-    int determineEmptiness()
-    {
-        ofstream out("/Users/iEric/Downloads/CGH-Pro/out.txt");
-        if (out.is_open())
-        {
-            for(int i = 0; i < SMV.size(); i++)
-                out << SMV[i] << endl;
-            out.close();
-        }
-        char buf_ps[2048];
-        string result;
-        FILE* ptr = NULL;
-        regex patten_true(".*invariant.+true");
-        regex patten_false(".*invariant.+false");
-        if((ptr = popen("./nuXmv-1.1.1-Darwin/bin/nuXmv out.txt", "r")) != NULL)
-        {
-            
-            while(fgets(buf_ps, 2048, ptr) != NULL)
-                result.append(buf_ps);
-            pclose(ptr);
-            ptr = NULL;
-        }
-        system("rm out.txt");
-        if(regex_search(result, patten_true)) return 1;
-        else if(regex_search(result, patten_false)) return 0;
-        else return -1;
+
+    string getPreSMV() {
+        return getVAR() + getASSIGN_INIT() + getASSIGN_NEXT();
     }
-    
-    
+
+    string getSMV() {
+        return getVAR() + getASSIGN_INIT() + getASSIGN_NEXT() + getINVARSPEC();
+    }
 };
 
 

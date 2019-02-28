@@ -31,10 +31,9 @@ namespace cgh{
     class DFAState : public State
     {
     public:
-        typedef Global<Character> Global;
-        typedef typename Global::CharacterSet CharacterSet;
-        typedef typename Global::DFAStateSet DFAStateSet;
-        typedef typename Global::DFATransMap DFATransMap;
+        typedef typename Global<Character>::CharacterSet CharacterSet;
+        typedef typename Global<Character>::DFAStateSet DFAStateSet;
+        typedef typename Global<Character>::DFATransMap DFATransMap;
         
     private:
         DFATransMap dfaTransMap; ///< A transition map for this state, the key is character and the value is a state.
@@ -66,7 +65,7 @@ namespace cgh{
         /// \param character The label in the transition, which is a template class.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
-        bool addDFATrans(Character character, DFAState *target) {
+        bool addDFATrans(Character character, DFAState* target) {
             if (dfaTransMap.count(character) != 0) return false;
             dfaTransMap[character] = target;
             return true;
@@ -79,7 +78,7 @@ namespace cgh{
         /// \param character The label in the transition, which is a template class.
         /// \param target The target state in the transition.
         /// Returns a boolean representing whether the transition is deleted successfully.
-        bool delDFATrans(Character character, const DFAState *target) {
+        bool delDFATrans(Character character, const DFAState* target) {
             auto mapIt = dfaTransMap.find(character);
             if (mapIt != dfaTransMap.end() && mapIt -> second == target) {
                 dfaTransMap.erase(mapIt);
@@ -94,7 +93,7 @@ namespace cgh{
         /// Otherwise do nothing and return false;
         /// \param target The target state in the transition.
         /// \return A boolean representing whether the target state is deleted successfully.
-        bool delDFATrans(const DFAState *target) {
+        bool delDFATrans(const DFAState* target) {
             CharacterSet charSet;
             for (auto& mapPair : dfaTransMap)
                 if (mapPair.second == target)
@@ -111,7 +110,9 @@ namespace cgh{
         /// Otherwise do nothing and return false;
         /// \param character The label in the transition, which is a template class.
         /// \return A boolean representing whether delete all transitions with given character successfully.
-        bool delDFATrans(Character character) {return dfaTransMap.erase(character);}
+        bool delDFATrans(Character character) {
+            return dfaTransMap.erase(character);
+        }
 
         /// \brief Gets a set of all the target states for this state.
         /// \return A const set of states in DFA.
