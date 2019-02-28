@@ -31,10 +31,9 @@ namespace cgh{
     template <class Character>
     class NFAState : public State {
     public:
-        typedef Global<Character> Global;
-        typedef typename Global::CharacterSet CharacterSet;
-        typedef typename Global::NFAStateSet NFAStateSet;
-        typedef typename Global::NFATransMap NFATransMap;
+        typedef typename Global<Character>::CharacterSet CharacterSet;
+        typedef typename Global<Character>::NFAStateSet NFAStateSet;
+        typedef typename Global<Character>::NFATransMap NFATransMap;
         
     private:
         NFATransMap nfaTransMap; ///< A transition map for this state, the key is character and the value is a set of states.
@@ -45,7 +44,7 @@ namespace cgh{
         }
         
         void getTargetStateSetByChar(NFAStateSet& stateSet, Character character) {
-            if (character == Global::epsilon) {
+            if (character == Global<Character>::epsilon) {
                 getEpsilonClosure(stateSet);
                 return;
             }
@@ -65,7 +64,7 @@ namespace cgh{
         }
 
         void getEpsilonClosure(NFAStateSet& epsilonClosure) {
-            auto mapIt = nfaTransMap.find(Global::epsilon);
+            auto mapIt = nfaTransMap.find(Global<Character>::epsilon);
             if (mapIt != nfaTransMap.end()) { 
                 NFAStateSet workSet;
                 for (NFAState* state : mapIt -> second)
@@ -97,7 +96,7 @@ namespace cgh{
         /// \param character The label in the transition, which is a template class.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
-        bool addNFATrans(Character character, NFAState *target) {
+        bool addNFATrans(Character character, NFAState* target) {
             NFAStateSet& stateSet = nfaTransMap[character];
             return stateSet.insert(target).second;
         }
@@ -109,7 +108,9 @@ namespace cgh{
         /// The target state must be created by the same NFA with this state.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add an epsilon transition to a state successfully.
-        bool addEpsilonTrans(NFAState *target) {return addNFATrans(Global::epsilon, target);}
+        bool addEpsilonTrans(NFAState* target) {
+            return addNFATrans(Global<Character>::epsilon, target);
+        }
         
         /// \brief Deletes a transition which label is param character and target state is param target for this state.
         ///
@@ -118,7 +119,7 @@ namespace cgh{
         /// \param character The label in the transition, which is a template class.
         /// \param target The target state in the transition.
         /// Returns a boolean representing whether the transition is deleted successfully.
-        bool delNFATrans(Character character, const NFAState *target) {
+        bool delNFATrans(Character character, const NFAState* target) {
             auto mapIt = nfaTransMap.find(character);
             if (mapIt == nfaTransMap.end()) {
                 return false;
@@ -141,7 +142,7 @@ namespace cgh{
         /// Otherwise do nothing and return false;
         /// \param target The target state in the transition.
         /// \return A boolean representing whether the target state is deleted successfully.
-        bool delNFATrans(const NFAState *target) {
+        bool delNFATrans(const NFAState* target) {
             int count = 0;
             CharacterSet charSet;
             for (auto& mapPair : nfaTransMap) {
@@ -168,7 +169,9 @@ namespace cgh{
         /// Otherwise do nothing and return false;
         /// \param character The label in the transition, which is a template class.
         /// \return A boolean representing whether delete all transitions with given character successfully.
-        bool delNFATrans(Character character) {return nfaTransMap.erase(character);}
+        bool delNFATrans(Character character) {
+            return nfaTransMap.erase(character);
+        }
 
         /// \brief Gets a set of all the target states for this state.
         /// \return A const set of states in NFA.
@@ -187,7 +190,7 @@ namespace cgh{
         const NFAStateSet getTargetStateSetByChar(Character character) {
             NFAStateSet epsilonClosure;
             getEpsilonClosure(epsilonClosure);
-            if (character == Global::epsilon) return epsilonClosure;
+            if (character == Global<Character>::epsilon) return epsilonClosure;
             epsilonClosure.insert(this);
             NFAStateSet stateSet;
             for (NFAState* nfaState : epsilonClosure) {
@@ -209,7 +212,7 @@ namespace cgh{
         /// \return A const set of states in NFA.
         const NFAStateSet getEpsilonClosure() {
             NFAStateSet epsilonClosure;
-            auto mapIt = nfaTransMap.find(Global::epsilon);
+            auto mapIt = nfaTransMap.find(Global<Character>::epsilon);
             if (mapIt == nfaTransMap.end()) return epsilonClosure;
             NFAStateSet workSet;
             for (NFAState* state : mapIt -> second)

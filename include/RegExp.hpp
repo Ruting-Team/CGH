@@ -6,76 +6,242 @@
 //  Copyright © 2018年 何锦龙. All rights reserved.
 //
 
-#ifndef RegularExp_hpp
-#define RegularExp_hpp
+#ifndef RegExp_hpp
+#define RegExp_hpp
 
 #include "Global.hpp"
 namespace cgh {
     template <class Character> class NFA;
     template <class Character> class NFAState;
     
+    class Char {
+    public:
+        typedef unordered_set<int> CharValues;
+    private:
+        int type;               ///< 0 -> char, 1 -> chars, others -> opt. 
+        CharValues charValues;  ///< the value in Char.
+    public:
+        Char() {}
+        Char(int c, bool t = 0) {
+            if (t) {
+                type = c;
+            } else {
+                type = 0;
+                charValues.insert(c);
+            }
+        }
+        Char(const CharValues& vs) : type(1), charValues(vs.begin(), vs.end()) {}
+        /// \brief Gets whether this Char is Opt or not.
+        /// \return Boolean.
+        bool isOpt() { return type > 1; }
+
+        /// \brief Gets the charValues for this Char.
+        /// \return the reference of CharValues.
+        CharValues& getChar() { return charValues; }
+
+        /// \brief Gets the Opt for this Char.
+        /// 
+        /// if isOpt() return the id of Opt.
+        /// return 0, otherwise.
+        /// \return int.
+        int getOpt() { 
+            if (!isOpt()) return 0;
+            return type;
+        }
+
+        /// \brief Gets whether this Char is Binary Opt.
+        /// return Boolean.
+        bool isBinaryOpt() { return isCatOpt() || isUnionOpt(); }
+
+        /// \brief Gets whether this Char is Unit Opt.
+        /// return Boolean.
+        bool isUnitOpt() { return isStarOpt() || isPlusOpt() || isQustionOpt(); }
+
+        /// \brief Gets whether this Char is Concatenation Opt.
+        /// return Boolean.
+        bool isCatOpt() { return getOpt() == 128; }
+
+        /// \brief Gets whether this Char is Union Opt.
+        /// return Boolean.
+        bool isUnionOpt() { return getOpt() == '|'; } 
+
+        /// \brief Gets whether this Char is LeftBracket Opt.
+        /// return Boolean.
+        bool isLeftBracketOpt() { return getOpt() == '('; }
+
+        /// \brief Gets whether this Char is RightBracket Opt.
+        /// return Boolean.
+        bool isRightBracketOpt() { return getOpt() == ')'; }
+
+        /// \brief Gets whether this Char is Star Opt.
+        /// return Boolean.
+        bool isStarOpt() { return getOpt() == '*'; }
+
+        /// \brief Gets whether this Char is Plus Opt.
+        /// return Boolean.
+        bool isPlusOpt() { return getOpt() == '+'; }
+
+        /// \brief Gets whether this Char is Qustion Opt.
+        /// return Boolean.
+        bool isQustionOpt() { return getOpt() == '?';}
+        
+    };
+
+    class RegEx {
+    private:
+        typedef vector<Char*> Chars;
+        typedef unordered_set<char> CharSet;
+    private:
+        Chars regEx;        ///< the regular expression processed.
+        CharSet optSet;     ///< the opt set.
+
+        void initOptSet() {
+            optSet.insert('|');
+            optSet.insert('*');
+            optSet.insert('+');
+            optSet.insert('?');
+            optSet.insert('(');
+            optSet.insert(')');
+        }
+
+        Char* mkChar(int c) {
+            Char* ch = new Char(c);
+            regEx.push_back(ch);
+            return ch;
+        }
+
+        Char* mkOptChar(int c) {
+            Char* ch = new Char(c, 1);
+            regEx.push_back(ch);
+            return ch;
+        }
+
+        Char* mkChar(const Char::CharValues& vs) {
+            Char* ch = new Char(vs);
+            regEx.push_back(ch);
+            return ch;
+        }
+
+        Char* mkChar(const string& str) {
+            Char::CharValues vs;
+            if (str == ":digit:" || str == ":d:") {
+                for (char c = '0'; c <= '9'; c++) {
+                    vs.insert(c);
+                }
+            } else if (str == ":alpha:") {
+                for (char c = 'a'; c <= 'z'; c++) {
+                    vs.insert(c);
+                }
+                for (char c = 'A'; c <= 'Z'; c++) {
+                    vs.insert(c);
+                }
+            } else if (str == ":lower:") {
+                for (char c = 'a'; c <= 'z'; c++) {
+                    vs.insert(c);
+                }
+            } else if (str == ":upper:") {
+                for (char c = 'A'; c <= 'Z'; c++) {
+                    vs.insert(c);
+                }
+            } else if (str == ":alnum:" || str == ":w:") {
+                for (char c = '0'; c <= '9'; c++) {
+                    vs.insert(c);
+                }
+                for (char c = 'a'; c <= 'z'; c++) {
+                    vs.insert(c);
+                }
+                for (char c = 'A'; c <= 'Z'; c++) {
+                    vs.insert(c);
+                }
+            } else {
+                ID pos = str.find('-');
+                if (pos == string::npos) {
+                    for (ID i = 0; i < str.length(); i++) {
+                        vs.insert(str[i]);
+                    }
+                } else {
+                    ID start = 0;
+                    while (pos != string::npos) {
+                        for (ID i = start; i < pos - 1; i++) {
+                            vs.insert(str[i]);
+                        }
+                        for (char c = str[pos - 1]; c <= str[pos + 1]; c++) {
+                            vs.insert(c);
+                        }
+                        start = pos + 2;
+                        pos = str.find('-', start);
+                    }
+                    for (ID i = start; i < str.length(); i++) {
+                        vs.insert(str[i]);
+                    }
+                }
+            }
+            return mkChar(vs);
+        }
+
+
+    public:
+        /// \brief Default construction function.
+        RegEx() {
+            initOptSet();
+        }
+
+        /// \brief Construction function with param str.
+        /// \param str The regular expression in string.
+        RegEx(const string& str) {
+            initOptSet();
+            parse(str);
+        }
+
+        /// \brief Parse param str into regEx.
+        /// \param str The regular expression in string.
+        void parse(const string& str) {
+            for (ID i = 0; i < str.length(); i++) {
+                if (optSet.count(str[i]) > 0) {
+                    if (str[i] == '(' && i > 0 && str[i - 1] != '|' && str[i - 1] != '(') {
+                        mkOptChar(128);
+                    }
+                    mkOptChar(str[i]);
+                } else {
+                    if (i > 0 && str[i - 1] != '|' && str[i - 1] != '(') {
+                        mkOptChar(128);
+                    }
+                    if (str[i] == '[') {
+                        ID pos = str.find(']', i);
+                        if (pos == string::npos) exit(1);
+                        mkChar(str.substr(i + 1, pos - i - 1));
+                        i = pos;
+                    } else if (str[i] == '\\') {
+                        mkChar(str[++i]);
+                    } else {
+                        mkChar(str[i]);
+                    }
+                }
+            }
+            for (Char* c : regEx) {
+                if (c -> isOpt()) {
+                    if (c -> getOpt() == 128) {
+                        cout << '.' ;
+                    } else {
+                        cout << char(c -> getOpt());
+                    }
+                } else {
+                    if (c -> getChar().size() > 1) {
+                        cout << '[' ;
+                    }
+                    for (int ch : c -> getChar()) {
+                        cout << char(ch);
+                    }
+                    if (c -> getChar().size() > 1) {
+                        cout << ']' ;
+                    }
+                }
+            }
+            cout << endl;
+        }
+    };
     
-    //template<class Character>
-    //class Char
-    //{
-    //protected:
-    //    char type;//char is 0; opt is 1, 2, 3, 4
-    //    NFA<Character>* nfa;
-    //public:
-    //    NFA<Character>* getNFA() { return nfa; }
-    //    void setNFA(NFA<Character>* nfa) { this -> nfa = nfa; }
-    //    bool isOpt() { return type; }
-    //    char getType() { return type; }
-    //    virtual bool BinaryOpt() = 0;
-    //    virtual bool isCatOpt() = 0;
-    //    virtual bool isUnionOpt() = 0;
-    //    virtual bool isLeftBracket() = 0;
-    //    virtual bool isRightBracket() = 0;
-    //    virtual bool isUnintOpt() = 0;
-    //    virtual bool isStar() = 0;
-    //    virtual bool isPlus() = 0;
-    //    
-    //    Char():nfa(NULL), type(0) {}
-    //    Char(char t):nfa(NULL), type(t) {}
-    //};
-    //
-    //template<class Character>
-    //class BasicChar : public Char<Character>
-    //{
-    //private:
-    //    int character;
-    //public:
-    //    int getChar() { return character; }
-    //    bool BinaryOpt() { return this -> isOpt() && ( character == '|' || character == 128); }
-    //    bool isCatOpt() { return this -> isOpt() && character == 128; }
-    //    bool isUnionOpt() { return this -> isOpt() && character == '|'; }
-    //    bool isLeftBracket() { return this -> isOpt() && character == '('; }
-    //    bool isRightBracket() { return this -> isOpt() && character == ')'; }
-    //    bool isUnintOpt() { return this -> isOpt() && ( character == '*' || character == '+'); }
-    //    bool isStar() { return this -> isOpt() && character == '*'; }
-    //    bool isPlus() { return this -> isOpt() && character == '+'; }
-    //    bool isQustion() { return this -> isOpt() && character == '?';}
-    //    
-    //    BasicChar(int c, char t):Char<Character>(t) { character = c; }
-    //    BasicChar(int c):Char<Character>() { character = c; }
-    //    
-    //    void output()
-    //    {
-    //        if(character < 128)
-    //            cout << (char)character << "(" << (int)this -> type << ") ";
-    //        else
-    //            cout << ".(" << (int)this -> type << ") ";
-    //    }
-    //    void output1()
-    //    {
-    //        if(character < 128)
-    //            cout << (char)character ;
-    //        else
-    //            cout << "." ;
-    //    }
-    //};
-    //
-    //
+    
     //class RegEx
     //{
     //protected:
@@ -83,9 +249,6 @@ namespace cgh {
     //    string regEx;
     //public:
     //    RegEx() {}
-    //    //        virtual void mkComplementRegEx(const string& regEx, vector<int>& res);
-    //    //        virtual void mkPostfixEx();
-    //    //        virtual void mkNFA(const string& regEx, NFA<char>* nfa) = 0;
     //    string getRegEx(){return regEx;}
     //    virtual bool isRegEx() = 0;
     //    bool isOpt(char c) { return optSet.find(c) != optSet.end(); }
@@ -406,6 +569,6 @@ namespace cgh {
     //};
 }
 
-#endif /* RegularExp_hpp */
+#endif /* RegExp_hpp */
 
 
