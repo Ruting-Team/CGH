@@ -105,7 +105,6 @@ namespace cgh {
     private:
         Chars regEx;        ///< the regular expression processed.
         CharSet optSet;     ///< the opt set.
-        CharSet alphabet;   ///< the alphabet.
 
         void initOptSet() {
             optSet.insert('|');
@@ -119,7 +118,6 @@ namespace cgh {
         Char* mkChar(char c) {
             Char* ch = new Char(c);
             regEx.push_back(ch);
-            alphabet.insert(c);
             return ch;
         }
 
@@ -131,9 +129,6 @@ namespace cgh {
 
         Char* mkChar(const Char::CharValues& vs) {
             Char* ch = new Char(vs);
-            for (char c : vs) {
-                alphabet.insert(c);
-            }
             regEx.push_back(ch);
             return ch;
         }
@@ -429,7 +424,7 @@ namespace cgh {
                 for (char c : regEx[0] -> getChar()) {
                     iniState -> addNFATrans(c, finState);
                 }
-                nfa -> setAlphabet(alphabet);
+                nfa -> mkAlphabet();
                 return nfa;
             }
             Chars suffixExp;
@@ -449,7 +444,7 @@ namespace cgh {
                 }
             }
             NFA<Character>* nfa = charStack.top() -> getNFA();
-            nfa -> setAlphabet(alphabet);
+            nfa -> mkAlphabet();
             return nfa;
         }
     };

@@ -333,6 +333,14 @@ namespace cgh {
             initialState = state;
         }
 
+        void mkAlphabet() {
+            for (NFAState<Character>* state : stateSet) {
+                for (auto& mapPair : state -> getNFATransMap()) {
+                    this -> alphabet.insert(mapPair.first);
+                }
+            }
+        }
+
         /// \brief Adds param state to finalStateSet.
         /// \param state The state to be added in finalStateSet.
         void addFinalState(NFAState<Character>* state) {

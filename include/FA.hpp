@@ -202,6 +202,7 @@ namespace cgh{
             initialState -> addEpsilonTrans(rhsNFAState); 
             cpNFATransByDFA(nfa, lhsDFAState, lhsState2Map);
             cpNFATransByDFA(nfa, rhsDFAState, rhsState2Map);
+            nfa -> mkAlphabet();
         }
 
         static void concatenateFA(NFA<Character>* nfa, const DFAState2& statePair) {
@@ -221,6 +222,7 @@ namespace cgh{
             }
             nfa -> clearFinalStateSet();
             cpNFATransByDFA(nfa, rhsDFAState, rhsState2Map);
+            nfa -> mkAlphabet();
         }
 
         static void complementFA(DFA<Character>* dfa, DFAState<Character>* state) {
@@ -296,6 +298,8 @@ namespace cgh{
             alphabet.insert(charSet.begin(),charSet.end());
         }
 
+        virtual void mkAlphabet() = 0;
+
 
         /// \brief Gets a FA which is the intersection of param lhsfa and param rhsfa.
         ///
@@ -306,11 +310,12 @@ namespace cgh{
         static FA& intersectFA(const FA& lhsfa, const FA& rhsfa) {
             DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
             DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
-            DFA<Character>* dfa = new DFA<Character>(lhsdfa -> getAlphabet()); 
+            DFA<Character>* dfa = new DFA<Character>(); 
             DFAStatePairMap pairMap;
             DFAState<Character>* initialState = dfa -> mkInitialState();
             intersectFA(dfa, initialState, DFAState2(lhsdfa -> getInitialState(), rhsdfa -> getInitialState()), pairMap);
             dfa -> setReachableFlag(1);
+            dfa -> mkAlphabet();
             return *dfa;
         }
 
@@ -323,7 +328,7 @@ namespace cgh{
         static FA& unionFA(const FA& lhsfa, const FA& rhsfa) {
             DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
             DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
-            NFA<Character>* nfa = new NFA<Character>(lhsdfa -> getAlphabet()); 
+            NFA<Character>* nfa = new NFA<Character>();
             NFAState<Character>* initialState = nfa -> mkInitialState();
             unionFA(nfa, DFAState2(lhsdfa -> getInitialState(), rhsdfa -> getInitialState()));
             return *nfa;
@@ -338,7 +343,7 @@ namespace cgh{
         static FA& concatenateFA(const FA& lhsfa, const FA& rhsfa) {
             DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
             DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
-            NFA<Character>* nfa = new NFA<Character>(lhsdfa -> getAlphabet()); 
+            NFA<Character>* nfa = new NFA<Character>(); 
             NFAState<Character>* initialState = nfa -> mkInitialState();
             concatenateFA(nfa, DFAState2(lhsdfa -> getInitialState(), rhsdfa -> getInitialState()));
             return *nfa;

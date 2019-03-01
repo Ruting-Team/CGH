@@ -127,6 +127,14 @@ namespace cgh {
             finalStateSet.insert(state); state -> setFinalFlag(1);
         }
 
+        void mkAlphabet() {
+            for (DFAState<Character>* state : stateSet) {
+                for (auto& mapPair : state -> getDFATransMap()) {
+                    this -> alphabet.insert(mapPair.first);
+                }
+            }
+        }
+
         /// \brief Gets stateSet.
         /// \return The set reference of DFAState pointer for this DFA.
         DFAStateSet& getStateSet() {
