@@ -239,8 +239,7 @@ namespace cgh{
                 if (state -> isFinal()) {
                     state -> setFinalFlag(0);
                 } else {
-                    state -> setFinalFlag(1);
-                    dfa -> getFinalStateSet().insert(state);
+                    dfa -> addFinalState(state);
                 }
             }
         }
@@ -305,7 +304,6 @@ namespace cgh{
         /// \param rhsfa A const reference FA.
         /// \return A reference of FA.
         static FA& intersectFA(const FA& lhsfa, const FA& rhsfa) {
-            if (lhsfa.isNULL() || rhsfa.isNULL()) return EmptyDFA();
             DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
             DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
             DFA<Character>* dfa = new DFA<Character>(lhsdfa -> getAlphabet()); 
@@ -323,8 +321,6 @@ namespace cgh{
         /// \param rhsfa A const reference FA.
         /// \return A reference of FA.
         static FA& unionFA(const FA& lhsfa, const FA& rhsfa) {
-            if (lhsfa.isNULL()) return rhsfa.copy();
-            if (rhsfa.isNULL()) return lhsfa.copy();
             DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
             DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
             NFA<Character>* nfa = new NFA<Character>(lhsdfa -> getAlphabet()); 
@@ -340,8 +336,6 @@ namespace cgh{
         /// \param rhsfa A const reference FA.
         /// \return A reference of FA.
         static FA& concatenateFA(const FA& lhsfa, const FA& rhsfa) {
-            if (lhsfa.isNULL()) return rhsfa.copy();
-            if (rhsfa.isNULL()) return lhsfa.copy();
             DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
             DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
             NFA<Character>* nfa = new NFA<Character>(lhsdfa -> getAlphabet()); 
@@ -356,7 +350,6 @@ namespace cgh{
         /// \param fa A const reference FA.
         /// \return A reference of FA.
         static DFA<Character>& complementFA(const FA& fa) {
-            if (fa.isNULL()) return EmptyDFA();
             DFA<Character>* mindfa = fa.minimize().getDFA();
             DFA<Character>* dfa = new DFA<Character>(fa.getAlphabet()); 
             DFAState<Character>* initialState = dfa -> mkInitialState();
@@ -376,6 +369,7 @@ namespace cgh{
         
         /// \brief Gets whether this FA is NULL.
         /// \return A boolean.
+        virtual bool isNULL() = 0;
         virtual bool isNULL() const = 0;
 
         /// \brief Gets a FA which is the intersection of this FA and param fa.
@@ -419,7 +413,6 @@ namespace cgh{
             DFASet dfaSet;
             DFAStateSet stateSet;
             for (FA* fa : faSet) {
-                if(fa -> isNULL()) return FA::EmptyDFA();
                 DFA<Character>* dfa = &(fa -> determinize());
                 if(!fa -> isDeterministic()) dfaSet.insert(dfa);
                 DFAState<Character>* initialState = dfa -> getInitialState();
@@ -450,7 +443,6 @@ namespace cgh{
             DFAState2NFAStateMap dfaState2Map;
             NFAState2Map nfaState2Map;
             for (FA* fa : faList) {
-                if (fa -> isNULL()) continue;
                 NFAState<Character>* state = nfa -> mkNFAState();
                 for (NFAState<Character>* nfaState : fStateSet)
                     nfaState -> addEpsilonTrans(state);
@@ -487,7 +479,6 @@ namespace cgh{
             NFAState2Map nfaState2Map;
             for(FA* fa : faSet)
             {
-                if (fa -> isNULL()) continue;
                 NFAState<Character>* state = nfa -> mkNFAState();
                 iniState -> addEpsilonTrans(state);
                 if (fa -> isDeterminate()) {
@@ -590,11 +581,13 @@ namespace cgh{
         static DFA<Character>& EmptyDFA()
         {
             DFA<Character>* dfa = new DFA<Character>();
+            dfa -> mkInitialState();
             return *dfa;
         }
         static NFA<Character>& EmptyNFA()
         {
             NFA<Character>* nfa = new NFA<Character>();
+            nfa -> mkInitialState();
             return *nfa; 
         }
         static DFA<Character>& CompleteFA(const CharacterSet &charSet)

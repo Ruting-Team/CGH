@@ -422,6 +422,16 @@ namespace cgh {
         /// \brief Makes NFA.
         /// \return The pointer of NFA.
         NFA<Character>* mkNFA() {
+            if (regEx.size() == 1) {
+                NFA<Character>* nfa = new NFA<Character>();
+                NFAState<Character>* iniState = nfa -> mkInitialState();
+                NFAState<Character>* finState = nfa -> mkFinalState();
+                for (char c : regEx[0] -> getChar()) {
+                    iniState -> addNFATrans(c, finState);
+                }
+                nfa -> setAlphabet(alphabet);
+                return nfa;
+            }
             Chars suffixExp;
             toSuffixExp(suffixExp);
             stack<Char*> charStack;

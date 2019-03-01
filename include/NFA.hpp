@@ -254,11 +254,13 @@ namespace cgh {
 
     public:
         /// \brief Default construction function, sets initialState to nullptr.
-        NFA() : FA<Character>(), initialState(nullptr){}
+        NFA() : FA<Character>(), initialState(nullptr) {
+        }
 
         /// \brief Construction function with alphabet.
         /// \param charSet The alphabet.
-        NFA(const CharacterSet& charSet) : FA<Character>(charSet), initialState(NULL) {}
+        NFA(const CharacterSet& charSet) : FA<Character>(charSet), initialState(nullptr) {
+        }
 
         /// \brief Copy construction function.
         /// \param nfa The copied NFA.
@@ -442,8 +444,13 @@ namespace cgh {
             return state;
         }
 
+        bool isNULL() {
+            if (!this -> isReachable()) removeUnreachableState();
+            if (finalStateSet.size() == 0) return true;
+            return false;
+        }
+
         bool isNULL() const {
-            if (!initialState) return true;
             if (finalStateSet.size() == 0) return true;
             return false;
         }
@@ -516,13 +523,14 @@ namespace cgh {
         }
         
         void removeUnreachableState() {
-            if (isNULL()) return;
+            if (finalStateSet.size() == 0) return;
+            if (this -> isReachable()) return;
             NFAStateSet reachableStateSet, workSet;
             workSet.insert(initialState);
             reachableStateSet.insert(initialState);
             getReachableStateSet(reachableStateSet, workSet);
             if (!NFA::hasFinalState(reachableStateSet)) {
-                initialState = NULL;
+                clearFinalStateSet();
                 return;
             }
             if (reachableStateSet.size() != this -> stateSet.size()) {
@@ -552,7 +560,7 @@ namespace cgh {
             NFAStateSet liveStateSet(finalStateSet.begin(), finalStateSet.end());
             getLiveStateSet(reverseMap, liveStateSet, finalStateSet);
             if (liveStateSet.count(initialState) == 0) {
-                initialState = NULL;
+                clearFinalStateSet();
                 return;
             }
             NFAStateSet delSet;

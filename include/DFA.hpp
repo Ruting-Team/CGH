@@ -215,8 +215,13 @@ namespace cgh {
             return dfaState;
         }
 
+        bool isNULL() {
+            if (!this -> isReachable()) removeUnreachableState();
+            if (finalStateSet.size() == 0) return true;
+            return false;
+        }
+
         bool isNULL() const {
-            if (!initialState) return true;
             if (finalStateSet.size() == 0) return true;
             return false;
         }
@@ -255,8 +260,7 @@ namespace cgh {
             DFA* dfa = new DFA();
             removeDeadState();
             removeUnreachableState();
-            if (isNULL()) return *dfa;
-            
+            if (isNULL()) return FA<Character>::EmptyDFA();
             ID lastSize = 0;
             DFAStateSet unFinalStateSet;
             DFAStateSet finalStatesSet;
@@ -391,14 +395,15 @@ namespace cgh {
         }
         
         void removeUnreachableState() {
-            if (isNULL()) return;
+            if (finalStateSet.size() == 0) return;
+            if (this -> isReachable()) return;
             DFAStateSet reachableStateSet;
             DFAStateSet workSet;
             workSet.insert(initialState);
             reachableStateSet.insert(initialState);
             getReachableStateSet(reachableStateSet, workSet);
             if (!DFA::hasFinalState(reachableStateSet)) {
-                initialState = NULL;
+                clearFinalStateSet();
                 return;
             }
             if (reachableStateSet.size() != this -> stateSet.size()) {
@@ -428,7 +433,7 @@ namespace cgh {
             DFAStateSet liveStateSet(finalStateSet.begin(), finalStateSet.end());
             getLiveStateSet(reverseMap, liveStateSet, finalStateSet);
             if (liveStateSet.count(initialState) == 0) { 
-                initialState = NULL;
+                clearFinalStateSet();
                 return;
             }
             DFAStateSet delSet;
