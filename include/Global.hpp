@@ -53,6 +53,7 @@ namespace cgh
     
     template <class Character> class FA;
     template <class Character> class DFA;
+    template <class Character> class SmartDFA;
     template <class Character> class NFA;
     template <class Character> class DFAState;
     template <class Character> class NFAState;

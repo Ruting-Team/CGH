@@ -10,43 +10,53 @@
 #define RegExp_hpp
 
 #include "Global.hpp"
+#include <stack>
 namespace cgh {
-    template <class Character> class NFA;
-    template <class Character> class NFAState;
     
     class Char {
     public:
-        typedef unordered_set<int> CharValues;
+        typedef unordered_set<char> CharValues;
     private:
-        int type;               ///< 0 -> char, 1 -> chars, others -> opt. 
-        CharValues charValues;  ///< the value in Char.
+        bool type;               ///< 0 -> char, 1 -> opt.
+        CharValues charValues;   ///< the value in Char.
+        NFA<char>* nfa;          ///< the NFA for Char.
     public:
-        Char() {}
-        Char(int c, bool t = 0) {
-            if (t) {
-                type = c;
-            } else {
-                type = 0;
-                charValues.insert(c);
-            }
-        }
-        Char(const CharValues& vs) : type(1), charValues(vs.begin(), vs.end()) {}
+        /// \brief Default construction function
+        Char() : nfa(nullptr) {}
+
+        /// \brief Construction function for optChar or Char.
+        /// \param c The value of Char.
+        /// \param t The type of Char.
+        Char(char c, bool t = 0) : type(t), charValues{c}, nfa(nullptr) {}
+
+        /// \brief Construction function for Chars.
+        /// \param vs The valus of Char.
+        Char(const CharValues& vs) : type(0), charValues(vs.begin(), vs.end()), nfa(nullptr) {}
+
         /// \brief Gets whether this Char is Opt or not.
         /// \return Boolean.
-        bool isOpt() { return type > 1; }
+        bool isOpt() { return type; }
 
         /// \brief Gets the charValues for this Char.
         /// \return the reference of CharValues.
         CharValues& getChar() { return charValues; }
+
+        /// \brief Gets the NFA for this Char.
+        /// \return the pointer of NFA.
+        NFA<char>* getNFA() { return nfa; }
+
+        /// \brief Sets the NFA for this Char.
+        /// \param n The NFA for this Char.
+        void setNFA(NFA<char>* n) { nfa = n; }
 
         /// \brief Gets the Opt for this Char.
         /// 
         /// if isOpt() return the id of Opt.
         /// return 0, otherwise.
         /// \return int.
-        int getOpt() { 
+        char getOpt() { 
             if (!isOpt()) return 0;
-            return type;
+            return *charValues.begin();
         }
 
         /// \brief Gets whether this Char is Binary Opt.
@@ -59,7 +69,7 @@ namespace cgh {
 
         /// \brief Gets whether this Char is Concatenation Opt.
         /// return Boolean.
-        bool isCatOpt() { return getOpt() == 128; }
+        bool isCatOpt() { return getOpt() == '.'; }
 
         /// \brief Gets whether this Char is Union Opt.
         /// return Boolean.
@@ -87,7 +97,8 @@ namespace cgh {
         
     };
 
-    class RegEx {
+    template <class Character>
+    class RegExp {
     private:
         typedef vector<Char*> Chars;
         typedef unordered_set<char> CharSet;
@@ -104,13 +115,13 @@ namespace cgh {
             optSet.insert(')');
         }
 
-        Char* mkChar(int c) {
+        Char* mkChar(char c) {
             Char* ch = new Char(c);
             regEx.push_back(ch);
             return ch;
         }
 
-        Char* mkOptChar(int c) {
+        Char* mkOptChar(char c) {
             Char* ch = new Char(c, 1);
             regEx.push_back(ch);
             return ch;
@@ -153,6 +164,11 @@ namespace cgh {
                 for (char c = 'A'; c <= 'Z'; c++) {
                     vs.insert(c);
                 }
+            } else if (str == ":.:") {
+                for (char c = 0; c <= 127; c++) {
+                    vs.insert(c);
+                    if (c == 127) break;
+                }
             } else {
                 ID pos = str.find('-');
                 if (pos == string::npos) {
@@ -178,19 +194,158 @@ namespace cgh {
             }
             return mkChar(vs);
         }
+        void repeat(Char* c, Char* opt) {
+            NFA<Character>* nfa = c -> getNFA();
+            if (!nfa) {
+                nfa = new NFA<Character>();
+                c -> setNFA(nfa);
+                if (opt -> isStarOpt()) {
+                    NFAState<Character>* state = nfa -> mkFinalState();
+                    nfa -> setInitialState(state);
+                    for (char ch : c -> getChar()) {
+                        state -> addNFATrans(ch, state);
+                    }
+                } else if (opt -> isPlusOpt()) {
+                    NFAState<Character>* iniState = nfa -> mkInitialState();
+                    NFAState<Character>* finState = nfa -> mkFinalState();
+                    for (char ch : c -> getChar()) {
+                        iniState -> addNFATrans(ch, finState);
+                        finState -> addNFATrans(ch, finState);
+                    }
+                } else if (opt -> isQustionOpt()) {
+                    NFAState<Character>* iniState = nfa -> mkInitialState();
+                    NFAState<Character>* finState = nfa -> mkFinalState();
+                    nfa -> addFinalState(iniState);
+                    for (char ch : c -> getChar()) {
+                        iniState -> addNFATrans(ch, finState);
+                    }
+                }
+            } else {
+                if (opt -> isStarOpt()) {
+                    NFAState<Character>* iniState = nfa -> getInitialState();
+                    for (NFAState<Character>* state : nfa -> getFinalStateSet()) {
+                        state -> addEpsilonTrans(iniState);
+                    }
+                    nfa -> addFinalState(iniState);
+                } else if (opt -> isPlusOpt()) {
+                    NFAState<Character>* iniState = nfa -> getInitialState();
+                    for (NFAState<Character>* state : nfa -> getFinalStateSet()) {
+                        state -> addEpsilonTrans(iniState);
+                    }
+                } else if (opt -> isQustionOpt()) {
+                    nfa -> addFinalState(nfa -> getInitialState());
+                }
+            }
+        }
 
-
+        void combine(Char* lc, Char* rc, Char* opt) {
+            NFA<Character>* lhsNFA = lc -> getNFA();
+            NFA<Character>* rhsNFA = rc -> getNFA();
+            if (!lhsNFA && !rhsNFA) {
+                NFA<Character>* nfa = new NFA<Character>();
+                lc -> setNFA(nfa);
+                if (opt -> isCatOpt()) {
+                    NFAState<Character>* iniState = nfa -> mkInitialState();
+                    NFAState<Character>* finState = nfa -> mkFinalState();
+                    NFAState<Character>* state = nfa -> mkState();
+                    for (char ch : lc -> getChar()) {
+                        iniState -> addNFATrans(ch, state);
+                    }
+                    for (char ch : rc -> getChar()) {
+                        state -> addNFATrans(ch, finState);
+                    }
+                } else if (opt -> isUnionOpt()) {
+                    NFAState<Character>* iniState = nfa -> mkInitialState();
+                    NFAState<Character>* finState = nfa -> mkFinalState();
+                    for (char ch : lc -> getChar()) {
+                        iniState -> addNFATrans(ch, finState);
+                    }
+                    for (char ch : rc -> getChar()) {
+                        iniState -> addNFATrans(ch, finState);
+                    }
+                }
+            } else if (lhsNFA && !rhsNFA) {
+                if (opt -> isCatOpt()) {
+                    NFAState<Character>* finState = lhsNFA -> mkState();
+                    for (NFAState<Character>* state : lhsNFA -> getFinalStateSet()) {
+                        for (char ch : rc -> getChar()) {
+                            state -> addNFATrans(ch, finState);
+                        }
+                    }
+                    lhsNFA -> clearFinalStateSet();
+                    lhsNFA -> addFinalState(finState);
+                } else if (opt -> isUnionOpt()) {
+                    NFAState<Character>* iniState = lhsNFA -> getInitialState();
+                    for (NFAState<Character>* state : lhsNFA -> getFinalStateSet()) {
+                        for (char ch : rc -> getChar()) {
+                            iniState -> addNFATrans(ch, state);
+                        }
+                    }
+                }
+            } else if (!lhsNFA && rhsNFA) {
+                if (opt -> isCatOpt()) {
+                    NFAState<Character>* state = rhsNFA -> mkState();
+                    NFAState<Character>* iniState = rhsNFA -> getInitialState();
+                    for (char ch : rc -> getChar()) {
+                        state -> addNFATrans(ch, iniState);
+                    }
+                    rhsNFA -> setInitialState(state);
+                } else if (opt -> isUnionOpt()) {
+                    NFAState<Character>* iniState = rhsNFA -> getInitialState();
+                    for (NFAState<Character>* state : rhsNFA -> getFinalStateSet()) {
+                        for (char ch : rc -> getChar()) {
+                            iniState -> addNFATrans(ch, state);
+                        }
+                    }
+                }
+                lc -> setNFA(rhsNFA);
+            } else if (lhsNFA && rhsNFA) {
+                if (opt -> isCatOpt()) {
+                    lhsNFA -> getStateSet().insert(rhsNFA -> getStateSet().begin(), rhsNFA -> getStateSet().end());
+                    NFAState<Character>* iniState = rhsNFA -> getInitialState();
+                    for (NFAState<Character>* state : lhsNFA -> getFinalStateSet()) {
+                        state -> addEpsilonTrans(iniState);
+                    }
+                    lhsNFA -> clearFinalStateSet();
+                    for (NFAState<Character>* state : rhsNFA -> getFinalStateSet()) {
+                        lhsNFA -> addFinalState(state);
+                    }
+                    rhsNFA -> getStateSet().clear();
+                    delete rhsNFA;
+                } else if (opt -> isUnionOpt()) {
+                    lhsNFA -> getStateSet().insert(rhsNFA -> getStateSet().begin(), rhsNFA -> getStateSet().end());
+                    NFAState<Character>* iniState = lhsNFA -> mkState();
+                    NFAState<Character>* lhsIniState = lhsNFA -> getInitialState();
+                    NFAState<Character>* rhsIniState = rhsNFA -> getInitialState();
+                    iniState -> addEpsilonTrans(lhsIniState);
+                    iniState -> addEpsilonTrans(rhsIniState);
+                    for (NFAState<Character>* state : rhsNFA -> getFinalStateSet()) {
+                        lhsNFA -> addFinalState(state);
+                    }
+                    lhsNFA -> setInitialState(iniState);
+                    rhsNFA -> getStateSet().clear();
+                    delete rhsNFA;
+                }
+            }
+        }
     public:
         /// \brief Default construction function.
-        RegEx() {
+        RegExp() {
             initOptSet();
         }
 
         /// \brief Construction function with param str.
         /// \param str The regular expression in string.
-        RegEx(const string& str) {
+        RegExp(const string& str) {
             initOptSet();
             parse(str);
+        }
+
+        /// \brief Desconstruction function.
+        ~RegExp() {
+            for (Char* c : regEx) {
+                delete c;
+            }
         }
 
         /// \brief Parse param str into regEx.
@@ -199,12 +354,12 @@ namespace cgh {
             for (ID i = 0; i < str.length(); i++) {
                 if (optSet.count(str[i]) > 0) {
                     if (str[i] == '(' && i > 0 && str[i - 1] != '|' && str[i - 1] != '(') {
-                        mkOptChar(128);
+                        mkOptChar('.');
                     }
                     mkOptChar(str[i]);
                 } else {
                     if (i > 0 && str[i - 1] != '|' && str[i - 1] != '(') {
-                        mkOptChar(128);
+                        mkOptChar('.');
                     }
                     if (str[i] == '[') {
                         ID pos = str.find(']', i);
@@ -213,360 +368,86 @@ namespace cgh {
                         i = pos;
                     } else if (str[i] == '\\') {
                         mkChar(str[++i]);
+                    } else if (str[i] == '.') {
+                        mkChar(":.:");
                     } else {
                         mkChar(str[i]);
                     }
                 }
             }
+        }
+
+        /// \brief Trans regular expression to suffix expression.
+        /// \param suffixExp The suffix expression.
+        void toSuffixExp(Chars& suffixExp) {
+            stack<Char*> optStack;
             for (Char* c : regEx) {
-                if (c -> isOpt()) {
-                    if (c -> getOpt() == 128) {
-                        cout << '.' ;
-                    } else {
-                        cout << char(c -> getOpt());
-                    }
+                if (!c -> isOpt()) {
+                    suffixExp.push_back(c);
                 } else {
-                    if (c -> getChar().size() > 1) {
-                        cout << '[' ;
-                    }
-                    for (int ch : c -> getChar()) {
-                        cout << char(ch);
-                    }
-                    if (c -> getChar().size() > 1) {
-                        cout << ']' ;
+                    if (c -> isLeftBracketOpt()) {
+                        optStack.push(c);
+                    } else if (c -> isRightBracketOpt()) {
+                        while (!optStack.empty() && !optStack.top() -> isLeftBracketOpt()) {
+                            suffixExp.push_back(optStack.top());
+                            optStack.pop();
+                        }
+                        optStack.pop();
+                    } else if (c -> isBinaryOpt()) { 
+                        while (!optStack.empty() && !optStack.top() -> isLeftBracketOpt()) {
+                            suffixExp.push_back(optStack.top());
+                            optStack.pop();
+                        }
+                        optStack.push(c);
+                    } else if (c -> isUnitOpt()) {
+                        while (!optStack.empty() && optStack.top() -> isUnitOpt()) {
+                            suffixExp.push_back(optStack.top());
+                            optStack.pop();
+                        }
+                        optStack.push(c);
                     }
                 }
             }
-            cout << endl;
+            while (!optStack.empty()) {
+                suffixExp.push_back(optStack.top());
+                optStack.pop();
+            }
+        }
+
+        /// \brief Makes NFA.
+        /// \return The pointer of NFA.
+        NFA<Character>* mkNFA() {
+            if (regEx.size() == 1) {
+                NFA<Character>* nfa = new NFA<Character>();
+                NFAState<Character>* iniState = nfa -> mkInitialState();
+                NFAState<Character>* finState = nfa -> mkFinalState();
+                for (char c : regEx[0] -> getChar()) {
+                    iniState -> addNFATrans(c, finState);
+                }
+                nfa -> mkAlphabet();
+                return nfa;
+            }
+            Chars suffixExp;
+            toSuffixExp(suffixExp);
+            stack<Char*> charStack;
+            for (Char* c : suffixExp) {
+                if (!c -> isOpt()) {
+                    charStack.push(c);
+                } else {
+                    if (c -> isUnitOpt()) {
+                        repeat(charStack.top(), c);
+                    } else {
+                        Char* rc = charStack.top();
+                        charStack.pop();
+                        combine(charStack.top(), rc, c);
+                    }
+                }
+            }
+            NFA<Character>* nfa = charStack.top() -> getNFA();
+            nfa -> mkAlphabet();
+            return nfa;
         }
     };
-    
-    
-    //class RegEx
-    //{
-    //protected:
-    //    unordered_set<char> optSet;
-    //    string regEx;
-    //public:
-    //    RegEx() {}
-    //    string getRegEx(){return regEx;}
-    //    virtual bool isRegEx() = 0;
-    //    bool isOpt(char c) { return optSet.find(c) != optSet.end(); }
-    //    bool isUnintOpt(char c) { return c == '*' || c == '+' || c == ':'; }
-    //    virtual bool isLeft(char c) = 0;
-    //    virtual bool isRight(char c) = 0;
-    //};
-    //
-    //template<class Character>
-    //class BasicRegEx : public RegEx
-    //{
-    //public:
-    //    typedef Global<Character> Global;
-    //    typedef BasicChar<Character> BasicChar;
-    //    typedef NFA<Character> NFA;
-    //    typedef NFAState<Character> NFAState;
-    //    
-    //    typedef typename Global::NFAState2Map NFAState2Map;
-    //public:
-    //    BasicRegEx()
-    //    {
-    //        optSet.insert('(');
-    //        optSet.insert(')');
-    //        optSet.insert('+');
-    //        optSet.insert('*');
-    //        optSet.insert('?');
-    //        optSet.insert('|');
-    //    }
-    //    BasicRegEx(const string& str)
-    //    {
-    //        regEx = str;
-    //        optSet.insert('(');
-    //        optSet.insert(')');
-    //        optSet.insert('+');
-    //        optSet.insert('*');
-    //        optSet.insert('?');
-    //        optSet.insert('|');
-    //    }
-    //    bool isRegEx()
-    //    {
-    //        int count = 0;
-    //        for(ID i = 0; i < regEx.size(); i++)
-    //        {
-    //            if(regEx[i] == '|')
-    //            {
-    //                if(i == regEx.size() -1)
-    //                    return false;
-    //                else if(isLeftOpt(regEx[i + 1]))
-    //                    return false;
-    //            }
-    //            else if(regEx[i] == '(') count++;
-    //            else if(regEx[i] == ')') count--;
-    //            else if(isUnintOpt(regEx[i]))
-    //                if(i < regEx.size() -1)
-    //                    if(isUnintOpt(regEx[i + 1]))
-    //                        return false;
-    //        }
-    //        if(count != 0) return false;
-    //        return true;
-    //    }
-    //    bool isLeft(char c) { return c != '|' && c != '('; }
-    //    bool isLeftOpt(char c) { return optSet.find(c) != optSet.end() && c != '(';}
-    //    bool isRight(char c) { return optSet.find(c) == optSet.end() || c == '('; }
-    //    void mkComplementRegEx(vector<BasicChar*>& res)
-    //    {
-    //        if(!isRegEx()) return;
-    //        ID length = regEx.length();
-    //        for(ID i = 0; i < length; i++)
-    //        {
-    //            if(regEx[i] == '\\' && i < length - 1)
-    //            {
-    //                res.push_back(new BasicChar(regEx[++i], 0));
-    //                if(i < length - 1 && isLeft(regEx[i + 1]))
-    //                    res.push_back(new BasicChar(128, 3));
-    //            }
-    //            else
-    //            {
-    //                if (regEx[i] == '(' || regEx[i] == ')')
-    //                    res.push_back(new BasicChar(regEx[i], 1));
-    //                else if(regEx[i] == '|')
-    //                    res.push_back(new BasicChar(regEx[i], 2));
-    //                else if(regEx[i] == '*' || regEx[i] == '+' || regEx[i] == '?')
-    //                    res.push_back(new BasicChar(regEx[i], 4));
-    //                else
-    //                    res.push_back(new BasicChar(regEx[i], 0));
-    //                if(i < length - 1 && isLeft(regEx[i]) && isRight(regEx[i + 1]))
-    //                    res.push_back(new BasicChar(128, 3));
-    //            }
-    //        }
-    //    }
-    //    void toPostfixEx(vector<BasicChar*>& res)
-    //    {
-    //        vector<BasicChar*> source;
-    //        mkComplementRegEx(source);
-    //        if(source.size() == 1)
-    //        {
-    //            if(!source[0] -> isOpt())
-    //            {
-    //                source.push_back(new BasicChar(128, 3));
-    //                source.push_back(new BasicChar(0, 0));
-    //            }
-    //        }
-    //        stack<BasicChar*> stack;
-    //        for(BasicChar* basicChar : source)
-    //        {
-    //            if(!basicChar -> isOpt())
-    //                res.push_back(basicChar);
-    //            else if(basicChar -> isLeftBracket())
-    //                stack.push(basicChar);
-    //            else if(basicChar -> isRightBracket())
-    //            {
-    //                while(!stack.empty() && !stack.top() -> isLeftBracket())
-    //                {
-    //                    res.push_back(stack.top());
-    //                    stack.pop();
-    //                }
-    //                stack.pop();
-    //            }
-    //            else
-    //            {
-    //                while(!stack.empty() && stack.top() -> getType() >= basicChar ->getType())
-    //                {
-    //                    res.push_back(stack.top());
-    //                    stack.pop();
-    //                }
-    //                stack.push(basicChar);
-    //            }
-    //        }
-    //        while(!stack.empty())
-    //        {
-    //            res.push_back(stack.top());
-    //            stack.pop();
-    //        }
-    //    }
-    //    
-    //    NFA* mkNFA()
-    //    {
-    //        vector<BasicChar*> postfix;
-    //        toPostfixEx(postfix);
-    //        stack<BasicChar*> stack;
-    //        for(BasicChar* basicChar: postfix)
-    //        {
-    //            if(!basicChar -> isOpt())
-    //                stack.push(basicChar);
-    //            else
-    //            {
-    //                BasicChar* rhsChar = stack.top();
-    //                NFA* rhsNFA = rhsChar -> getNFA();
-    //                if(basicChar -> isStar())
-    //                {
-    //                    if(!rhsNFA)
-    //                    {
-    //                        rhsNFA = new NFA();
-    //                        NFAState* state = rhsNFA -> mkInitialState();
-    //                        rhsNFA -> addFinalState(state);
-    //                        state -> addNFATrans(rhsChar -> getChar(), state);
-    //                        stack.top() -> setNFA(rhsNFA);
-    //                    }
-    //                    else
-    //                    {
-    //                        for(NFAState* state : rhsNFA -> getFinalStateSet())
-    //                            state -> addEpsilonTrans(rhsNFA -> getInitialState());
-    //                        rhsNFA -> addFinalState(rhsNFA -> getInitialState());
-    //                    }
-    //                }
-    //                else if(basicChar -> isQustion())
-    //                {
-    //                    if(!rhsNFA)
-    //                    {
-    //                        rhsNFA = new NFA();
-    //                        NFAState* iState = rhsNFA -> mkInitialState();
-    //                        NFAState* fState = rhsNFA -> mkFinalState();
-    //                        rhsNFA -> addFinalState(iState);
-    //                        iState -> addNFATrans(rhsChar -> getChar(), fState);
-    //                        stack.top() -> setNFA(rhsNFA);
-    //                    }
-    //                    else
-    //                    {
-    //                        rhsNFA -> addFinalState(rhsNFA -> getInitialState());
-    //                    }
-    //                }
-    //                else if(basicChar -> isPlus())
-    //                {
-    //                    if(!rhsNFA)
-    //                    {
-    //                        rhsNFA = new NFA();
-    //                        NFAState* iniState = rhsNFA -> mkInitialState();
-    //                        NFAState* finState = rhsNFA -> mkFinalState();
-    //                        iniState -> addNFATrans(rhsChar -> getChar(), finState);
-    //                        finState -> addNFATrans(rhsChar -> getChar(), finState);
-    //                        stack.top() -> setNFA(rhsNFA);
-    //                    }
-    //                    else
-    //                    {
-    //                        NFAState* finState = rhsNFA -> mkState();
-    //                        NFAState2Map state2Map;
-    //                        for(NFAState* state : rhsNFA -> getFinalStateSet())
-    //                            state -> addEpsilonTrans(finState);
-    //                        rhsNFA -> clearFinalStateSet();
-    //                        rhsNFA -> addFinalState(finState);
-    //                        state2Map[rhsNFA -> getInitialState()] = finState;
-    //                        rhsNFA -> cpTransByNFA(rhsNFA -> getInitialState(), state2Map);
-    //                        rhsNFA -> getFinalStateSet().erase(finState);
-    //                        for(NFAState* state : rhsNFA -> getFinalStateSet())
-    //                            state -> addEpsilonTrans(finState);
-    //                    }
-    //                }
-    //                else if(basicChar -> isUnionOpt())
-    //                {
-    //                    stack.pop();
-    //                    if(!rhsNFA)
-    //                    {
-    //                        NFA* lhsNFA = stack.top() -> getNFA();
-    //                        if(!lhsNFA)
-    //                        {
-    //                            lhsNFA = new NFA();
-    //                            NFAState* iniState = lhsNFA -> mkInitialState();
-    //                            NFAState* finState = lhsNFA -> mkFinalState();
-    //                            iniState -> addNFATrans(stack.top() -> getChar(), finState);
-    //                            iniState -> addNFATrans(rhsChar -> getChar(), finState);
-    //                            stack.top() -> setNFA(lhsNFA);
-    //                        }
-    //                        else
-    //                        {
-    //                            lhsNFA -> getInitialState() -> addNFATrans(rhsChar -> getChar(), lhsNFA -> mkFinalState());
-    //                        }
-    //                    }
-    //                    else
-    //                    {
-    //                        NFA* lhsNFA = stack.top() -> getNFA();
-    //                        if(!lhsNFA)
-    //                        {
-    //                            lhsNFA = new NFA();
-    //                            NFAState* state = lhsNFA -> mkInitialState();
-    //                            state -> addNFATrans(stack.top() -> getChar(), lhsNFA -> mkFinalState());
-    //                            NFAState2Map state2Map;
-    //                            NFAState* iniState = rhsNFA -> getInitialState();
-    //                            state2Map[iniState] = state;
-    //                            if(iniState -> isFinal())
-    //                                lhsNFA -> addFinalState(state);
-    //                            lhsNFA -> cpTransByNFA(iniState, state2Map);
-    //                            stack.top() -> setNFA(lhsNFA);
-    //                        }
-    //                        else
-    //                        {
-    //                            NFAState* state = lhsNFA -> getInitialState();
-    //                            NFAState2Map state2Map;
-    //                            NFAState* iniState = rhsNFA -> getInitialState();
-    //                            state2Map[iniState] = state;
-    //                            if(iniState -> isFinal())
-    //                                lhsNFA -> addFinalState(state);
-    //                            lhsNFA -> cpTransByNFA(iniState, state2Map);
-    //                        }
-    //                        delete rhsNFA;
-    //                    }
-    //                    
-    //                }
-    //                else if(basicChar -> isCatOpt())
-    //                {
-    //                    stack.pop();
-    //                    if(!rhsNFA)
-    //                    {
-    //                        NFA* lhsNFA = stack.top() -> getNFA();
-    //                        if(!lhsNFA)
-    //                        {
-    //                            lhsNFA = new NFA();
-    //                            NFAState* state = lhsNFA -> mkState();
-    //                            lhsNFA -> mkInitialState() -> addNFATrans(stack.top() -> getChar(), state);
-    //                            state -> addNFATrans(rhsChar -> getChar(), lhsNFA -> mkFinalState());
-    //                            stack.top() -> setNFA(lhsNFA);
-    //                        }
-    //                        else
-    //                        {
-    //                            NFAState* state = lhsNFA -> mkState();
-    //                            for(NFAState* finState : lhsNFA -> getFinalStateSet())
-    //                                finState -> addNFATrans(rhsChar -> getChar(), state);
-    //                            lhsNFA -> clearFinalStateSet();
-    //                            lhsNFA -> addFinalState(state);
-    //                        }
-    //                    }
-    //                    else
-    //                    {
-    //                        NFA* lhsNFA = stack.top() -> getNFA();
-    //                        if(!lhsNFA)
-    //                        {
-    //                            lhsNFA = new NFA();
-    //                            NFAState* state = lhsNFA -> mkState();
-    //                            lhsNFA -> mkInitialState() -> addNFATrans(stack.top() -> getChar(), state);
-    //                            NFAState2Map state2Map;
-    //                            NFAState* iniState = rhsNFA -> getInitialState();
-    //                            state2Map[iniState] = state;
-    //                            if(iniState -> isFinal())
-    //                                lhsNFA -> addFinalState(state);
-    //                            lhsNFA -> cpTransByNFA(iniState, state2Map);
-    //                            stack.top() -> setNFA(lhsNFA);
-    //                        }
-    //                        else
-    //                        {
-    //                            NFAState* state = lhsNFA -> mkState();
-    //                            for(NFAState* finState : lhsNFA -> getFinalStateSet())
-    //                                finState -> addEpsilonTrans(state);
-    //                            lhsNFA -> clearFinalStateSet();                                
-    //                            NFAState2Map state2Map;
-    //                            NFAState* iniState = rhsNFA -> getInitialState();
-    //                            state2Map[iniState] = state;
-    //                            if(iniState -> isFinal())
-    //                                lhsNFA -> addFinalState(state);
-    //                            lhsNFA -> cpTransByNFA(iniState, state2Map);
-    //                        }
-    //                        delete rhsNFA;
-    //                    }
-    //                }
-    //            }
-    //        }
-    //        return stack.top() -> getNFA();
-    //    }
-    //    
-    //};
 }
 
 #endif /* RegExp_hpp */

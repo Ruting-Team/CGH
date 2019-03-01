@@ -11,7 +11,6 @@
 
 #include "State.hpp"
 namespace cgh{
-    template <class Character> class NFA;
 
     /// \brief States in Nondeterministic Finite Automaton.
     ///

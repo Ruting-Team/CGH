@@ -13,11 +13,6 @@
 
 namespace cgh{
     using namespace std;
-    
-    template <class Character> class DFA;
-    template <class Character> class NFA;
-    template <class Character> class DFAState;
-    template <class Character> class NFAState;
 
     class State {
         static ID counter;

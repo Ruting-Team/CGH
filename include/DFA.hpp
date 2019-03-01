@@ -13,7 +13,6 @@
 #include "DFAState.hpp"
 
 namespace cgh {
-    template <class Character> class NFA;
 
     /// \brief A class of Deterministic Finite Automaton.
     template <class Character>
@@ -128,6 +127,14 @@ namespace cgh {
             finalStateSet.insert(state); state -> setFinalFlag(1);
         }
 
+        void mkAlphabet() {
+            for (DFAState<Character>* state : stateSet) {
+                for (auto& mapPair : state -> getDFATransMap()) {
+                    this -> alphabet.insert(mapPair.first);
+                }
+            }
+        }
+
         /// \brief Gets stateSet.
         /// \return The set reference of DFAState pointer for this DFA.
         DFAStateSet& getStateSet() {
@@ -216,8 +223,13 @@ namespace cgh {
             return dfaState;
         }
 
+        bool isNULL() {
+            if (!this -> isReachable()) removeUnreachableState();
+            if (finalStateSet.size() == 0) return true;
+            return false;
+        }
+
         bool isNULL() const {
-            if (!initialState) return true;
             if (finalStateSet.size() == 0) return true;
             return false;
         }
@@ -256,8 +268,7 @@ namespace cgh {
             DFA* dfa = new DFA();
             removeDeadState();
             removeUnreachableState();
-            if (isNULL()) return *dfa;
-            
+            if (isNULL()) return FA<Character>::EmptyDFA();
             ID lastSize = 0;
             DFAStateSet unFinalStateSet;
             DFAStateSet finalStatesSet;
@@ -392,14 +403,15 @@ namespace cgh {
         }
         
         void removeUnreachableState() {
-            if (isNULL()) return;
+            if (finalStateSet.size() == 0) return;
+            if (this -> isReachable()) return;
             DFAStateSet reachableStateSet;
             DFAStateSet workSet;
             workSet.insert(initialState);
             reachableStateSet.insert(initialState);
             getReachableStateSet(reachableStateSet, workSet);
             if (!DFA::hasFinalState(reachableStateSet)) {
-                initialState = NULL;
+                clearFinalStateSet();
                 return;
             }
             if (reachableStateSet.size() != this -> stateSet.size()) {
@@ -429,7 +441,7 @@ namespace cgh {
             DFAStateSet liveStateSet(finalStateSet.begin(), finalStateSet.end());
             getLiveStateSet(reverseMap, liveStateSet, finalStateSet);
             if (liveStateSet.count(initialState) == 0) { 
-                initialState = NULL;
+                clearFinalStateSet();
                 return;
             }
             DFAStateSet delSet;

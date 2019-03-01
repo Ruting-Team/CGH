@@ -11,7 +11,6 @@
 
 #include "State.hpp"
 namespace cgh{
-    template <class Character> class DFA;
     
     /// \brief States in Deterministic Finite Automaton.
     ///
