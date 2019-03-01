@@ -14,13 +14,8 @@
 
 #include "State.hpp"
 
-using namespace std;
 namespace cgh{
-    template <class Character> class DFA;
-    template <class Character> class NFA;
-    template <class Character> class SmartDFA;
-    template <class Character> class DFAState;
-    template <class Character> class NFAState;
+    using namespace std;
     
     /// \brief FA is a virtual class which define a Finite Automaton.
     template <class Character>

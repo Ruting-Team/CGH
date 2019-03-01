@@ -305,8 +305,8 @@ namespace cgh {
         /// \brief Copy construction function by regEx.
         /// \param regEx The regular expression.
         NFA(const string& regEx) {
-            //BasicRegEx<Character> basicRegEx(regEx);
-            //*this = *basicRegEx.mkNFA();
+            RegExp<Character> regExp(regEx);
+            *this = *regExp.mkNFA();
         }
         
         /// \brief Desconstruction function.

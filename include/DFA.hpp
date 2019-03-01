@@ -13,7 +13,6 @@
 #include "DFAState.hpp"
 
 namespace cgh {
-    template <class Character> class NFA;
 
     /// \brief A class of Deterministic Finite Automaton.
     template <class Character>
