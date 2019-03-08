@@ -22,31 +22,40 @@
 #include <iostream>
 #include <unordered_map>
 #include <unordered_set>
-//#include <fiostream>
 using namespace std;
 namespace std {
+
     template<typename T, typename U>
-    class hash<pair<T, U> >
-    {
+    struct hash<pair<T, U> > {
     public:
         size_t operator()(const pair<T, U> &p) const {
             return std::hash<T>()(p.first) ^ std::hash<U>()(p.second);
         }
     };
+
     template<typename T>
-    class hash<unordered_set<T> >
-    {
+    struct hash<unordered_set<T> > {
     public:
         size_t operator()(const unordered_set<T> &hashSet) const {
             size_t size = 0;
-            for(typename unordered_set<T>::const_iterator it = hashSet.begin(); it != hashSet.end(); it++)
-                size = size ^ std::hash<T>()(*it);
+            for (auto item : hashSet) {
+                size = size ^ std::hash<T>()(item);
+            }
             return size;
         }
     };
+
+    template <class Character> class Label;
+    template<class T> 
+    struct hash<Label<T> > {
+    public:
+        size_t operator()(const Label<T> &label) const {
+            return std::hash<T>()(label.upper) ^ std::hash<T>()(label.lower);
+        }
+    };
+
 }
-namespace cgh
-{
+namespace cgh {
     typedef size_t ID;
     typedef char Flag;
     typedef char Size;
@@ -62,6 +71,9 @@ namespace cgh
     template <class Character> class PushPDSTrans;
     template <class Character> class ReplacePDSTrans;
 
+    template <class Character> class Label;
+    template <class Character> class NTDState;
+
     /****************** PDSState ******************/
 
     class PDSState;
@@ -70,18 +82,7 @@ namespace cgh
     /****************** Global ******************/
 
     template <class Character>
-    class Global
-    {
-        typedef FA<Character> FA;
-        typedef DFA<Character> DFA;
-        typedef NFA<Character> NFA;
-        typedef DFAState<Character> DFAState;
-        typedef NFAState<Character> NFAState;
-        typedef PDSTrans<Character> PDSTrans;
-        typedef PopPDSTrans<Character> PopPDSTrans;
-        typedef PushPDSTrans<Character> PushPDSTrans;
-        typedef ReplacePDSTrans<Character> ReplacePDSTrans;
-        
+    class Global {
     public:
 
         /***************** Character  *****************/
@@ -95,12 +96,12 @@ namespace cgh
         
         /***************** NFAState  *****************/
         
-        typedef unordered_set<NFAState*> NFAStateSet;
-        typedef unordered_map<NFAState*, NFAState*> NFAState2Map;
+        typedef unordered_set<NFAState<Character>*> NFAStateSet;
+        typedef unordered_map<NFAState<Character>*, NFAState<Character>*> NFAState2Map;
         typedef unordered_map<Character, NFAStateSet> NFATransMap;
-        typedef unordered_map<NFAState*, DFAState*> NFAState2DFAStateMap;
-        typedef unordered_map<NFAState*, NFAStateSet> NFAState2NFAStateSetMap;
-        typedef unordered_map<NFAStateSet, DFAState*> NFAStateSet2DFAStateMap;
+        typedef unordered_map<NFAState<Character>*, DFAState<Character>*> NFAState2DFAStateMap;
+        typedef unordered_map<NFAState<Character>*, NFAStateSet> NFAState2NFAStateSetMap;
+        typedef unordered_map<NFAStateSet, DFAState<Character>*> NFAStateSet2DFAStateMap;
         
         typedef typename NFAStateSet::iterator NFAStateSetIter;
         typedef typename NFATransMap::iterator NFATransMapIter;
@@ -114,16 +115,16 @@ namespace cgh
         
         /***************** DFAState  *****************/
         
-        typedef pair<DFAState*, DFAState*> DFAState2;
-        typedef unordered_set<DFAState*> DFAStateSet;
-        typedef unordered_map<Character, DFAState*> DFATransMap;
-        typedef unordered_map<DFAState*, DFAState*> DFAState2Map;
-        typedef unordered_map<DFAState2, DFAState*> DFAStatePairMap;
-        typedef unordered_map<DFAStateSet, DFAState*> DFAStateSetMap;
+        typedef pair<DFAState<Character>*, DFAState<Character>*> DFAState2;
+        typedef unordered_set<DFAState<Character>*> DFAStateSet;
+        typedef unordered_map<Character, DFAState<Character>*> DFATransMap;
+        typedef unordered_map<DFAState<Character>*, DFAState<Character>*> DFAState2Map;
+        typedef unordered_map<DFAState2, DFAState<Character>*> DFAStatePairMap;
+        typedef unordered_map<DFAStateSet, DFAState<Character>*> DFAStateSetMap;
         typedef unordered_map<Character, DFAState2> Char2DFAState2Map;
-        typedef unordered_map<DFAState*, NFAState*> DFAState2NFAStateMap;
+        typedef unordered_map<DFAState<Character>*, NFAState<Character>*> DFAState2NFAStateMap;
         typedef unordered_map<Character, DFAStateSet> Char2DFAStateSetMap;
-        typedef unordered_map<DFAState*, DFAStateSet> DFAState2DFAStateSetMap;
+        typedef unordered_map<DFAState<Character>*, DFAStateSet> DFAState2DFAStateSetMap;
         
         typedef typename DFAStateSet::iterator DFAStateSetIter;
         typedef typename DFATransMap::iterator DFATransMapIter;
@@ -146,10 +147,10 @@ namespace cgh
         
         /***************** FA  *****************/
         
-        typedef list<FA*> FAList;
-        typedef unordered_set<FA*> FASet;
-        typedef unordered_set<DFA*> DFASet;
-        typedef unordered_set<NFA*> NFASet;
+        typedef list<FA<Character>*> FAList;
+        typedef unordered_set<FA<Character>*> FASet;
+        typedef unordered_set<DFA<Character>*> DFASet;
+        typedef unordered_set<NFA<Character>*> NFASet;
         typedef unordered_map<Character, ID> Char2IDMap;
 
         typedef typename FASet::iterator FASetIter;
@@ -161,11 +162,17 @@ namespace cgh
         
         /***************** PDSTrans  *****************/
         
-        typedef list<PDSTrans*> PDSTransList;
-        typedef list<PopPDSTrans*> PopPDSTransList;
-        typedef list<PushPDSTrans*> PushPDSTransList;
-        typedef list<ReplacePDSTrans*> ReplacePDSTransList;
-        typedef unordered_map<PDSState*, NFAState*> PDSState2NFAStateMap;
+        typedef list<PDSTrans<Character>*> PDSTransList;
+        typedef list<PopPDSTrans<Character>*> PopPDSTransList;
+        typedef list<PushPDSTrans<Character>*> PushPDSTransList;
+        typedef list<ReplacePDSTrans<Character>*> ReplacePDSTransList;
+        typedef unordered_map<PDSState*, NFAState<Character>*> PDSState2NFAStateMap;
+
+        /***************** NTDState *****************/
+
+        typedef unordered_set<NTDState<Character>*> NTDStateSet;
+        typedef unordered_set<Label<Character>> Labels;
+        typedef unordered_map<Character, Labels> Char2LabelsMap;
    };
     
 };

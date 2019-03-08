@@ -94,6 +94,7 @@ namespace cgh{
                 sourceState -> addNFATrans(mapPair.first, targetState);
             }
         }
+
         static void cpNFATransByNFA(NFA<Character>* nfa, NFAState<Character> *state, NFAState2Map &state2map) {
             NFAState<Character>* sourceState = state2map[state];
             if (state -> isFinal()) nfa -> addFinalState(sourceState);
@@ -112,6 +113,7 @@ namespace cgh{
                 }
             }
         }
+
         static void cpDFATransByDFA(DFA<Character>* dfa, DFAState<Character>* state, DFAState2Map& state2map)
         {
             DFAState<Character>* sourceState = state2map[state];
@@ -162,7 +164,6 @@ namespace cgh{
             }
         }
         
-
         static void intersectFA(DFA<Character>* dfa, DFAState<Character>* sourceState, const DFAState2& statePair, DFAStatePairMap& dfaStatePairMap) {
             if (statePair.first -> isFinal() && statePair.second -> isFinal())
                 dfa -> addFinalState(sourceState);
@@ -250,7 +251,6 @@ namespace cgh{
             if (isMinimal()) return SmartDFA<Character>(&determinize(), 0);
             return SmartDFA<Character>(&const_cast<DFA<Character>&>(determinize()).minimize(), 1);
         }
-
 
     public:
         /// \brief Judges whether this FA is deterministic or not.
@@ -394,7 +394,7 @@ namespace cgh{
         /// \brief Gets a FA which is the diference set from this FA to param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
-        FA& operator -(const FA &fa) const {
+        FA& operator - (const FA &fa) const {
             return minusFA(*this, fa);
         }
 
@@ -431,6 +431,7 @@ namespace cgh{
             for (DFA<Character>* dfa : dfaSet) {
                 delete dfa;
             }
+            dfa -> mkAlphabet();
             dfa -> setReachableFlag(1);
             return *dfa;
         }
@@ -471,6 +472,7 @@ namespace cgh{
                 }
                 fStateSet.insert(nfa -> finalStateSet.begin(), nfa -> finalStateSet.end());
             }
+            nfa -> mkAlphabet();
             return *nfa;
         }
         
@@ -502,6 +504,7 @@ namespace cgh{
                     nfa -> makeCopyTransByNFA(iniState, nfaState2Map);
                 }
             }
+            nfa -> mkAlphabet();
             return *nfa;
         }
         
@@ -547,20 +550,20 @@ namespace cgh{
         
         virtual bool isEmpty() = 0;
         
-        bool operator ==(const FA& fa )
-        {
+        /// \brief Decide whether this FA is equal to param fa.
+        /// \param fa compared with this FA.
+        /// \return Boolean.
+        bool operator == (const FA& fa ) {
             DFA<Character>& cDFA = !(fa);
             DFA<Character>& iDFA = (*this & cDFA).determinize();
-            if(!iDFA.isEmpty())
-            {
+            if (!iDFA.isEmpty()) {
                 delete &cDFA;
                 delete &iDFA;
                 return false;
             }
             cDFA = !(*this);
             iDFA = (cDFA & fa).determinize();
-            if(!iDFA.isEmpty())
-            {
+            if (!iDFA.isEmpty()) {
                 delete &cDFA;
                 delete &iDFA;
                 return false;
@@ -569,12 +572,14 @@ namespace cgh{
             delete &iDFA;
             return true;
         }
-        bool operator <=(const FA& fa )
-        {
+
+        /// \brief Decide whether this FA is subset of param fa.
+        /// \param fa compared with this FA.
+        /// \return Boolean.
+        bool operator <= (const FA& fa ) {
             DFA<Character>& cDFA = !(fa);
             DFA<Character>& iDFA = (*this & cDFA).determinize();
-            if(!iDFA.isEmpty())
-            {
+            if (!iDFA.isEmpty()) {
                 delete &cDFA;
                 delete &iDFA;
                 return false;
@@ -583,29 +588,26 @@ namespace cgh{
             delete &iDFA;
             return true;
         }
-        static DFA<Character>& EmptyDFA()
-        {
+
+        /// \brief Makes a empty DFA.
+        /// \return reference of DFA.
+        static DFA<Character>& EmptyDFA() {
             DFA<Character>* dfa = new DFA<Character>();
             dfa -> mkInitialState();
             return *dfa;
         }
-        static NFA<Character>& EmptyNFA()
-        {
+
+        /// \brief Makes a empty NFA.
+        /// \return reference of NFA.
+        static NFA<Character>& EmptyNFA() {
             NFA<Character>* nfa = new NFA<Character>();
             nfa -> mkInitialState();
             return *nfa; 
         }
-        static DFA<Character>& CompleteFA(const CharacterSet &charSet)
-        {
-            DFA<Character>* dfa = new DFA<Character>();
-            DFAState<Character>* iniState = dfa->mkDFAFinalState();
-            dfa->setAlphabet(charSet);
-            for(Character character : charSet)
-                iniState->addDFATrans(character, iniState);
-            return *dfa;
-        }
-        static DFA<Character>& SigmaStarFA(const CharacterSet &charSet)
-        {
+
+        /// \brief Makes a sigma star DFA.
+        /// \return reference of DFA.
+        static DFA<Character>& SigmaStarFA(const CharacterSet &charSet) {
             DFA<Character>* dfa = new DFA<Character>();
             DFAState<Character>* iniState = dfa->mkDFAInitialState();
             dfa->addFinalState(iniState);

@@ -27,8 +27,7 @@ namespace cgh{
     ///    DFAState* targetState = dfaState0 -> getTargetState('a');
     ///    dfa -> delDFAState(dfaState0);
     template <class Character>
-    class DFAState : public State
-    {
+    class DFAState : public State {
     public:
         typedef typename Global<Character>::CharacterSet CharacterSet;
         typedef typename Global<Character>::DFAStateSet DFAStateSet;
