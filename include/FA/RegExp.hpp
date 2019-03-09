@@ -9,8 +9,7 @@
 #ifndef RegExp_hpp
 #define RegExp_hpp
 
-#include "Global.hpp"
-#include <stack>
+#include "../State.hpp"
 namespace cgh {
     
     class Char {
