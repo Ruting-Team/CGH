@@ -18,16 +18,17 @@ namespace cgh {
     template <class Character>
     class DFA : public FA<Character>
     {
-        typedef typename Global<Character>::Word Word;
-        typedef typename Global<Character>::DFAState2 DFAState2;
-        typedef typename Global<Character>::DFAStateSet DFAStateSet;
-        typedef typename Global<Character>::DFATransMap DFATransMap;
-        typedef typename Global<Character>::DFAState2Map DFAState2Map;
-        typedef typename Global<Character>::CharacterSet CharacterSet;
-        typedef typename Global<Character>::DFAStateSetMap DFAStateSetMap;
-        typedef typename Global<Character>::DFAState2DFAStateSetMap DFAState2DFAStateSetMap;
+        typedef typename Alias4Char<Character>::Word Word;
+        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
+
+        typedef typename Alias4FA<Character>::DFAState2 DFAState2;
+        typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
+        typedef typename Alias4FA<Character>::DFATransMap DFATransMap;
+        typedef typename Alias4FA<Character>::DFAState2Map DFAState2Map;
+        typedef typename Alias4FA<Character>::DFAStateSetMap DFAStateSetMap;
+        typedef typename Alias4FA<Character>::DFAState2DFAStateSetMap DFAState2DFAStateSetMap;
         
-    private:
+    protected:
         DFAState<Character>* initialState;     ///< The initial state for this DFA.
         DFAStateSet stateSet;       ///< The set of states for this DFA.
         DFAStateSet finalStateSet;  ///< The set of final states for this DFA.

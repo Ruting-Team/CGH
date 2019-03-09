@@ -8,19 +8,16 @@
 
 #ifndef PDSTrans_hpp
 #define PDSTrans_hpp
-#include "Global.hpp"
-#include "State.hpp"
+#include "../State.hpp"
 namespace cgh {
-    class PDSState : public State
-    { 
+    class PDSState : public State {
     public:
         PDSState() : State() {}
         //PDSState(ID id) : (this -> count)(id) {}
     };
     
     template <class Character>
-    class PDSTrans
-    {
+    class PDSTrans {
     protected:
         PDSState* sourceState;
         PDSState* targetState;
@@ -38,17 +35,15 @@ namespace cgh {
     };
     
     template <class Character>
-    class PopPDSTrans : public PDSTrans<Character>
-    {
+    class PopPDSTrans : public PDSTrans<Character> {
     public:
         PopPDSTrans() : PDSTrans<Character>() {}
         PopPDSTrans(PDSState* sState, PDSState* tState, Character c) : PDSTrans<Character>(sState, tState, c) {}
     };
     
     template <class Character>
-    class PushPDSTrans : public PDSTrans<Character>
-    {
-        typedef typename Global<Character>::Char2 Char2;
+    class PushPDSTrans : public PDSTrans<Character> {
+        typedef typename Alias4Char<Character>::Char2 Char2;
     private:
         Char2 stack;
     public:
@@ -59,8 +54,7 @@ namespace cgh {
     };
     
     template <class Character>
-    class ReplacePDSTrans : public PDSTrans<Character>
-    {
+    class ReplacePDSTrans : public PDSTrans<Character> {
     private:
         Character stack;
     public:

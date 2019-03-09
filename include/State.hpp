@@ -9,7 +9,7 @@
 #ifndef State_hpp
 #define State_hpp
 
-#include "Global.hpp"
+#include "Alias.hpp"
 
 namespace cgh{
     using namespace std;

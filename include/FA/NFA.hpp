@@ -11,7 +11,7 @@
 
 #include "FA.hpp"
 #include "NFAState.hpp"
-#include "PDS.hpp"
+#include "../PDS/PDS.hpp"
 #include "RegExp.hpp"
 
 namespace cgh {
@@ -20,18 +20,20 @@ namespace cgh {
     template <class Character>
     class NFA : public FA<Character>
     {
-        typedef typename Global<Character>::Word Word;
-        typedef typename Global<Character>::Char2 Char2;
-        typedef typename Global<Character>::NFAStateSet NFAStateSet;
-        typedef typename Global<Character>::NFATransMap NFATransMap;
-        typedef typename Global<Character>::CharacterSet CharacterSet;
-        typedef typename Global<Character>::NFAState2Map NFAState2Map;
-        typedef typename Global<Character>::DFAState2NFAStateMap DFAState2NFAStateMap;
-        typedef typename Global<Character>::PDSState2NFAStateMap PDSState2NFAStateMap;
-        typedef typename Global<Character>::NFAStateSet2DFAStateMap NFAStateSet2DFAStateMap;
-        typedef typename Global<Character>::NFAState2NFAStateSetMap NFAState2NFAStateSetMap;
+        typedef typename Alias4Char<Character>::Word Word;
+        typedef typename Alias4Char<Character>::Char2 Char2;
+        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
+
+        typedef typename Alias4FA<Character>::NFAStateSet NFAStateSet;
+        typedef typename Alias4FA<Character>::NFATransMap NFATransMap;
+        typedef typename Alias4FA<Character>::NFAState2Map NFAState2Map;
+        typedef typename Alias4FA<Character>::DFAState2NFAStateMap DFAState2NFAStateMap;
+        typedef typename Alias4FA<Character>::NFAStateSet2DFAStateMap NFAStateSet2DFAStateMap;
+        typedef typename Alias4FA<Character>::NFAState2NFAStateSetMap NFAState2NFAStateSetMap;
+        typedef typename Alias4PDS<Character>::PDSState2NFAStateMap PDSState2NFAStateMap;
+        typedef typename Alias4PDS<Character>::PDSStateSet PDSStateSet;
         
-    private:
+    protected:
         typedef pair<NFAState<Character>*, Character> StateChar;
         typedef pair<StateChar, Character> StateChar2;
         typedef set<StateChar> StateCharSet;
@@ -97,7 +99,7 @@ namespace cgh {
             for (NFAState<Character>* state : stateSet) {
                 NFAStateSet workSet;
                 for (auto& mapPair : state -> getNFATransMap()) {
-                    if (mapPair.first != Global<Character>::epsilon) {
+                    if (mapPair.first != FA<Character>::epsilon) {
                         workSet.clear();
                         state -> getTargetStateSetByChar(workSet, mapPair.first);
                         if (workSet.size() > 0)
@@ -681,7 +683,7 @@ namespace cgh {
                 NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
                 NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
                 Character character = trans -> getChar();
-                nfa -> addPostStarNeedMap(targetState, Global<Character>::epsilon, sourceState, character, needMap, need2Map);
+                nfa -> addPostStarNeedMap(targetState, FA<Character>::epsilon, sourceState, character, needMap, need2Map);
             }
 
             for (ReplacePDSTrans<Character>* trans : pds.getReplaceTransList()) {

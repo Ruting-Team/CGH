@@ -14,14 +14,14 @@
 namespace cgh {
 
     template <class Character>
-    class PDS
-    {
-        typedef typename Global<Character>::Char2 Char2;
-        typedef typename Global<Character>::NFAStateSet NFAStateSet;
-        typedef typename Global<Character>::PDSTransList PDSTransList;
-        typedef typename Global<Character>::PopPDSTransList PopPDSTransList;
-        typedef typename Global<Character>::PushPDSTransList PushPDSTransList;
-        typedef typename Global<Character>::ReplacePDSTransList ReplacePDSTransList;
+    class PDS {
+        typedef typename Alias4FA<Character>::Char2 Char2;
+        typedef typename Alias4FA<Character>::NFAStateSet NFAStateSet;
+        typedef typename Alias4PDS<Character>::PDSTransList PDSTransList;
+        typedef typename Alias4PDS<Character>::PopPDSTransList PopPDSTransList;
+        typedef typename Alias4PDS<Character>::PushPDSTransList PushPDSTransList;
+        typedef typename Alias4PDS<Character>::ReplacePDSTransList ReplacePDSTransList;
+        typedef typename Alias4PDS<Character>::PDSStateSet PDSStateSet;
     private:
         PDSStateSet stateSet;                   ///< The set of states for this PDS.
         PDSStateSet controlStateSet;            ///< The set of control states for this PDS.

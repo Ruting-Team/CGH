@@ -9,7 +9,7 @@
 #ifndef Label_hpp
 #define Label_hpp
 
-#include "Global.hpp"
+#include "../Alias.hpp"
 
 namespace cgh{
     template<class Character>
@@ -33,9 +33,17 @@ namespace cgh{
             return upper;
         }
 
+        const Character getUpper() const {
+            return upper;
+        }
+
         /// \brief Gets the lower character for this Label.
         /// \return Character.
         Character getLower() {
+            return lower;
+        }
+
+        const Character getLower() const {
             return lower;
         }
 
@@ -51,14 +59,29 @@ namespace cgh{
             lower = l;
         }
 
-        /// \brief Decides whether this Label is epsilon.
-        /// \return Boolean
-        bool isEpsilon() {
-            return upper == Global<Character>::epsilon && lower == Global<Character>::epsilon;
+        bool operator == (const Label& label ) const {
+            return (upper == label.upper) && (lower == label.lower);
         }
-            
-        bool operator == (const Label& label ) {
-            return upper == label.upper && lower == label.lower;
+
+        bool operator != (const Label& label ) const {
+            return (upper != label.upper) || (lower != label.lower);
+        }
+
+        friend ostream& operator << (ostream& out, const Label& label) {
+            out << label.getUpper() << "," << label.getLower(); 
+            return out;
+        }
+
+
+    };
+}
+namespace std {
+    using namespace cgh;
+    template<class T> 
+    struct hash<Label<T> > {
+    public:
+        size_t operator()(const Label<T> &label) const {
+            return std::hash<T>()(label.getUpper()) ^ std::hash<T>()(label.getLower());
         }
     };
 }

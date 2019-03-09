@@ -9,7 +9,7 @@
 #ifndef DFAState_hpp
 #define DFAState_hpp
 
-#include "State.hpp"
+#include "../State.hpp"
 namespace cgh{
     
     /// \brief States in Deterministic Finite Automaton.
@@ -29,11 +29,11 @@ namespace cgh{
     template <class Character>
     class DFAState : public State {
     public:
-        typedef typename Global<Character>::CharacterSet CharacterSet;
-        typedef typename Global<Character>::DFAStateSet DFAStateSet;
-        typedef typename Global<Character>::DFATransMap DFATransMap;
+        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
+        typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
+        typedef typename Alias4FA<Character>::DFATransMap DFATransMap;
         
-    private:
+    protected:
         DFATransMap dfaTransMap; ///< A transition map for this state, the key is character and the value is a state.
 
         void getTargetStateSet(DFAStateSet& stateSet) {
@@ -135,7 +135,7 @@ namespace cgh{
 
         void output(){
             for (auto iter = dfaTransMap.begin(); iter != dfaTransMap.end(); iter++) {
-                cout<< getID()<<" "<<iter->first<<" "<<iter->second->getID()<<endl;
+                cout<< getID()<<" "<< iter->first <<" "<<iter->second->getID()<<endl;
             }
         }
         friend DFA<Character>;

@@ -9,38 +9,34 @@
 #ifndef FA_hpp
 #define FA_hpp
 
-#include <fstream>
-#include <iostream>
-
-#include "State.hpp"
+#include "../State.hpp"
 
 namespace cgh{
-    using namespace std;
     
     /// \brief FA is a virtual class which define a Finite Automaton.
     template <class Character>
-    class FA
-    {
-        typedef typename Global<Character>::Word Word;
-        typedef typename Global<Character>::FASet FASet;
-        typedef typename Global<Character>::DFASet DFASet;
-        typedef typename Global<Character>::FAList FAList;
-        typedef typename Global<Character>::DFAState2 DFAState2;
-        typedef typename Global<Character>::DFAStateSet DFAStateSet;
-        typedef typename Global<Character>::DFATransMap DFATransMap;
-        typedef typename Global<Character>::NFAStateSet NFAStateSet;
-        typedef typename Global<Character>::NFATransMap NFATransMap;
-        typedef typename Global<Character>::DFAState2Map DFAState2Map;
-        typedef typename Global<Character>::NFAState2Map NFAState2Map;
-        typedef typename Global<Character>::CharacterSet CharacterSet;
-        typedef typename Global<Character>::DFAStateSetMap DFAStateSetMap;
-        typedef typename Global<Character>::DFAStatePairMap DFAStatePairMap;
-        typedef typename Global<Character>::Char2DFAStateSetMap Char2DFAStateSetMap;
-        typedef typename Global<Character>::DFAState2NFAStateMap DFAState2NFAStateMap;
+    class FA {
+        typedef typename Alias4Char<Character>::Word Word;
+        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
+
+        typedef typename Alias4FA<Character>::FASet FASet;
+        typedef typename Alias4FA<Character>::DFASet DFASet;
+        typedef typename Alias4FA<Character>::FAList FAList;
+        typedef typename Alias4FA<Character>::DFAState2 DFAState2;
+        typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
+        typedef typename Alias4FA<Character>::DFATransMap DFATransMap;
+        typedef typename Alias4FA<Character>::NFAStateSet NFAStateSet;
+        typedef typename Alias4FA<Character>::NFATransMap NFATransMap;
+        typedef typename Alias4FA<Character>::DFAState2Map DFAState2Map;
+        typedef typename Alias4FA<Character>::NFAState2Map NFAState2Map;
+        typedef typename Alias4FA<Character>::DFAStateSetMap DFAStateSetMap;
+        typedef typename Alias4FA<Character>::DFAStatePairMap DFAStatePairMap;
+        typedef typename Alias4FA<Character>::Char2DFAStateSetMap Char2DFAStateSetMap;
+        typedef typename Alias4FA<Character>::DFAState2NFAStateMap DFAState2NFAStateMap;
         
     protected:
-        Flag flag;              /// < Records some attributes for this FA.
-        CharacterSet alphabet;  /// < A set of characters which in the label on the transitions.
+        Flag flag;                  ///< Records some attributes for this FA.
+        CharacterSet alphabet;      ///< A set of characters which in the label on the transitions.
 
         /// \brief Default construction without arguments, initialize flag to 0.
         FA() : flag(0){}
@@ -253,6 +249,7 @@ namespace cgh{
         }
 
     public:
+        static Character epsilon;   ///< The epsilon define by users.
         /// \brief Judges whether this FA is deterministic or not.
         ///
         /// ture means deterministic, false means nondeterministic.
