@@ -50,9 +50,6 @@ namespace cgh{
         /// \param file The FA description file.
         FA(FILE *file){}//todo
 
-        /// \brief Virtual desconstruction fuction.
-        virtual ~FA(){}
-
         /// \brief Sets this FA to deterministic or not by param b.
         /// \param b If b is true means deterministic otherwise not.
         void setDeterministicFlag(bool b){flag = b ? (flag | 1):(flag & ~1);}
@@ -246,6 +243,10 @@ namespace cgh{
 
     public:
         static Character epsilon;   ///< The epsilon define by users.
+
+        /// \brief Virtual desconstruction fuction.
+        virtual ~FA() {}
+
         /// \brief Judges whether this FA is deterministic or not.
         ///
         /// ture means deterministic, false means nondeterministic.
