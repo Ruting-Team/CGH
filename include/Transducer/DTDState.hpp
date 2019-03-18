@@ -15,7 +15,7 @@ namespace cgh{
     template <class Character>
     class DTDState : public DFAState<Label<Character> > {
         typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
-        typedef typename Alias4FA<Character>::Char2DFAState2Map Char2DFAState2Map;
+        typedef typename Alias4FA<Character>::DFATransMap DFATransMap;
         typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
         typedef typename Alias4TD<Character>::Char2LabelsMap Char2LabelsMap;
 
@@ -31,7 +31,7 @@ namespace cgh{
         //    }
         //}
 
-        void getTargetStateSetAndLowers(Character upper, Char2DFAState2Map& map) {
+        void getTargetStateSetAndLowers(Character upper, DFATransMap& map) {
             auto mapIt = char2LabelsMap.find(upper);
             if (mapIt != char2LabelsMap.end()) {
                 for (auto& label : mapIt.second) {
@@ -45,8 +45,8 @@ namespace cgh{
         /// \param upper The upper Character in label.
         /// \param staetSet The target stateSet.
         /// \return The set of Character.
-        Char2DFAState2Map getTargetStateSetAndLowers(Character upper) {
-            Char2DFAState2Map map;
+        DFATransMap getTargetStateSetAndLowers(Character upper) {
+            DFATransMap map;
             auto mapIt = char2LabelsMap.find(upper);
             if (mapIt != char2LabelsMap.end()) {
                 for (auto& label : mapIt.second) {

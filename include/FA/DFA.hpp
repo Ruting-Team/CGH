@@ -239,18 +239,8 @@ namespace cgh {
             return *this;
         }
 
-        const DFA& determinize( void ) const {
-            return *this;
-        }
-        
-        NFA<Character>& nondeterminize( void ) {
-            NFA<Character>* nfa = new NFA<Character>(*this);
-            return *nfa;
-        }
-
-        const NFA<Character>& nondeterminize( void ) const {
-            NFA<Character>* nfa = new NFA<Character>(*this);
-            return *nfa;
+        DFA& determinize( void ) const {
+            return const_cast<DFA&>(*this);
         }
         
         static bool isEqual(const DFAState<Character>* s1, const DFAState<Character>* s2, DFAState2Map &stateMap) {
@@ -266,6 +256,9 @@ namespace cgh {
         }
 
         DFA& minimize() {
+            if (this -> isMinimal()) {
+                return *this;
+            }
             DFA* dfa = new DFA();
             removeDeadState();
             removeUnreachableState();
@@ -362,7 +355,12 @@ namespace cgh {
             }
             dfa -> setReachableFlag(1);
             dfa -> setMinimalFlag(1);
+            Manage::manage(dfa);
             return *dfa;
+        }
+
+        DFA<Character>& minimize( void ) const {
+            return const_cast<DFA*>(this) -> minimize();
         }
         
         FA<Character>& subset(const DFAState<Character>* iState, const DFAState<Character>* fState) {
@@ -537,26 +535,26 @@ namespace cgh {
         friend NFA<Character>;
     };
 
-    template <class Character>
-    class SmartDFA {
-    private:
-        DFA<Character>* dfa;
-        bool del;
-        bool confirm; 
-    public:
-        SmartDFA() : dfa(nullptr), del(0), confirm(0){}
-        SmartDFA(const DFA<Character>* d, bool b, bool c = 0) : dfa(const_cast<DFA<Character>*>(d)), del(b) , confirm(c) {}
-        SmartDFA(const SmartDFA& smartDFA) {
-            dfa = smartDFA.dfa;
-            del = smartDFA.del;
-            confirm = 1;
-        }
-        ~SmartDFA() {
-            if (del & confirm) delete dfa;
-        }
+    //template <class Character>
+    //class SmartDFA {
+    //private:
+    //    DFA<Character>* dfa;
+    //    bool del;
+    //    bool confirm; 
+    //public:
+    //    SmartDFA() : dfa(nullptr), del(0), confirm(0){}
+    //    SmartDFA(const DFA<Character>* d, bool b, bool c = 0) : dfa(const_cast<DFA<Character>*>(d)), del(b) , confirm(c) {}
+    //    SmartDFA(const SmartDFA& smartDFA) {
+    //        dfa = smartDFA.dfa;
+    //        del = smartDFA.del;
+    //        confirm = 1;
+    //    }
+    //    ~SmartDFA() {
+    //        if (del & confirm) delete dfa;
+    //    }
 
-        DFA<Character>* getDFA() {return dfa;}
-    };
+    //    DFA<Character>* getDFA() {return dfa;}
+    //};
       
 }
 #endif /* DFA_hpp */
