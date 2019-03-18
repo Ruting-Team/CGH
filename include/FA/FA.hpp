@@ -10,12 +10,13 @@
 #define FA_hpp
 
 #include "../State.hpp"
+#include "../Object.hpp"
 
 namespace cgh{
     
     /// \brief FA is a virtual class which define a Finite Automaton.
     template <class Character>
-    class FA {
+    class FA : public Object {
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
 
@@ -66,11 +67,11 @@ namespace cgh{
 
         /// \brief Gets a DFA which determinized by FA.
         /// \return A reference of DFA.
-        virtual const DFA<Character>& determinize( void ) const = 0;
+        virtual DFA<Character>& determinize( void ) const = 0;
 
-        /// \brief Gets a NFA which nondeterminized by FA.
-        /// \return A reference of NFA.
-        virtual const NFA<Character>& nondeterminize( void ) const = 0;
+        /// \brief Gets a DFA which minimalized by FA.
+        /// \return A reference of DFA.
+        virtual DFA<Character>& minimize( void ) const = 0;
 
         virtual FA& copy() = 0;
     private:
@@ -243,11 +244,6 @@ namespace cgh{
             }
         }
 
-        SmartDFA<Character> minimize() const {
-            if (isMinimal()) return SmartDFA<Character>(&determinize(), 0);
-            return SmartDFA<Character>(&const_cast<DFA<Character>&>(determinize()).minimize(), 1);
-        }
-
     public:
         static Character epsilon;   ///< The epsilon define by users.
         /// \brief Judges whether this FA is deterministic or not.
@@ -297,23 +293,22 @@ namespace cgh{
 
         virtual void mkAlphabet() = 0;
 
-
         /// \brief Gets a FA which is the intersection of param lhsfa and param rhsfa.
         ///
         /// A static function.
         /// \param lhsfa A const reference FA.
         /// \param rhsfa A const reference FA.
         /// \return A reference of FA.
-        static FA& intersectFA(const FA& lhsfa, const FA& rhsfa) {
-            DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
-            DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
-            DFA<Character>* dfa = new DFA<Character>(); 
+        static DFA<Character>& intersectFA(const FA& lhsfa, const FA& rhsfa) {
+            DFA<Character>& lhsdfa = lhsfa.minimize();
+            DFA<Character>& rhsdfa = rhsfa.minimize();
+            DFA<Character> dfa;
             DFAStatePairMap pairMap;
-            DFAState<Character>* initialState = dfa -> mkInitialState();
-            intersectFA(dfa, initialState, DFAState2(lhsdfa -> getInitialState(), rhsdfa -> getInitialState()), pairMap);
-            dfa -> setReachableFlag(1);
-            dfa -> mkAlphabet();
-            return *dfa;
+            DFAState<Character>* initialState = dfa.mkInitialState();
+            intersectFA(&dfa, initialState, DFAState2(lhsdfa.getInitialState(), rhsdfa.getInitialState()), pairMap);
+            dfa.setReachableFlag(1);
+            dfa.mkAlphabet();
+            return dfa.minimize();
         }
 
         /// \brief Gets a FA which is the union of param lhsfa and param rhsfa.
@@ -322,13 +317,13 @@ namespace cgh{
         /// \param lhsfa A const reference FA.
         /// \param rhsfa A const reference FA.
         /// \return A reference of FA.
-        static FA& unionFA(const FA& lhsfa, const FA& rhsfa) {
-            DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
-            DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
-            NFA<Character>* nfa = new NFA<Character>();
-            NFAState<Character>* initialState = nfa -> mkInitialState();
-            unionFA(nfa, DFAState2(lhsdfa -> getInitialState(), rhsdfa -> getInitialState()));
-            return *nfa;
+        static DFA<Character>& unionFA(const FA& lhsfa, const FA& rhsfa) {
+            DFA<Character>& lhsdfa = lhsfa.minimize();
+            DFA<Character>& rhsdfa = rhsfa.minimize();
+            NFA<Character> nfa;
+            NFAState<Character>* initialState = nfa.mkInitialState();
+            unionFA(&nfa, DFAState2(lhsdfa.getInitialState(), rhsdfa.getInitialState()));
+            return nfa.minimize();
         }
 
         /// \brief Gets a FA which is the concatenation of param lhsfa and param rhsfa.
@@ -337,13 +332,13 @@ namespace cgh{
         /// \param lhsfa A const reference FA.
         /// \param rhsfa A const reference FA.
         /// \return A reference of FA.
-        static FA& concatenateFA(const FA& lhsfa, const FA& rhsfa) {
-            DFA<Character>* lhsdfa = lhsfa.minimize().getDFA();
-            DFA<Character>* rhsdfa = rhsfa.minimize().getDFA();
-            NFA<Character>* nfa = new NFA<Character>(); 
-            NFAState<Character>* initialState = nfa -> mkInitialState();
-            concatenateFA(nfa, DFAState2(lhsdfa -> getInitialState(), rhsdfa -> getInitialState()));
-            return *nfa;
+        static DFA<Character>& concatenateFA(const FA& lhsfa, const FA& rhsfa) {
+            DFA<Character>& lhsdfa = lhsfa.minimize();
+            DFA<Character>& rhsdfa = rhsfa.minimize();
+            NFA<Character> nfa;
+            NFAState<Character>* initialState = nfa.mkInitialState();
+            concatenateFA(&nfa, DFAState2(lhsdfa.getInitialState(), rhsdfa.getInitialState()));
+            return nfa.minimize();
         }
 
         /// \brief Gets a FA which is the complement of param fa.
@@ -352,11 +347,11 @@ namespace cgh{
         /// \param fa A const reference FA.
         /// \return A reference of FA.
         static DFA<Character>& complementFA(const FA& fa) {
-            DFA<Character>* mindfa = fa.minimize().getDFA();
-            DFA<Character>* dfa = new DFA<Character>(fa.getAlphabet()); 
-            DFAState<Character>* initialState = dfa -> mkInitialState();
-            complementFA(dfa, mindfa -> getInitialState());
-            return *dfa;
+            DFA<Character>& mdfa = fa.minimize();
+            DFA<Character> dfa(fa.getAlphabet());
+            DFAState<Character>* initialState = dfa.mkInitialState();
+            complementFA(&dfa, mdfa.getInitialState());
+            return dfa.minimize();
         }
 
         /// \brief Gets a FA which is the deference from param lhsfa to param rhsfa.
@@ -365,7 +360,7 @@ namespace cgh{
         /// \param lhsfa A const reference FA.
         /// \param rhsfa A const reference FA.
         /// \return A reference of FA.
-        static FA& minusFA(const FA& lhsfa, const FA& rhsfa) {
+        static DFA<Character>& minusFA(const FA& lhsfa, const FA& rhsfa) {
             return intersectFA(lhsfa, complementFA(rhsfa));
         }
         
@@ -377,21 +372,21 @@ namespace cgh{
         /// \brief Gets a FA which is the intersection of this FA and param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
-        FA& operator & (const FA &fa) const {
+        DFA<Character>& operator & (const FA& fa) const {
             return intersectFA(*this, fa);
         }
 
         /// \brief Gets a FA which is the union of this FA and param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
-        FA& operator | (const FA &fa) const { 
+        DFA<Character>& operator | (const FA& fa) const { 
             return unionFA(*this, fa);
         }
 
         /// \brief Gets a FA which is the diference set from this FA to param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
-        FA& operator - (const FA &fa) const {
+        DFA<Character>& operator - (const FA& fa) const {
             return minusFA(*this, fa);
         }
 
@@ -404,7 +399,7 @@ namespace cgh{
         /// \brief Gets a FA which is the concatination of this FA and param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
-        FA& concatenateFA(const FA &fa) const {
+        DFA<Character>& concatenateFA(const FA& fa) const {
             return concatenateFA(*this, fa);
         }
 
@@ -435,83 +430,83 @@ namespace cgh{
  
         //        static bool multiIntersectionAndDeterminEmptiness(const FASet &faSet);//todo
         
-        /// \brief Gets the concatenation of param faList.
-        /// \param faList A list of FA.
-        /// \return A reference of FA.
-        static FA& concatenateFA(const FAList& faList) {
-            NFA<Character>* nfa = new NFA<Character>();
-            NFAState<Character>* iniState = nfa -> mkNFAInitialState();
-            NFAStateSet fStateSet;
-            fStateSet.insert(iniState);
-            DFAState2NFAStateMap dfaState2Map;
-            NFAState2Map nfaState2Map;
-            for (FA* fa : faList) {
-                NFAState<Character>* state = nfa -> mkNFAState();
-                for (NFAState<Character>* nfaState : fStateSet)
-                    nfaState -> addEpsilonTrans(state);
-                fStateSet.clear();
-                nfa -> clearFinalStateSet();
-                if (fa -> isDeterminate()) {
-                    dfaState2Map.clear();
-                    DFA<Character>& dfa = fa -> determine();
-                    DFAState<Character>* iniState = dfa.getInitialState();
-                    if(iniState->isFinal()) nfa -> addFinalState(state);
-                    dfaState2Map[iniState] = state;
-                    nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
-                    
-                } else {
-                    nfaState2Map.clear();
-                    NFA<Character>& tempNfa = fa -> nondetermine();
-                    NFAState<Character>* iniState = tempNfa.getInitialState();
-                    if (iniState -> isFinal()) nfa -> addFinalState(state);
-                    nfaState2Map[iniState] = state;
-                    nfa->makeCopyTransByNFA(iniState, nfaState2Map);
-                }
-                fStateSet.insert(nfa -> finalStateSet.begin(), nfa -> finalStateSet.end());
-            }
-            nfa -> mkAlphabet();
-            return *nfa;
-        }
+        ///// \brief Gets the concatenation of param faList.
+        ///// \param faList A list of FA.
+        ///// \return A reference of FA.
+        //static FA& concatenateFA(const FAList& faList) {
+        //    NFA<Character>* nfa = new NFA<Character>();
+        //    NFAState<Character>* iniState = nfa -> mkNFAInitialState();
+        //    NFAStateSet fStateSet;
+        //    fStateSet.insert(iniState);
+        //    DFAState2NFAStateMap dfaState2Map;
+        //    NFAState2Map nfaState2Map;
+        //    for (FA* fa : faList) {
+        //        NFAState<Character>* state = nfa -> mkNFAState();
+        //        for (NFAState<Character>* nfaState : fStateSet)
+        //            nfaState -> addEpsilonTrans(state);
+        //        fStateSet.clear();
+        //        nfa -> clearFinalStateSet();
+        //        if (fa -> isDeterminate()) {
+        //            dfaState2Map.clear();
+        //            DFA<Character>& dfa = fa -> determine();
+        //            DFAState<Character>* iniState = dfa.getInitialState();
+        //            if(iniState->isFinal()) nfa -> addFinalState(state);
+        //            dfaState2Map[iniState] = state;
+        //            nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
+        //            
+        //        } else {
+        //            nfaState2Map.clear();
+        //            NFA<Character>& tempNfa = fa -> nondetermine();
+        //            NFAState<Character>* iniState = tempNfa.getInitialState();
+        //            if (iniState -> isFinal()) nfa -> addFinalState(state);
+        //            nfaState2Map[iniState] = state;
+        //            nfa->makeCopyTransByNFA(iniState, nfaState2Map);
+        //        }
+        //        fStateSet.insert(nfa -> finalStateSet.begin(), nfa -> finalStateSet.end());
+        //    }
+        //    nfa -> mkAlphabet();
+        //    return *nfa;
+        //}
         
-        /// \brief Gets the union of param faSet.
-        /// \param faSet A set of FA.
-        /// \return A reference of FA.
-        static FA& unionFA(const FASet& faSet) {
-            NFA<Character>* nfa = new NFA<Character>();
-            NFAState<Character>* iniState = nfa -> mkNFAInitialState();
-            DFAState2NFAStateMap dfaState2Map;
-            NFAState2Map nfaState2Map;
-            for(FA* fa : faSet)
-            {
-                NFAState<Character>* state = nfa -> mkNFAState();
-                iniState -> addEpsilonTrans(state);
-                if (fa -> isDeterminate()) {
-                    dfaState2Map.clear();
-                    DFA<Character>& tempDfa = fa -> determine();
-                    DFAState<Character>* iniState = tempDfa.getInitialState();
-                    if(iniState -> isFinal()) nfa->addFinalState(state);
-                    dfaState2Map[iniState] = state;
-                    nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
-                } else {
-                    nfaState2Map.clear();
-                    NFA<Character>& tempNfa = fa -> nondetermine();
-                    NFAState<Character>* iniState = tempNfa.getInitialState();
-                    if(iniState -> isFinal()) nfa -> addFinalState(state);
-                    nfaState2Map[iniState] = state;
-                    nfa -> makeCopyTransByNFA(iniState, nfaState2Map);
-                }
-            }
-            nfa -> mkAlphabet();
-            return *nfa;
-        }
+        ///// \brief Gets the union of param faSet.
+        ///// \param faSet A set of FA.
+        ///// \return A reference of FA.
+        //static FA& unionFA(const FASet& faSet) {
+        //    NFA<Character>* nfa = new NFA<Character>();
+        //    NFAState<Character>* iniState = nfa -> mkNFAInitialState();
+        //    DFAState2NFAStateMap dfaState2Map;
+        //    NFAState2Map nfaState2Map;
+        //    for(FA* fa : faSet)
+        //    {
+        //        NFAState<Character>* state = nfa -> mkNFAState();
+        //        iniState -> addEpsilonTrans(state);
+        //        if (fa -> isDeterminate()) {
+        //            dfaState2Map.clear();
+        //            DFA<Character>& tempDfa = fa -> determine();
+        //            DFAState<Character>* iniState = tempDfa.getInitialState();
+        //            if(iniState -> isFinal()) nfa->addFinalState(state);
+        //            dfaState2Map[iniState] = state;
+        //            nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
+        //        } else {
+        //            nfaState2Map.clear();
+        //            NFA<Character>& tempNfa = fa -> nondetermine();
+        //            NFAState<Character>* iniState = tempNfa.getInitialState();
+        //            if(iniState -> isFinal()) nfa -> addFinalState(state);
+        //            nfaState2Map[iniState] = state;
+        //            nfa -> makeCopyTransByNFA(iniState, nfaState2Map);
+        //        }
+        //    }
+        //    nfa -> mkAlphabet();
+        //    return *nfa;
+        //}
         
-        /// \brief Gets a DFA which determinized by FA.
+        /// \brief Gets a DFA which determinized by this FA.
         /// \return A reference of DFA.
         virtual DFA<Character>& determinize( void ) = 0;
 
-        /// \brief Gets a NFA which nondeterminized by FA.
-        /// \return A reference of NFA.
-        virtual NFA<Character>& nondeterminize( void ) = 0;
+        /// \brief Gets a FA which minimalized by this FA.
+        /// \return A reference of FA.
+        virtual DFA<Character>& minimize( void ) = 0;
 
         /// \brief Gets a FA which is the right quotient by param character of this FA.
         /// \param character A Character.
@@ -550,40 +545,16 @@ namespace cgh{
         /// \brief Decide whether this FA is equal to param fa.
         /// \param fa compared with this FA.
         /// \return Boolean.
-        bool operator == (const FA& fa ) {
-            DFA<Character>& cDFA = !(fa);
-            DFA<Character>& iDFA = (*this & cDFA).determinize();
-            if (!iDFA.isEmpty()) {
-                delete &cDFA;
-                delete &iDFA;
-                return false;
-            }
-            cDFA = !(*this);
-            iDFA = (cDFA & fa).determinize();
-            if (!iDFA.isEmpty()) {
-                delete &cDFA;
-                delete &iDFA;
-                return false;
-            }
-            delete &cDFA;
-            delete &iDFA;
-            return true;
+        bool operator == (const FA& fa ) const {
+            return (*this <= fa) & (fa <= *this);
+            
         }
 
         /// \brief Decide whether this FA is subset of param fa.
         /// \param fa compared with this FA.
         /// \return Boolean.
-        bool operator <= (const FA& fa ) {
-            DFA<Character>& cDFA = !(fa);
-            DFA<Character>& iDFA = (*this & cDFA).determinize();
-            if (!iDFA.isEmpty()) {
-                delete &cDFA;
-                delete &iDFA;
-                return false;
-            }
-            delete &cDFA;
-            delete &iDFA;
-            return true;
+        bool operator <= (const FA& fa ) const {
+            return (!fa - *this).isEmpty();
         }
 
         /// \brief Makes a empty DFA.

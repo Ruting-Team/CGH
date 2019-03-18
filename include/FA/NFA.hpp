@@ -465,6 +465,14 @@ namespace cgh {
             return false;
         }
 
+        DFA<Character>& minimize( void ) {
+            return determinize().minimize();
+        }
+
+        DFA<Character>& minimize( void ) const {
+            return const_cast<NFA*>(this) -> minimize();
+        }
+
         DFA<Character>& determinize( void ) {
             if (isNULL()) return FA<Character>::EmptyDFA();
             DFA<Character>* dfa = new DFA<Character>(this -> alphabet);
@@ -475,21 +483,14 @@ namespace cgh {
             DFAState<Character>* iniState = dfa -> mkInitialState();
             determinize(dfa, iniState, epsilonClosure, setMap);
             dfa -> setReachableFlag(1);
+            Manage::manage(dfa);
             return *dfa;
         }
 
-        const DFA<Character>& determinize( void ) const {
+        DFA<Character>& determinize( void ) const {
             return const_cast<NFA*>(this) -> determinize();
         }
         
-        NFA& nondeterminize( void ) {
-            return *this;
-        }
-
-        const NFA& nondeterminize( void ) const {
-            return *this;
-        }
-
         FA<Character>& subset(const NFAState<Character>* iState, const NFAState<Character>* fState) {
             if (isNULL()) return FA<Character>::EmptyNFA();
             NFA* nfa = new NFA(this -> alphabet);

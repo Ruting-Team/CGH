@@ -64,8 +64,12 @@ namespace cgh {
     template <class Character> class ReplacePDSTrans;
 
     template <class Character> class Label;
+    template <class Character> class Transducer;
     template <class Character> class NTDState;
     template <class Character> class DTDState;
+    template <class Character> class NTD;
+    template <class Character> class DTD;
+    template <class Character> class SmartDFA;
 
     class PDSState;
     
@@ -76,6 +80,7 @@ namespace cgh {
     public:
 
         typedef vector<Character> Word;
+        typedef vector<Word> Words;
         typedef pair<Character, Character> Char2;
         typedef unordered_set<Character> CharacterSet;
     };
