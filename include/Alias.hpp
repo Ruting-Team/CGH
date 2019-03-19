@@ -53,7 +53,6 @@ namespace cgh {
     
     template <class Character> class FA;
     template <class Character> class DFA;
-    template <class Character> class SmartDFA;
     template <class Character> class NFA;
     template <class Character> class DFAState;
     template <class Character> class NFAState;
@@ -69,7 +68,6 @@ namespace cgh {
     template <class Character> class DTDState;
     template <class Character> class NTD;
     template <class Character> class DTD;
-    template <class Character> class SmartDFA;
 
     class PDSState;
     
@@ -143,6 +141,9 @@ namespace cgh {
     public:
         typedef unordered_set<Label<Character> > Labels;
         typedef unordered_map<Character, Labels> Char2LabelsMap;
+        typedef unordered_map<Character, DTDState<Character>*> DTDTransMap;
+        typedef pair<DTDState<Character>*, DTDState<Character>* > DTDState2;
+        typedef unordered_map<DTDState2, NTDState<Character>*> DTDStatePairMap;
     };
     
 };

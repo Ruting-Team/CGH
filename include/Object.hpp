@@ -27,8 +27,10 @@ namespace cgh{
         }
         ~Manage() {
             for (Object* object : buffer) {
-                cout << object << endl;
-                if(object) delete object;
+                if(object) {
+                    delete object;
+                    object = nullptr;
+                }
             }
         }
     };

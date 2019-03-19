@@ -18,54 +18,62 @@ namespace cgh {
     template <class Character>
     class DTD : public DFA<Label<Character> >, public Transducer<Character> {
     private:
-        bool isMinimalTD() {
-            return this -> isMinimal();
-        }
+
     public:
         typedef typename Alias4TD<Character>::Labels Labels;
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::Words Words;
 
+        DTD() : DFA<Label<Character> >() {
+        }
+
         DTD(const Labels& labels) : DFA<Label<Character> >(labels) {
         }
-        DTDState<Character>* mkState() {
+
+        DFAState<Label<Character> >* mkState() {
             DTDState<Character>* dtdState = new DTDState<Character>();
             this -> stateSet.insert(dtdState);
             return dtdState;
         }
 
-        DTDState<Character>* mkInitialState() {
-            DTDState<Character>* dtdState = mkState();
+        DFAState<Label<Character> >* mkInitialState() {
+            DFAState<Label<Character> >* dtdState = mkState();
             this -> initialState = dtdState;
             return dtdState;
         }
 
-        DTDState<Character>* mkFinalState() {
-            DTDState<Character>* dtdState = mkState();
+        DTDState<Character>* getInitialState() {
+            return (DTDState<Character>*)(this -> initialState);
+        }
+
+        DFAState<Label<Character> >* mkFinalState() {
+            DFAState<Label<Character> >* dtdState = mkState();
             dtdState -> setFinalFlag(1);
             this -> finalStateSet.insert(dtdState);
             return dtdState;
         }
-    };
-    template <class Character>
-    class SmartDTD {
-    private:
-        DTD<Character>* dtd;
-        bool del;
-        bool confirm; 
-    public:
-        SmartDTD() : dtd(nullptr), del(0), confirm(0){}
-        SmartDTD(const DTD<Character>* d, bool b, bool c = 0) : dtd(const_cast<DTD<Character>*>(d)), del(b) , confirm(c) {}
-        SmartDTD(const SmartDTD& smartDTD) {
-            dtd = smartDTD.dtd;
-            del = smartDTD.del;
-            confirm = 1;
-        }
-        ~SmartDTD() {
-            if (del & confirm) delete dtd;
+
+        DFA<Label<Character> >& minimize() {
+            if (this -> isMinimal()) return *this;
+            DTD* dtd = new DTD();
+            this -> removeDeadState();
+            this -> removeUnreachableState();
+            if (this -> isNULL()) return FA<Label<Character> >::EmptyDFA();
+            DFA<Label<Character> >::minimize(dtd);
+            return *dtd;
         }
 
-        DTD<Character>* getDTD() {return dtd;}
+        DFA<Label<Character> >& minimize() const {
+            return const_cast<DTD*>(this) -> minimize();
+        }
+
+        DTD<Character>& minimizeTD() {
+            return (DTD<Character>&)minimize();
+        }
+
+        DTD<Character>& minimizeTD() const {
+            return const_cast<DTD*>(this) -> minimizeTD();
+        }
     };
 };
 

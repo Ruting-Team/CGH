@@ -20,7 +20,8 @@ namespace cgh{
         typedef typename Alias4TD<Character>::Char2LabelsMap Char2LabelsMap;
 
     private:
-        Char2LabelsMap char2LabelsMap;      ///< the map from Character to Labels.
+        Char2LabelsMap upperMap;      ///< the map from upper to Labels.
+        Char2LabelsMap lowerMap;      ///< the map from lower to Labels.
 
         //void mkChar2LabelsMap() {
         //    if (char2LabelsMap.size() == 0) {
@@ -32,8 +33,8 @@ namespace cgh{
         //}
 
         void getTargetStateSetAndLowers(Character upper, CharacterSet& lowers, NFAStateSet& stateSet) {
-            auto mapIt = char2LabelsMap.find(upper);
-            if (mapIt != char2LabelsMap.end()) {
+            auto mapIt = upperMap.find(upper);
+            if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt.second) {
                     lowers.insert(label.getLower());
                     NFAStateSet targetStateSet;
@@ -50,8 +51,8 @@ namespace cgh{
         /// \return The set of Character.
         CharacterSet getTargetStateSetAndLowers(Character upper, NFAStateSet& stateSet) {
             CharacterSet lowers;
-            auto mapIt = char2LabelsMap.find(upper);
-            if (mapIt != char2LabelsMap.end()) {
+            auto mapIt = upperMap.find(upper);
+            if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt.second) {
                     lowers.insert(label.getLower());
                     NFAStateSet targetStateSet;
@@ -70,9 +71,10 @@ namespace cgh{
         /// \param character The label in the transition, which is a template class.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
-        bool addNTDTrans(Label<Character> label, NTDState* target) {
-            char2LabelsMap[label.getUpper()].insert(label);
-            this -> addNFATrans(label, target);
+        bool addTrans(Label<Character> label, NFAState<Label<Character> >* target) {
+            upperMap[label.getUpper()].insert(label);
+            lowerMap[label.getLower()].insert(label);
+            return NFAState<Label<Character> >::addTrans(label, target);
         }
     };
 

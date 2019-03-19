@@ -53,7 +53,7 @@ namespace cgh {
 
         void getReverseMap(DFAState2DFAStateSetMap& reverseMap) {
             for (DFAState<Character>* state : stateSet) {
-                DFATransMap &dfaTransMap = state -> getDFATransMap();
+                DFATransMap &dfaTransMap = state -> getTransMap();
                 for (auto& mapPair : dfaTransMap) {
                     reverseMap[mapPair.second].insert(state);
                 }
@@ -75,177 +75,9 @@ namespace cgh {
             getLiveStateSet(reverseMap, liveStateSet, newWorkSet);
         }
 
-    public:
-        /// \brief Default construction function, sets initialState to nullptr.
-        DFA() : FA<Character>(), initialState(nullptr) {
-            this -> setDeterministicFlag(1);
-        }
-
-        /// \brief Construction function with alphabet.
-        /// \param charSet The alphabet.
-        DFA(const CharacterSet& charSet) : FA<Character>(charSet), initialState(nullptr) {
-            this -> setDeterministicFlag(1);
-        }
-    
-        /// \brief Copy construction function.
-        /// \param nfa The copied DFA.
-        DFA(const DFA& dfa) {
-            if (dfa.initialState) {
-                this -> flag = dfa.flag; 
-                this -> setAlphabet(dfa.getAlphabet());
-                DFAState<Character>* iniState = mkInitialState();
-                DFAState2Map state2Map;
-                state2Map[dfa.initialState] = iniState;
-                cpTrans(dfa.initialState, state2Map);
-                this -> setDeterministicFlag(1);
-            }
-        }
-
-        /// \brief Desconstruction function.
-        ///
-        /// delete all pointers of states for this DFA.
-        ~DFA() {
-            initialState = NULL; 
-            for(DFAState<Character>* state : stateSet)
-                delete state;
-        }
-
-        /// \brief Copies self and return.
-        /// \return A reference of FA.
-        FA<Character>& copy() {
-            return *(new DFA(*this));
-        }
-        
-        /// \brief Sets initialState to param state.
-        /// \param state The state set to be initialState.
-        void setInitialState(DFAState<Character>* state) {
-            initialState = state;
-        }
-
-        /// \brief Adds param state to finalStateSet.
-        /// \param state The state need to be added in finalStateSet.
-        void addFinalState(DFAState<Character>* state) {
-            finalStateSet.insert(state); state -> setFinalFlag(1);
-        }
-
-        void mkAlphabet() {
-            for (DFAState<Character>* state : stateSet) {
-                for (auto& mapPair : state -> getDFATransMap()) {
-                    this -> alphabet.insert(mapPair.first);
-                }
-            }
-        }
-
-        /// \brief Gets stateSet.
-        /// \return The set reference of DFAState pointer for this DFA.
-        DFAStateSet& getStateSet() {
-            return stateSet;
-        }
-
-        /// \brief Gets finalStateSet.
-        /// \return The set reference of DFAState pointer for this DFA.
-        DFAStateSet& getFinalStateSet() {
-            return finalStateSet;
-        }
-
-        /// \brief Gets initialState.
-        /// \return The DFAstate pointer of initialState for this DFA.
-        DFAState<Character>* getInitialState() {
-            return initialState;
-        }
-
-        /// \brief Gets stateSet, a const function.
-        /// \return The const set reference of DFAState pointer for this DFA.
-        const DFAStateSet& getStateSet() const {
-            return stateSet;
-        }
-
-        /// \brief Gets finalStateSet, a const function.
-        /// \return The const set reference of DFAState pointer for this DFA.
-        const DFAStateSet& getFinalStateSet() const {
-            return finalStateSet;
-        }
-
-        /// \brief Gets initialState, a const function.
-        /// \return The const DFAState pointer of initialState for this DFA.
-        const DFAState<Character>* getInitialState() const {
-            return initialState;
-        }
-
-        /// \brief Removes all state in the finalStateSet for this DFA.
-        void clearFinalStateSet() {
-            for (DFAState<Character>* state : finalStateSet) {
-                state -> setFinalFlag(0);
-            }
-            finalStateSet.clear();
-        }
-
-        /// \brief Checks whether given param stateSet has finalState.
-        /// \param stateSet The DFAStateSet for checking.
-        /// \return True means param stateSet has finalState, otherwise not.
-        static bool hasFinalState(const DFAStateSet& stateSet) {
-            for (const DFAState<Character>* state : stateSet) {
-                if (state -> isFinal()) return true;
-            }
-            return false;
-        }
-
-        /// \brief Checks whether all states in the given param stateSet are finalState.
-        /// \param stateSet The DFAStateSet for checking.
-        /// \return True means all states are finalState, otherwise not.
-        static bool allFinalState(const DFAStateSet& stateSet) {
-            for (const DFAState<Character>* state : stateSet) {
-                if (!state -> isFinal()) return false;
-            }
-            return true;
-        }
-
-        /// \brief Makes a state in this DFA.
-        /// \return A DFAState pointer made by this DFA.
-        DFAState<Character>* mkState() {
-            DFAState<Character>* dfaState = new DFAState<Character>();
-            stateSet.insert(dfaState);
-            return dfaState;
-        }
-
-        /// \brief Makes a initialState in this DFA.
-        /// \return A DFAState pointer made by this DFA.
-        DFAState<Character> *mkInitialState() {
-            initialState = mkState();
-            return initialState;
-        }
-
-        /// \brief Makes a finalState in this NFA.
-        /// \return A NFAState pointer made by this NFA.
-        DFAState<Character> *mkFinalState() {
-            DFAState<Character>* dfaState = mkState();
-            dfaState -> setFinalFlag(1);
-            finalStateSet.insert(dfaState);
-            return dfaState;
-        }
-
-        bool isNULL() {
-            if (!this -> isReachable()) removeUnreachableState();
-            if (finalStateSet.size() == 0) return true;
-            return false;
-        }
-
-        bool isNULL() const {
-            if (finalStateSet.size() == 0) return true;
-            return false;
-        }
-        
-        DFA& determinize( void ) {
-            return *this;
-        }
-
-        DFA& determinize( void ) const {
-            return const_cast<DFA&>(*this);
-        }
-        
-        static bool isEqual(const DFAState<Character>* s1, const DFAState<Character>* s2, DFAState2Map &stateMap) {
-            const DFATransMap &transMap1 = s1  ->  getDFATransMap();
-            const DFATransMap &transMap2 = s2  ->  getDFATransMap();
+        bool isEqual(const DFAState<Character>* s1, const DFAState<Character>* s2, DFAState2Map &stateMap) {
+            const DFATransMap &transMap1 = s1  ->  getTransMap();
+            const DFATransMap &transMap2 = s2  ->  getTransMap();
             if (transMap1.size() != transMap2.size()) return false;
             for (auto& mapPair : transMap1) {
                 if (transMap2.count(mapPair.first) == 0) return false;
@@ -255,14 +87,7 @@ namespace cgh {
             return true;
         }
 
-        DFA& minimize() {
-            if (this -> isMinimal()) {
-                return *this;
-            }
-            DFA* dfa = new DFA();
-            removeDeadState();
-            removeUnreachableState();
-            if (isNULL()) return FA<Character>::EmptyDFA();
+        void minimize(DFA* dfa) {
             ID lastSize = 0;
             DFAStateSet unFinalStateSet;
             DFAStateSet finalStatesSet;
@@ -345,21 +170,190 @@ namespace cgh {
                 if (mapPair.first -> isFinal()) {
                     dfa -> addFinalState(mapPair.second);
                 }
-                DFATransMap &firstTransMap = mapPair.first -> getDFATransMap();
-                DFATransMap &secondTransMap = mapPair.second -> getDFATransMap();
+                DFATransMap &firstTransMap = mapPair.first -> getTransMap();
+                DFATransMap &secondTransMap = mapPair.second -> getTransMap();
                 if (secondTransMap.size() == 0) {
                     for (auto& mapPair1 : firstTransMap) {
-                        mapPair.second -> addDFATrans(mapPair1.first, stateMap[mapPair1.second]);
+                        mapPair.second -> addTrans(mapPair1.first, stateMap[mapPair1.second]);
                     }
                 }
             }
             dfa -> setReachableFlag(1);
             dfa -> setMinimalFlag(1);
             Manage::manage(dfa);
+        }
+
+    public:
+        /// \brief Default construction function, sets initialState to nullptr.
+        DFA() : FA<Character>(), initialState(nullptr) {
+            this -> setDeterministicFlag(1);
+        }
+
+        /// \brief Construction function with alphabet.
+        /// \param charSet The alphabet.
+        DFA(const CharacterSet& charSet) : FA<Character>(charSet), initialState(nullptr) {
+            this -> setDeterministicFlag(1);
+        }
+    
+        /// \brief Copy construction function.
+        /// \param nfa The copied DFA.
+        DFA(const DFA& dfa) {
+            if (dfa.initialState) {
+                this -> flag = dfa.flag; 
+                this -> setAlphabet(dfa.getAlphabet());
+                DFAState<Character>* iniState = mkInitialState();
+                DFAState2Map state2Map;
+                state2Map[dfa.initialState] = iniState;
+                cpTrans(dfa.initialState, state2Map);
+                this -> setDeterministicFlag(1);
+            }
+        }
+
+        /// \brief Desconstruction function.
+        ///
+        /// delete all pointers of states for this DFA.
+        ~DFA() {
+            initialState = NULL; 
+            for(DFAState<Character>* state : stateSet)
+                delete state;
+        }
+
+        /// \brief Copies self and return.
+        /// \return A reference of FA.
+        FA<Character>& copy() {
+            return *(new DFA(*this));
+        }
+        
+        /// \brief Sets initialState to param state.
+        /// \param state The state set to be initialState.
+        void setInitialState(DFAState<Character>* state) {
+            initialState = state;
+        }
+
+        /// \brief Adds param state to finalStateSet.
+        /// \param state The state need to be added in finalStateSet.
+        void addFinalState(DFAState<Character>* state) {
+            finalStateSet.insert(state); state -> setFinalFlag(1);
+        }
+
+        /// \brief Gets stateSet.
+        /// \return The set reference of DFAState pointer for this DFA.
+        DFAStateSet& getStateSet() {
+            return stateSet;
+        }
+
+        /// \brief Gets finalStateSet.
+        /// \return The set reference of DFAState pointer for this DFA.
+        DFAStateSet& getFinalStateSet() {
+            return finalStateSet;
+        }
+
+        /// \brief Gets initialState.
+        /// \return The DFAstate pointer of initialState for this DFA.
+        DFAState<Character>* getInitialState() {
+            return initialState;
+        }
+
+        /// \brief Gets stateSet, a const function.
+        /// \return The const set reference of DFAState pointer for this DFA.
+        const DFAStateSet& getStateSet() const {
+            return stateSet;
+        }
+
+        /// \brief Gets finalStateSet, a const function.
+        /// \return The const set reference of DFAState pointer for this DFA.
+        const DFAStateSet& getFinalStateSet() const {
+            return finalStateSet;
+        }
+
+        /// \brief Gets initialState, a const function.
+        /// \return The const DFAState pointer of initialState for this DFA.
+        const DFAState<Character>* getInitialState() const {
+            return initialState;
+        }
+
+        /// \brief Removes all state in the finalStateSet for this DFA.
+        void clearFinalStateSet() {
+            for (DFAState<Character>* state : finalStateSet) {
+                state -> setFinalFlag(0);
+            }
+            finalStateSet.clear();
+        }
+
+        /// \brief Checks whether given param stateSet has finalState.
+        /// \param stateSet The DFAStateSet for checking.
+        /// \return True means param stateSet has finalState, otherwise not.
+        static bool hasFinalState(const DFAStateSet& stateSet) {
+            for (const DFAState<Character>* state : stateSet) {
+                if (state -> isFinal()) return true;
+            }
+            return false;
+        }
+
+        /// \brief Checks whether all states in the given param stateSet are finalState.
+        /// \param stateSet The DFAStateSet for checking.
+        /// \return True means all states are finalState, otherwise not.
+        static bool allFinalState(const DFAStateSet& stateSet) {
+            for (const DFAState<Character>* state : stateSet) {
+                if (!state -> isFinal()) return false;
+            }
+            return true;
+        }
+
+        /// \brief Makes a state in this DFA.
+        /// \return A DFAState pointer made by this DFA.
+        virtual DFAState<Character>* mkState() {
+            DFAState<Character>* dfaState = new DFAState<Character>();
+            stateSet.insert(dfaState);
+            return dfaState;
+        }
+
+        /// \brief Makes a initialState in this DFA.
+        /// \return A DFAState pointer made by this DFA.
+        virtual DFAState<Character>* mkInitialState() {
+            initialState = mkState();
+            return initialState;
+        }
+
+        /// \brief Makes a finalState in this NFA.
+        /// \return A NFAState pointer made by this NFA.
+        virtual DFAState<Character>* mkFinalState() {
+            DFAState<Character>* dfaState = mkState();
+            dfaState -> setFinalFlag(1);
+            finalStateSet.insert(dfaState);
+            return dfaState;
+        }
+
+        bool isNULL() {
+            if (!this -> isReachable()) removeUnreachableState();
+            if (finalStateSet.size() == 0) return true;
+            return false;
+        }
+
+        bool isNULL() const {
+            if (finalStateSet.size() == 0) return true;
+            return false;
+        }
+        
+        DFA& determinize( void ) {
+            return *this;
+        }
+
+        DFA& determinize( void ) const {
+            return const_cast<DFA&>(*this);
+        }
+        
+        virtual DFA& minimize(void) {
+            if (this -> isMinimal()) return *this;
+            DFA* dfa = new DFA();
+            removeDeadState();
+            removeUnreachableState();
+            if (isNULL()) return FA<Character>::EmptyDFA();
+            minimize(dfa);
             return *dfa;
         }
 
-        DFA<Character>& minimize( void ) const {
+        virtual DFA& minimize( void ) const {
             return const_cast<DFA*>(this) -> minimize();
         }
         
@@ -520,7 +514,7 @@ namespace cgh {
             // cout trisitions
             for(auto iter = stateSet.begin(); iter != stateSet.end(); iter++)
             {
-                DFATransMap& transMap = (*iter) -> getDFATransMap();
+                DFATransMap& transMap = (*iter) -> getTransMap();
                 ID id = (*iter) -> getID();
                 for (auto iter = transMap.begin(); iter != transMap.end(); iter++)
                 {
@@ -534,27 +528,5 @@ namespace cgh {
         
         friend NFA<Character>;
     };
-
-    //template <class Character>
-    //class SmartDFA {
-    //private:
-    //    DFA<Character>* dfa;
-    //    bool del;
-    //    bool confirm; 
-    //public:
-    //    SmartDFA() : dfa(nullptr), del(0), confirm(0){}
-    //    SmartDFA(const DFA<Character>* d, bool b, bool c = 0) : dfa(const_cast<DFA<Character>*>(d)), del(b) , confirm(c) {}
-    //    SmartDFA(const SmartDFA& smartDFA) {
-    //        dfa = smartDFA.dfa;
-    //        del = smartDFA.del;
-    //        confirm = 1;
-    //    }
-    //    ~SmartDFA() {
-    //        if (del & confirm) delete dfa;
-    //    }
-
-    //    DFA<Character>* getDFA() {return dfa;}
-    //};
-      
 }
 #endif /* DFA_hpp */

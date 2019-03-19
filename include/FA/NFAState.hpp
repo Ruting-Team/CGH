@@ -17,12 +17,12 @@ namespace cgh{
     /// Example:
     ///    NFAState<char>* nfaState0 = nfa -> mkNFAState();
     ///    NFAState<char>* nfaState1 = nfa -> mkNFAState();
-    ///    nfaState0 -> addNFATrans('a', nfaState1);
-    ///    nfaState0 -> addNFATrans('b', nfaState0);
+    ///    nfaState0 -> addTrans('a', nfaState1);
+    ///    nfaState0 -> addTrans('b', nfaState0);
     ///    nfaState1 -> addEpsilonTrans(nfaState1);
     ///    nfaState0 -> delNFATrans('a');
     ///    nfaState0 -> delNFATrans('b', nfaState0);
-    ///    NFATransMap& nfaTransMap = nfaState0 -> getNFATransMap();
+    ///    NFATransMap& nfaTransMap = nfaState0 -> getTransMap();
     ///    NFAStateSet nfaStateSet = nfaState0 -> getTargetSet();
     ///    NFAStateSet nfaStateSet = nfaState0 -> getTargetSet('a');
     ///    NFAStateSet nfaStateSet = nfaState1 -> getEpsilonClosure();
@@ -51,7 +51,7 @@ namespace cgh{
             getEpsilonClosure(epsilonClosure);
             epsilonClosure.insert(this);
             for (NFAState* nfaState : epsilonClosure) {
-                NFATransMap& transMap = nfaState -> getNFATransMap();
+                NFATransMap& transMap = nfaState -> getTransMap();
                 auto mapIt = transMap.find(character);
                 if (mapIt != transMap.end()) {
                     for(NFAState* state : mapIt -> second) {
@@ -79,13 +79,13 @@ namespace cgh{
         /// responsibility to use a reference to get this map, otherwise it will call copy construction.
         /// This reference map can be used to modify.
         /// \return A map reference. 
-        NFATransMap& getNFATransMap() {return nfaTransMap;}
+        NFATransMap& getTransMap() {return nfaTransMap;}
 
         /// \brief Gets a const transition map for this state.
         ///
         /// This map can not be used to modify.
         /// \return A const map. 
-        const NFATransMap getNFATransMap() const {return nfaTransMap;}
+        const NFATransMap getTransMap() const {return nfaTransMap;}
 
         /// \brief Adds a transition which label is param character and target state is param target for this state.
         ///
@@ -95,7 +95,7 @@ namespace cgh{
         /// \param character The label in the transition, which is a template class.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
-        bool addNFATrans(Character character, NFAState* target) {
+        virtual bool addTrans(Character character, NFAState* target) {
             NFAStateSet& stateSet = nfaTransMap[character];
             return stateSet.insert(target).second;
         }
@@ -108,7 +108,7 @@ namespace cgh{
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add an epsilon transition to a state successfully.
         bool addEpsilonTrans(NFAState* target) {
-            return addNFATrans(FA<Character>::epsilon, target);
+            return addTrans(FA<Character>::epsilon, target);
         }
         
         /// \brief Deletes a transition which label is param character and target state is param target for this state.
@@ -193,7 +193,7 @@ namespace cgh{
             epsilonClosure.insert(this);
             NFAStateSet stateSet;
             for (NFAState* nfaState : epsilonClosure) {
-                NFATransMap& transMap = nfaState -> getNFATransMap();
+                NFATransMap& transMap = nfaState -> getTransMap();
                 auto mapIt = transMap.find(character);
                 if (mapIt != transMap.end()) {
                     for(NFAState* state : mapIt -> second) {
