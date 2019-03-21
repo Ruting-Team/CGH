@@ -17,12 +17,12 @@ namespace cgh{
     /// Example:
     ///    DFAState<char>* dfaState0 = dfa -> mkState();
     ///    DFAState<char>* dfaState1 = dfa -> mkState();
-    ///    dfaState0 -> addDFATrans('a', dfaState1);
-    ///    dfaState0 -> addDFATrans('b', dfaState0);
+    ///    dfaState0 -> addTrans('a', dfaState1);
+    ///    dfaState0 -> addTrans('b', dfaState0);
     ///    dfaState0 -> delDFATrans('a');
     ///    dfaState0 -> delDFATrans(dfaState1);
     ///    dfaState0 -> delDFATrans('b', dfaState0);
-    ///    DFATransMap& dfaTransMap = dfaState0 -> getDFATransMap();
+    ///    DFATransMap& dfaTransMap = dfaState0 -> getTransMap();
     ///    DFAStateSet dfaStateSet = dfaState0 -> getTargetSet();
     ///    DFAState* targetState = dfaState0 -> getTargetState('a');
     ///    dfa -> delDFAState(dfaState0);
@@ -47,13 +47,13 @@ namespace cgh{
         /// responsibility to use a reference to get this map, otherwise it will call copy construction.
         /// This reference map can be used to modify.
         /// \return A map reference. 
-        DFATransMap& getDFATransMap() {return dfaTransMap;}
+        DFATransMap& getTransMap() {return dfaTransMap;}
 
         /// \brief Gets a const transition map for this state.
         ///
         /// This map can not be used to modify.
         /// \return A const map. 
-        const DFATransMap& getDFATransMap() const {return dfaTransMap;}
+        const DFATransMap& getTransMap() const {return dfaTransMap;}
 
         /// \brief Adds a transition which label is param character and target state is param target for this state.
         ///
@@ -63,7 +63,7 @@ namespace cgh{
         /// \param character The label in the transition, which is a template class.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
-        bool addDFATrans(Character character, DFAState* target) {
+        virtual bool addTrans(Character character, DFAState* target) {
             if (dfaTransMap.count(character) != 0) return false;
             dfaTransMap[character] = target;
             return true;

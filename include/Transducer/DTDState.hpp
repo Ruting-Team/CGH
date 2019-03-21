@@ -15,12 +15,13 @@ namespace cgh{
     template <class Character>
     class DTDState : public DFAState<Label<Character> > {
         typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
-        typedef typename Alias4FA<Character>::DFATransMap DFATransMap;
         typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
         typedef typename Alias4TD<Character>::Char2LabelsMap Char2LabelsMap;
+        typedef typename Alias4TD<Character>::DTDTransMap DTDTransMap;
 
     private:
-        Char2LabelsMap char2LabelsMap;      ///< the map from Character to Labels.
+        Char2LabelsMap upperMap;      ///< the map from upper to Labels.
+        Char2LabelsMap lowerMap;      ///< the map from lower to Labels.
 
         //void mkChar2LabelsMap() {
         //    if (char2LabelsMap.size() == 0) {
@@ -31,10 +32,19 @@ namespace cgh{
         //    }
         //}
 
-        void getTargetStateSetAndLowers(Character upper, DFATransMap& map) {
-            auto mapIt = char2LabelsMap.find(upper);
-            if (mapIt != char2LabelsMap.end()) {
-                for (auto& label : mapIt.second) {
+        void getTargetStateSetAndLowers(Character upper, DTDTransMap& map) {
+            auto mapIt = upperMap.find(upper);
+            if (mapIt != upperMap.end()) {
+                for (auto& label : mapIt -> second) {
+                    map[label.getLower()] = (DTDState*)(this -> getTargetStateByChar(label));
+                }
+            }
+        }
+
+        void getTargetStateSetAndUppers(Character upper, DTDTransMap& map) {
+            auto mapIt = upperMap.find(upper);
+            if (mapIt != upperMap.end()) {
+                for (auto& label : mapIt -> second) {
                     map[label.getLower()] = this -> getTargetStateByChar(label);
                 }
             }
@@ -45,12 +55,23 @@ namespace cgh{
         /// \param upper The upper Character in label.
         /// \param staetSet The target stateSet.
         /// \return The set of Character.
-        DFATransMap getTargetStateSetAndLowers(Character upper) {
-            DFATransMap map;
-            auto mapIt = char2LabelsMap.find(upper);
-            if (mapIt != char2LabelsMap.end()) {
+        DTDTransMap getTargetStateSetAndLowers(Character upper) {
+            DTDTransMap map;
+            auto mapIt = upperMap.find(upper);
+            if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt.second) {
                     map[label.getLower()] = this -> getTargetStateByChar(label);
+                }
+            }
+            return map;
+        }
+
+        DTDTransMap getTargetStateSetAndUppers(Character lower) {
+            DTDTransMap map;
+            auto mapIt = lowerMap.find(lower);
+            if (mapIt != lowerMap.end()) {
+                for (auto& label : mapIt.second) {
+                    map[label.getUpper()] = this -> getTargetStateByChar(label);
                 }
             }
             return map;
@@ -64,10 +85,13 @@ namespace cgh{
         /// \param character The label in the transition, which is a template class.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
-        bool addDTDTrans(Label<Character> label, DTDState* target) {
-            char2LabelsMap[label.getUpper()].insert(label);
-            return this -> addDFATrans(label, target);
+        bool addTrans(Label<Character> label, DFAState<Label<Character> >* target) {
+            upperMap[label.getUpper()].insert(label);
+            lowerMap[label.getLower()].insert(label);
+            return DFAState<Label<Character> >::addTrans(label, target);
         }
+
+        friend Transducer<Character>;
 
     };
 

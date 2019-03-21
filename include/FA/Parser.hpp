@@ -143,7 +143,7 @@ namespace cgh {
             int sourceState = get<0>(transitions[i]);
             int targetState = get<2>(transitions[i]);
             Character character = get<1>(transitions[i]);
-            stateVector[sourceState]->addNFATrans(character, stateVector[targetState]);
+            stateVector[sourceState]->addTrans(character, stateVector[targetState]);
         }
         
         return result;
