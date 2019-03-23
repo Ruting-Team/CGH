@@ -19,7 +19,6 @@ namespace cgh{
     class FA : public Object {
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
-
         typedef typename Alias4FA<Character>::FASet FASet;
         typedef typename Alias4FA<Character>::DFASet DFASet;
         typedef typename Alias4FA<Character>::FAList FAList;
@@ -61,14 +60,6 @@ namespace cgh{
         /// \brief Sets this FA to minimal or not by param b.
         /// \param b If b is true means minimal otherwise not.
         void setMinimalFlag(bool b){flag = b ? (flag | (1 << 2)):(flag & ~(1 << 2));}
-
-        /// \brief Gets a DFA which determinized by FA.
-        /// \return A reference of DFA.
-        virtual DFA<Character>& determinize( void ) const = 0;
-
-        /// \brief Gets a DFA which minimalized by FA.
-        /// \return A reference of DFA.
-        virtual DFA<Character>& minimize( void ) const = 0;
 
         virtual FA& copy() = 0;
     private:
@@ -173,7 +164,6 @@ namespace cgh{
         }
         
         static void intersectFA(DFA<Character>& dfa, DFA<Character>& lhsDFA, DFA<Character>& rhsDFA) {
-            dfa.setAlphabet(intersectSet(lhsDFA.getAlphabet(), rhsDFA.getAlphabet()));
             DFAStatePairMap pairMap;
             intersectFA(&dfa, dfa.mkInitialState(), DFAState2(lhsDFA.getInitialState(), rhsDFA.getInitialState()), pairMap);
             dfa.setReachableFlag(1);
@@ -199,6 +189,7 @@ namespace cgh{
                         targetState = pairMapIt -> second;
                     }
                     sourceState -> addTrans(character, targetState);
+                    dfa -> addAlphabet(character);
                 }
             }
         }
@@ -312,6 +303,10 @@ namespace cgh{
             alphabet.insert(charSet.begin(),charSet.end());
         }
 
+        void addAlphabet(Character character) {
+            alphabet.insert(character);
+        }
+
         /// \brief Gets a FA which is the intersection of param lhsFA and param rhsFA.
         ///
         /// A static function.
@@ -408,6 +403,22 @@ namespace cgh{
             return complementFA(*this);
         }
 
+        DFA<Character>& operator > (Character character) const {
+            return leftQuotient(*this, character);
+        }
+
+        DFA<Character>& operator > (Word& word) const {
+            return leftQuotient(*this, word);
+        }
+
+        DFA<Character>& operator < (Character character) const {
+            return rightQuotient(*this, character);
+        }
+
+        DFA<Character>& operator < (Word& word) const {
+            return rightQuotient(*this, word);
+        }
+
         /// \brief Gets a FA which is the concatination of this FA and param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
@@ -442,38 +453,28 @@ namespace cgh{
  
         //        static bool multiIntersectionAndDeterminEmptiness(const FASet &faSet);//todo
         
-        ///// \brief Gets the concatenation of param faList.
-        ///// \param faList A list of FA.
-        ///// \return A reference of FA.
-        //static FA& concatenateFA(const FAList& faList) {
-        //    NFA<Character>* nfa = new NFA<Character>();
-        //    NFAState<Character>* iniState = nfa -> mkNFAInitialState();
+        /// \brief Gets the concatenation of param faList.
+        /// \param faList A list of FA.
+        /// \return A reference of FA.
+        //static DFA<Character>& concatenateFA(const FAList& faList) {
+        //    NFA<Character> nfa;
+        //    NFAState<Character>* iniState = nfa.mkNFAInitialState();
         //    NFAStateSet fStateSet;
         //    fStateSet.insert(iniState);
         //    DFAState2NFAStateMap dfaState2Map;
         //    NFAState2Map nfaState2Map;
         //    for (FA* fa : faList) {
-        //        NFAState<Character>* state = nfa -> mkNFAState();
+        //        NFAState<Character>* state = nfa -> mkState();
         //        for (NFAState<Character>* nfaState : fStateSet)
         //            nfaState -> addEpsilonTrans(state);
         //        fStateSet.clear();
         //        nfa -> clearFinalStateSet();
-        //        if (fa -> isDeterminate()) {
-        //            dfaState2Map.clear();
-        //            DFA<Character>& dfa = fa -> determine();
-        //            DFAState<Character>* iniState = dfa.getInitialState();
-        //            if(iniState->isFinal()) nfa -> addFinalState(state);
-        //            dfaState2Map[iniState] = state;
-        //            nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
-        //            
-        //        } else {
-        //            nfaState2Map.clear();
-        //            NFA<Character>& tempNfa = fa -> nondetermine();
-        //            NFAState<Character>* iniState = tempNfa.getInitialState();
-        //            if (iniState -> isFinal()) nfa -> addFinalState(state);
-        //            nfaState2Map[iniState] = state;
-        //            nfa->makeCopyTransByNFA(iniState, nfaState2Map);
-        //        }
+        //        DFA<Character> dfa = fa -> minimize();
+        //        dfaState2Map.clear();
+        //        DFAState<Character>* iniState = dfa.getInitialState();
+        //        if(iniState->isFinal()) nfa -> addFinalState(state);
+        //        dfaState2Map[iniState] = state;
+        //        nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
         //        fStateSet.insert(nfa -> finalStateSet.begin(), nfa -> finalStateSet.end());
         //    }
         //    nfa -> mkAlphabet();
@@ -520,16 +521,69 @@ namespace cgh{
         /// \return A reference of FA.
         virtual DFA<Character>& minimize( void ) = 0;
 
+        /// \brief Gets a DFA which determinized by FA.
+        /// \return A reference of DFA.
+        virtual DFA<Character>& determinize( void ) const = 0;
+
+        /// \brief Gets a DFA which minimalized by FA.
+        /// \return A reference of DFA.
+        virtual DFA<Character>& minimize( void ) const = 0;
+
         /// \brief Gets a FA which is the right quotient by param character of this FA.
         /// \param character A Character.
         /// \return A reference of FA.
-        virtual FA& rightQuotient(Character character) = 0;
+        static DFA<Character>& rightQuotient(FA& fa, Character character) {
+            Word word;
+            word.push_back(character);
+            return rightQuotient(fa, word);
+        }
+
+        /// \brief Gets a FA which is the right quotient by param word of this FA.
+        /// \param word A Word.
+        /// \return A reference of FA.
+        static DFA<Character>& rightQuotient(FA& fa, Word& word) {
+            DFA<Character> dfa(fa);
+            //DFAState2DFAStateSetMap reverseMap;
+            //dfa.getReverseMap(reverseMap);
+            //DFAStateSet finSteteSet;
+            //for (DFAState<Character>* state : dfa.stateSet) {
+            //    DFAState<Character>* targetState = state -> getTargetStateByChar(character);
+            //    if (targetState && targetState -> isFinal())
+            //        finSteteSet.insert(state);
+            //}
+            //dfa.clearFinalStateSet();
+            //for (DFAState<Character>* state : finSteteSet) {
+            //    dfa.addFinalState(state);
+            //}
+            return dfa.minimize();
+        }
 
         /// \brief Gets a FA which is the left quotient by param character of this FA.
         /// \param character A Character.
         /// \return A reference of FA.
-        virtual FA& leftQuotient(Character character) = 0;
-        
+        static DFA<Character>& leftQuotient(FA& fa, Character character) {
+            Word word;
+            word.push_back(character);
+            return leftQuotient(fa, word);
+        }
+
+        /// \brief Gets a FA which is the left quotient by param word of this FA.
+        /// \param word A Word.
+        /// \return A reference of FA.
+        static DFA<Character>& leftQuotient(FA& fa, Word& word) {
+            DFA<Character>& mdfa = fa.minimize();
+            DFAState<Character>* state = mdfa.getTargetStateByWord(word);
+            if(!state) return FA<Character>::EmptyDFA();
+            DFA<Character> dfa;
+            dfa.flag = mdfa.flag;
+            dfa.setAlphabet(mdfa.getAlphabet());
+            DFAState2Map state2Map;
+            state2Map[state] = dfa.mkInitialState();
+            dfa.cpTrans(state, state2Map);
+            dfa.setReachableFlag(1);
+            return dfa.minimize();
+        }
+
         /// \brief Removes all unreachable states from initial state.
         virtual void removeUnreachableState() = 0;
 
@@ -600,7 +654,7 @@ namespace cgh{
         friend DFA<Character>;
         friend NFA<Character>;
         template <class L>
-        friend class Transducer;
+        friend class FT;
     };
     
     

@@ -1,7 +1,7 @@
 #ifndef CGH_hpp
 #define CGH_hpp
-#include "Transducer/DTD.hpp"
-#include "Transducer/NTD.hpp"
+#include "FT/DFT.hpp"
+#include "FT/NFT.hpp"
 
 namespace cgh{
     ID State::counter = 0;
