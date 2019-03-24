@@ -44,11 +44,11 @@ namespace cgh {
     class EnumValue : public Value {
     public:
         EnumValue() : Value() {
-            name = "s" + to_string(id);
+            name = "v" + to_string(id);
         }
 
         EnumValue(ID i) : Value(i) {
-            name = "s" + to_string(id);
+            name = "v" + to_string(id);
         }
 
         EnumValue(const string& str) : Value() {

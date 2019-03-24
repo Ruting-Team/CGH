@@ -90,4 +90,4 @@ namespace cgh {
         }
     };
 };
-#endif /* Value_hpp*/
+#endif /* Atomic_hpp*/

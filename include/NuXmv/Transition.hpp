@@ -8,7 +8,6 @@
 
 #ifndef Transition_hpp 
 #define Transition_hpp 
-#include "Value.hpp"
 #include "Condition.hpp"
 
 namespace cgh {

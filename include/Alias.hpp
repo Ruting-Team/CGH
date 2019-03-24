@@ -69,8 +69,9 @@ namespace cgh {
     template <class Character> class NFT;
     template <class Character> class DFT;
 
-    class PDSState;class Var;
-
+    class PDSState;
+    
+    class Var;
     class Value;
     class Atomic;
     class Conjunction;

@@ -100,19 +100,19 @@ namespace cgh {
             return FT<Character>::unionFT(*this, ft);
         }
 
-        DFT<Character>& leftQuotient(Word& word) {
-            DFT<Character>& mdft = minimize();
-            DFAState<Character>* state = mdfa.getTargetStateByWord(word);
-            if(!state) return FA<Character>::EmptyDFA();
-            DFA<Character> dfa;
-            dfa.flag = mdfa.flag;
-            dfa.setAlphabet(mdfa.getAlphabet());
-            DFAState2Map state2Map;
-            state2Map[state] = dfa.mkInitialState();
-            dfa.cpTrans(state, state2Map);
-            dfa.setReachableFlag(1);
-            return dfa.minimize();
-        }
+        //DFT<Character>& leftQuotient(Word& word) {
+        //    DFT<Character>& mdft = minimize();
+        //    DFAState<Character>* state = mdft.getTargetStateByWord(word);
+        //    if(!state) return FA<Character>::EmptyDFA();
+        //    DFA<Character> dfa;
+        //    dfa.flag = mdft.flag;
+        //    dfa.setAlphabet(mdft.getAlphabet());
+        //    DFAState2Map state2Map;
+        //    state2Map[state] = dfa.mkInitialState();
+        //    dfa.cpTrans(state, state2Map);
+        //    dfa.setReachableFlag(1);
+        //    return dfa.minimize();
+        //}
 
     };
 };

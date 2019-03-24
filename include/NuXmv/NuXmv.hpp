@@ -7,7 +7,7 @@
 
 #ifndef NuXmv_hpp
 #define NuXmv_hpp
-#include "Var.hpp"
+#include "EnumVar.hpp"
 
 using namespace std;
 
@@ -94,7 +94,7 @@ namespace cgh {
 
         /// \brief Makes a Value for this NuXmv.
         /// \return Value pointer.
-        EnumValue* mkValue() {
+        EnumValue* mkEnumValue() {
             EnumValue* value = new EnumValue();
             values.push_back(value);
             return value;
@@ -103,7 +103,7 @@ namespace cgh {
         /// \brief Makes a Value for this NuXmv.
         /// \param id Id for this Value.
         /// \return Value pointer.
-        EnumValue* mkValue(ID id) {
+        EnumValue* mkEnumValue(ID id) {
             EnumValue* value = new EnumValue(id);
             values.push_back(value);
             return value;
@@ -112,16 +112,20 @@ namespace cgh {
         /// \brief Makes a Value for this NuXmv.
         /// \param str Name for this Value.
         /// \return Value pointer.
-        EnumValue* mkValue(const string& str) {
+        EnumValue* mkEnumValue(const string& str) {
             EnumValue* value = new EnumValue(str);
             values.push_back(value);
             return value;
         }
 
-        Condition* mkTargetConfig() {
+        Condition* mkCondition() {
             Condition* condition = new Condition();
             conditions.push_back(condition);
-            targetConfig = condition;
+            return condition;
+        }
+
+        Condition* mkTargetConfig() {
+            targetConfig = mkCondition();
             return targetConfig;
         }
 
@@ -150,7 +154,9 @@ namespace cgh {
         }
 
         string getINVARSPEC() {
-            return "INVARSPEC\n!(" + targetConfig -> getStr() + ");";
+            string targetConfigStr = "TRUE";
+            if (targetConfig) targetConfigStr = targetConfig -> getStr();
+            return "INVARSPEC\n!(" + targetConfigStr + ");";
         }
 
         string getPreSMV() {
