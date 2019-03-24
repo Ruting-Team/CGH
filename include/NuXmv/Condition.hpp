@@ -85,14 +85,21 @@ namespace cgh {
         }
 
         /// \brief Makes a Conjunction for this Condition.
+        /// \return Conjunction pointer.
         Conjunction* mkConjunction() {
             Conjunction* conjunction = new Conjunction();
             dnf.push_back(conjunction);
             return conjunction;
         }
 
-        DNF& getDNF() {return dnf;}
+        /// \brief Gets the DNF for this Condition.
+        /// \return DNF reference.
+        DNF& getDNF() {
+            return dnf;
+        }
 
+        /// \brief Gets the str for this Condition.
+        /// \return string.
         string getStr() {
             string res = "";
             for (Conjunction* conjunction: dnf) {

@@ -12,6 +12,28 @@
 using namespace std;
 
 namespace cgh {
+    /// \brief A class for transfering to NuXmv.
+    ///
+    /// Examples:
+    /// NuXmv solver;
+    /// EnumValue* v1 = solver.mkEnumValue();
+    /// EnumValue* v2 = solver.mkEnumValue();
+    /// Values values;
+    /// values.push_back(v1);
+    /// values.push_back(v2);
+    /// EnumVar* s1 = solver.mkEnumVar(values, v1);
+    /// EnumVar* s2 = solver.mkEnumVar(values, v1);
+    /// EnumVar* c = solver.mkEnumVar(values);
+    /// Condition* condition = solver.mkCondition();
+    /// Condition* tarConfig = solver.mkTargetConfig();
+    /// Conjunction* conjunction = condition -> mkConjunction();
+    /// Conjunction* tConjunction = tarConfig -> mkConjunction();
+    /// conjunction -> mkEquAtomic(s1, v1);
+    /// conjunction -> mkEquAtomic(s2, v2, 0);
+    /// tConjunction -> mkEquAtomic(s1, v2);
+    /// s1 -> mkTransition(condition, v2);
+    /// s1 -> mkTransition(nullptr, v1);
+    /// cout << solver.getSMV() << endl;
     class NuXmv{
     protected:
         Vars vars;                      ///< the Vars for this NuXmv.
@@ -118,17 +140,23 @@ namespace cgh {
             return value;
         }
 
+        /// \brief Makes a Condition uesd in Transition for this NuXmv.
+        /// \return Condition pointer.
         Condition* mkCondition() {
             Condition* condition = new Condition();
             conditions.push_back(condition);
             return condition;
         }
 
+        /// \brief Makes target configuration for this NuXmv.
+        /// \return Condition pointer.
         Condition* mkTargetConfig() {
             targetConfig = mkCondition();
             return targetConfig;
         }
 
+        /// \brief Gets the VAR part for this NuXmv.
+        /// \return string.
         string getVAR() {
             string res = "VAR\n";
             for (Var* var: vars) {
@@ -137,6 +165,8 @@ namespace cgh {
             return res;
         }
 
+        /// \brief Gets the INIT part for this NuXmv.
+        /// \return string.
         string getASSIGN_INIT() {
             string res = "ASSIGN\n";
             for (Var* var: vars) {
@@ -145,6 +175,8 @@ namespace cgh {
             return res;
         }
 
+        /// \brief Gets the NEXT part for this NuXmv.
+        /// \return string.
         string getASSIGN_NEXT() {
             string res = "";
             for (Var* var: vars) {
@@ -153,16 +185,22 @@ namespace cgh {
             return res;
         }
 
+        /// \brief Gets the INVARSPEC part for this NuXmv.
+        /// \return string.
         string getINVARSPEC() {
             string targetConfigStr = "TRUE";
             if (targetConfig) targetConfigStr = targetConfig -> getStr();
             return "INVARSPEC\n!(" + targetConfigStr + ");";
         }
 
+        /// \brief Gets the VAR and ASSIGN parts for this NuXmv.
+        /// \return string.
         string getPreSMV() {
             return getVAR() + getASSIGN_INIT() + getASSIGN_NEXT();
         }
 
+        /// \brief Gets the SMV for this NuXmv.
+        /// \return string.
         string getSMV() {
             return getVAR() + getASSIGN_INIT() + getASSIGN_NEXT() + getINVARSPEC();
         }

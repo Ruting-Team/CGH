@@ -12,6 +12,7 @@
 #include "Value.hpp"
 
 namespace cgh {
+
     /// \brief The Atomic fomula in the NuXmv
     class Atomic {
     protected:
