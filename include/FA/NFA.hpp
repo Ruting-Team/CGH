@@ -500,34 +500,6 @@ namespace cgh {
             return *nfa;
         }
 
-        FA<Character>& rightQuotient(Character character) {
-            NFA* nfa = new NFA(*this);
-            NFAStateSet finSteteSet;
-            NFAStateSet tempSet;
-            for (NFAState<Character>* state : nfa -> stateSet) {
-                tempSet.clear();
-                state -> getTargetStateSetByChar(tempSet, character);
-                if (NFA::hasFinalState(tempSet))
-                    finSteteSet.insert(state);
-            }
-            nfa -> clearFinalStateSet();
-            for(NFAState<Character>* state : finSteteSet)
-                nfa -> addFinalState(state);
-            return *nfa;
-        }
-        
-        FA<Character>& leftQuotient(Character character) {
-            if (initialState -> getTransMap().count(character) == 0) return FA<Character>::EmptyNFA();
-            NFA* nfa = new NFA(*this);
-            NFAStateSet set;
-            nfa -> initialState -> getTargetStateSetByChar(set, character);
-            NFAState<Character>* iniState = nfa -> mkInitialState();
-            for(NFAState<Character>* state : set)
-                iniState -> addEpsilonTrans(state);
-            nfa -> removeUnreachableState();
-            return *nfa;
-        }
-        
         void removeUnreachableState() {
             if (finalStateSet.size() == 0) return;
             if (this -> isReachable()) return;

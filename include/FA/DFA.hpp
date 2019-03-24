@@ -75,6 +75,18 @@ namespace cgh {
             getLiveStateSet(reverseMap, liveStateSet, newWorkSet);
         }
 
+        DFAState<Character>* getTargetStateByWord(Word& word) {
+            DFAState<Character>* state = getInitialState();
+            for (Character& c : word) {
+                if (state) {
+                    state = state -> getTargetStateByChar(c);
+                } else {
+                    break;
+                }
+            }
+            return state;
+        }
+
         bool isEqual(const DFAState<Character>* s1, const DFAState<Character>* s2, DFAState2Map &stateMap) {
             const DFATransMap &transMap1 = s1  ->  getTransMap();
             const DFATransMap &transMap2 = s2  ->  getTransMap();
@@ -201,11 +213,10 @@ namespace cgh {
             if (dfa.initialState) {
                 this -> flag = dfa.flag; 
                 this -> setAlphabet(dfa.getAlphabet());
-                DFAState<Character>* iniState = mkInitialState();
                 DFAState2Map state2Map;
-                state2Map[dfa.initialState] = iniState;
+                state2Map[dfa.initialState] = mkInitialState();
                 cpTrans(dfa.initialState, state2Map);
-                this -> setDeterministicFlag(1);
+                this -> setReachableFlag(1);
             }
         }
 
@@ -368,30 +379,6 @@ namespace cgh {
             DFAState<Character>* dfaState = state2Map[const_cast<State*>(fState)];
             dfa -> addFinalState(dfaState);
             dfa -> removeDeadState();
-            return *dfa;
-        }
-
-        FA<Character>& rightQuotient(Character character) {
-            DFA* dfa = new DFA(*this);
-            DFAStateSet finSteteSet;
-            for (DFAState<Character>* state : dfa -> stateSet) {
-                DFAState<Character>* targetState = state -> getTargetStateByChar(character);
-                if (targetState && targetState -> isFinal())
-                    finSteteSet.insert(state);
-            }
-            dfa -> clearFinalStateSet();
-            for (DFAState<Character>* state : finSteteSet) {
-                dfa -> addFinalState(state);
-            }
-            return *dfa;
-        }
-        
-        FA<Character>& leftQuotient(Character character) {
-            DFAState<Character>* state = initialState -> getTargetStateByChar(character);
-            if(!state) return FA<Character>::EmptyDFA();
-            DFA* dfa = new DFA(*this);
-            dfa -> setInitialState(dfa -> initialState -> getTargetStateByChar(character));
-            dfa -> removeUnreachableState();
             return *dfa;
         }
         

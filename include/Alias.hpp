@@ -63,13 +63,29 @@ namespace cgh {
     template <class Character> class ReplacePDSTrans;
 
     template <class Character> class Label;
-    template <class Character> class Transducer;
-    template <class Character> class NTDState;
-    template <class Character> class DTDState;
-    template <class Character> class NTD;
-    template <class Character> class DTD;
+    template <class Character> class FT;
+    template <class Character> class NFTState;
+    template <class Character> class DFTState;
+    template <class Character> class NFT;
+    template <class Character> class DFT;
 
     class PDSState;
+    
+    class Var;
+    class Value;
+    class Atomic;
+    class Conjunction;
+    class Condition;
+    class Transition;
+    class NuXmv;
+
+    typedef vector<Value*> Values;
+    typedef vector<Var*> Vars;
+    typedef vector<Atomic*> Atomics;
+    typedef vector<Conjunction*> DNF;
+    typedef vector<Transition*> Transitions;
+    typedef vector<Transition*> Transitions;
+    typedef vector<Condition*> Conditions;
     
     /****************** Alias4Char ******************/
 
@@ -134,16 +150,17 @@ namespace cgh {
         typedef unordered_map<PDSState*, NFAState<Character>*> PDSState2NFAStateMap;
     };
 
-    /****************** Alias4TD ******************/
+    /****************** Alias4FT ******************/
 
     template <class Character>
-    class Alias4TD {
+    class Alias4FT {
     public:
         typedef unordered_set<Label<Character> > Labels;
         typedef unordered_map<Character, Labels> Char2LabelsMap;
-        typedef unordered_map<Character, DTDState<Character>*> DTDTransMap;
-        typedef pair<DTDState<Character>*, DTDState<Character>* > DTDState2;
-        typedef unordered_map<DTDState2, NTDState<Character>*> DTDStatePairMap;
+        typedef unordered_map<Character, DFTState<Character>*> DFTTransMap;
+        typedef unordered_set<DFTState<Character>*> DFTStateSet;
+        typedef pair<DFTState<Character>*, DFTState<Character>* > DFTState2;
+        typedef unordered_map<DFTState2, NFTState<Character>*> DFTStatePairMap;
     };
     
 };
