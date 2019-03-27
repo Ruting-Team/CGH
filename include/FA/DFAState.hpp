@@ -23,22 +23,22 @@ namespace cgh{
     ///    dfaState0 -> delDFATrans(dfaState1);
     ///    dfaState0 -> delDFATrans('b', dfaState0);
     ///    DFATransMap& dfaTransMap = dfaState0 -> getTransMap();
-    ///    DFAStateSet dfaStateSet = dfaState0 -> getTargetSet();
+    ///    DFAStates dfaStates = dfaState0 -> getTargets();
     ///    DFAState* targetState = dfaState0 -> getTargetState('a');
     ///    dfa -> delDFAState(dfaState0);
     template <class Character>
     class DFAState : public State {
     public:
-        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
-        typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
+        typedef typename Alias4Char<Character>::Characters Characters;
+        typedef typename Alias4FA<Character>::DFAStates DFAStates;
         typedef typename Alias4FA<Character>::DFATransMap DFATransMap;
         
     protected:
         DFATransMap dfaTransMap; ///< A transition map for this state, the key is character and the value is a state.
 
-        void getTargetStateSet(DFAStateSet& stateSet) {
+        void getTargetStates(DFAStates& states) {
             for (auto& mapPair : dfaTransMap)
-                stateSet.insert(mapPair.second);
+                states.insert(mapPair.second);
         }
 
     public:
@@ -92,12 +92,12 @@ namespace cgh{
         /// \param target The target state in the transition.
         /// \return A boolean representing whether the target state is deleted successfully.
         bool delDFATrans(const DFAState* target) {
-            CharacterSet charSet;
+            Characters chars;
             for (auto& mapPair : dfaTransMap)
                 if (mapPair.second == target)
-                    charSet.insert(mapPair.first);
-            if (charSet.size() == 0) return false;
-            for (Character character : charSet)
+                    chars.insert(mapPair.first);
+            if (chars.size() == 0) return false;
+            for (Character character : chars)
                 dfaTransMap.erase(character);
             return true;
         }
@@ -114,11 +114,11 @@ namespace cgh{
 
         /// \brief Gets a set of all the target states for this state.
         /// \return A const set of states in DFA.
-        const DFAStateSet getTargetStateSet() {
-            DFAStateSet stateSet;
+        const DFAStates getTargetStates() {
+            DFAStates states;
             for (auto& mapPair : dfaTransMap)
-                stateSet.insert(mapPair.second);
-            return stateSet;
+                states.insert(mapPair.second);
+            return states;
         }
 
         /// \brief Gets the target states which from the transition that label is param character.

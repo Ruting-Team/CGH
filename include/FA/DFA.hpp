@@ -19,40 +19,39 @@ namespace cgh {
     class DFA : public FA<Character>
     {
         typedef typename Alias4Char<Character>::Word Word;
-        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
+        typedef typename Alias4Char<Character>::Characters Characters;
 
         typedef typename Alias4FA<Character>::DFAState2 DFAState2;
-        typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
+        typedef typename Alias4FA<Character>::DFAStates DFAStates;
         typedef typename Alias4FA<Character>::DFATransMap DFATransMap;
         typedef typename Alias4FA<Character>::DFAState2Map DFAState2Map;
-        typedef typename Alias4FA<Character>::DFAStateSetMap DFAStateSetMap;
-        typedef typename Alias4FA<Character>::DFAState2DFAStateSetMap DFAState2DFAStateSetMap;
+        typedef typename Alias4FA<Character>::DFAState2DFAStatesMap DFAState2DFAStatesMap;
         
     protected:
         DFAState<Character>* initialState;     ///< The initial state for this DFA.
-        DFAStateSet stateSet;       ///< The set of states for this DFA.
-        DFAStateSet finalStateSet;  ///< The set of final states for this DFA.
+        DFAStates states;       ///< The set of states for this DFA.
+        DFAStates finalStates;  ///< The set of final states for this DFA.
 
         void cpTrans(DFAState<Character>* state, DFAState2Map& state2map) {
             FA<Character>::cpDFATransByDFA(this, state, state2map);
         }
 
-        void getReachableStateSet(DFAStateSet& reachableStateSet, DFAStateSet& workSet) {
-            if (workSet.size() == 0) return;
-            DFAStateSet newWorkSet, newReachableSet;
-            for (DFAState<Character>* state : workSet) {
-                newReachableSet.clear();
-                state -> getTargetStateSet(newReachableSet);
-                for (DFAState<Character>* newState : newReachableSet) {
-                    if (reachableStateSet.insert(newState).second)
-                        newWorkSet.insert(newState);
+        void getReachableStates(DFAStates& reachableStates, DFAStates& works) {
+            if (works.size() == 0) return;
+            DFAStates newWorks, newReachables;
+            for (DFAState<Character>* state : works) {
+                newReachables.clear();
+                state -> getTargetStates(newReachables);
+                for (DFAState<Character>* newState : newReachables) {
+                    if (reachableStates.insert(newState).second)
+                        newWorks.insert(newState);
                 }
             }
-            getReachableStateSet(reachableStateSet, newWorkSet);
+            getReachableStates(reachableStates, newWorks);
         }
 
-        void getReverseMap(DFAState2DFAStateSetMap& reverseMap) {
-            for (DFAState<Character>* state : stateSet) {
+        void getReverseMap(DFAState2DFAStatesMap& reverseMap) {
+            for (DFAState<Character>* state : states) {
                 DFATransMap &dfaTransMap = state -> getTransMap();
                 for (auto& mapPair : dfaTransMap) {
                     reverseMap[mapPair.second].insert(state);
@@ -60,19 +59,19 @@ namespace cgh {
             }
         }
         
-        void getLiveStateSet(const DFAState2DFAStateSetMap& reverseMap, DFAStateSet& liveStateSet, DFAStateSet& workSet) {
-            if (workSet.size() == 0) return;
-            DFAStateSet newWorkSet;
-            for (DFAState<Character>* state : workSet) {
+        void getLiveStates(const DFAState2DFAStatesMap& reverseMap, DFAStates& liveStates, DFAStates& works) {
+            if (works.size() == 0) return;
+            DFAStates newWorks;
+            for (DFAState<Character>* state : works) {
                 auto mapIt = reverseMap.find(state);
                 if (mapIt != reverseMap.end()) {
                     for (DFAState<Character>* newState : mapIt -> second) {
-                        if (liveStateSet.insert(newState).second)
-                            newWorkSet.insert(newState);
+                        if (liveStates.insert(newState).second)
+                            newWorks.insert(newState);
                     }
                 }
             }
-            getLiveStateSet(reverseMap, liveStateSet, newWorkSet);
+            getLiveStates(reverseMap, liveStates, newWorks);
         }
 
         DFAState<Character>* getTargetStateByWord(Word& word) {
@@ -101,40 +100,40 @@ namespace cgh {
 
         void minimize(DFA* dfa) {
             ID lastSize = 0;
-            DFAStateSet unFinalStateSet;
-            DFAStateSet finalStatesSet;
+            DFAStates unFinalStates;
+            DFAStates finalStatess;
             DFAState<Character>* unFinalState = dfa -> mkState();
             DFAState<Character>* finalState = dfa -> mkState();
             
             DFAState2Map stateMap;
-            for (DFAState<Character>* state : stateSet) {
+            for (DFAState<Character>* state : states) {
                 if (state -> isFinal()) {
-                    finalStatesSet.insert(state);
+                    finalStatess.insert(state);
                     stateMap[state] = finalState;
                 } else {
-                    unFinalStateSet.insert(state);
+                    unFinalStates.insert(state);
                     stateMap[state] = unFinalState;
                 }
             }
             
-            queue<DFAStateSet> equiClass;
-            if (unFinalStateSet.size() != 0) {
-                equiClass.push(unFinalStateSet);
+            queue<DFAStates> equiClass;
+            if (unFinalStates.size() != 0) {
+                equiClass.push(unFinalStates);
             } else {
-                (dfa -> stateSet).erase(unFinalState);
+                (dfa -> states).erase(unFinalState);
                 delete unFinalState;
             }
-            if (finalStatesSet.size() != 0) {
-                equiClass.push(finalStatesSet);
+            if (finalStatess.size() != 0) {
+                equiClass.push(finalStatess);
             } else {
-                (dfa -> stateSet).erase(finalState);
+                (dfa -> states).erase(finalState);
                 delete finalState;
             }
             ID curSize = equiClass.size();
             
             while (curSize != lastSize) {
                 for (ID i = 0; i < curSize; ++i) {
-                    DFAStateSet set = equiClass.front();
+                    DFAStates set = equiClass.front();
                     equiClass.pop();
                     if (set.size() == 0) {
                         continue;
@@ -148,7 +147,7 @@ namespace cgh {
                         it = set.begin();
                         auto nextIt = it;
                         ++nextIt;
-                        DFAStateSet newEquiClass;
+                        DFAStates newEquiClass;
                         newEquiClass.insert(*it);
                         set.erase(it);
                         while (nextIt != set.end()) {
@@ -168,7 +167,7 @@ namespace cgh {
                             stateMap[state] = newMapState;
                         }
                     }
-                    (dfa -> stateSet).erase(lastDfaState);
+                    (dfa -> states).erase(lastDfaState);
                     delete lastDfaState;
                 }
                 lastSize = curSize;
@@ -202,8 +201,8 @@ namespace cgh {
         }
 
         /// \brief Construction function with alphabet.
-        /// \param charSet The alphabet.
-        DFA(const CharacterSet& charSet) : FA<Character>(charSet), initialState(nullptr) {
+        /// \param chars The alphabet.
+        DFA(const Characters& chars) : FA<Character>(chars), initialState(nullptr) {
             this -> setDeterministicFlag(1);
         }
     
@@ -225,7 +224,7 @@ namespace cgh {
         /// delete all pointers of states for this DFA.
         ~DFA() {
             initialState = NULL; 
-            for(DFAState<Character>* state : stateSet)
+            for(DFAState<Character>* state : states)
                 delete state;
         }
 
@@ -241,22 +240,22 @@ namespace cgh {
             initialState = state;
         }
 
-        /// \brief Adds param state to finalStateSet.
-        /// \param state The state need to be added in finalStateSet.
+        /// \brief Adds param state to finalStates.
+        /// \param state The state need to be added in finalStates.
         void addFinalState(DFAState<Character>* state) {
-            finalStateSet.insert(state); state -> setFinalFlag(1);
+            finalStates.insert(state); state -> setFinalFlag(1);
         }
 
-        /// \brief Gets stateSet.
+        /// \brief Gets states.
         /// \return The set reference of DFAState pointer for this DFA.
-        DFAStateSet& getStateSet() {
-            return stateSet;
+        DFAStates& getStates() {
+            return states;
         }
 
-        /// \brief Gets finalStateSet.
+        /// \brief Gets finalStates.
         /// \return The set reference of DFAState pointer for this DFA.
-        DFAStateSet& getFinalStateSet() {
-            return finalStateSet;
+        DFAStates& getFinalStates() {
+            return finalStates;
         }
 
         /// \brief Gets initialState.
@@ -265,16 +264,16 @@ namespace cgh {
             return initialState;
         }
 
-        /// \brief Gets stateSet, a const function.
+        /// \brief Gets states, a const function.
         /// \return The const set reference of DFAState pointer for this DFA.
-        const DFAStateSet& getStateSet() const {
-            return stateSet;
+        const DFAStates& getStates() const {
+            return states;
         }
 
-        /// \brief Gets finalStateSet, a const function.
+        /// \brief Gets finalStates, a const function.
         /// \return The const set reference of DFAState pointer for this DFA.
-        const DFAStateSet& getFinalStateSet() const {
-            return finalStateSet;
+        const DFAStates& getFinalStates() const {
+            return finalStates;
         }
 
         /// \brief Gets initialState, a const function.
@@ -283,29 +282,29 @@ namespace cgh {
             return initialState;
         }
 
-        /// \brief Removes all state in the finalStateSet for this DFA.
-        void clearFinalStateSet() {
-            for (DFAState<Character>* state : finalStateSet) {
+        /// \brief Removes all state in the finalStates for this DFA.
+        void clearFinalStates() {
+            for (DFAState<Character>* state : finalStates) {
                 state -> setFinalFlag(0);
             }
-            finalStateSet.clear();
+            finalStates.clear();
         }
 
-        /// \brief Checks whether given param stateSet has finalState.
-        /// \param stateSet The DFAStateSet for checking.
-        /// \return True means param stateSet has finalState, otherwise not.
-        static bool hasFinalState(const DFAStateSet& stateSet) {
-            for (const DFAState<Character>* state : stateSet) {
+        /// \brief Checks whether given param states has finalState.
+        /// \param states The DFAStates for checking.
+        /// \return True means param states has finalState, otherwise not.
+        static bool hasFinalState(const DFAStates& states) {
+            for (const DFAState<Character>* state : states) {
                 if (state -> isFinal()) return true;
             }
             return false;
         }
 
-        /// \brief Checks whether all states in the given param stateSet are finalState.
-        /// \param stateSet The DFAStateSet for checking.
+        /// \brief Checks whether all states in the given param states are finalState.
+        /// \param states The DFAStates for checking.
         /// \return True means all states are finalState, otherwise not.
-        static bool allFinalState(const DFAStateSet& stateSet) {
-            for (const DFAState<Character>* state : stateSet) {
+        static bool allFinalState(const DFAStates& states) {
+            for (const DFAState<Character>* state : states) {
                 if (!state -> isFinal()) return false;
             }
             return true;
@@ -315,7 +314,7 @@ namespace cgh {
         /// \return A DFAState pointer made by this DFA.
         virtual DFAState<Character>* mkState() {
             DFAState<Character>* dfaState = new DFAState<Character>();
-            stateSet.insert(dfaState);
+            states.insert(dfaState);
             return dfaState;
         }
 
@@ -331,19 +330,19 @@ namespace cgh {
         virtual DFAState<Character>* mkFinalState() {
             DFAState<Character>* dfaState = mkState();
             dfaState -> setFinalFlag(1);
-            finalStateSet.insert(dfaState);
+            finalStates.insert(dfaState);
             return dfaState;
         }
 
         bool isNULL() {
             if (!this -> isReachable()) removeUnreachableState();
-            if (finalStateSet.size() == 0) return true;
+            if (initialState -> getTransMap().size() == 0) return true;
+            if (finalStates.size() == 0) return true;
             return false;
         }
 
         bool isNULL() const {
-            if (finalStateSet.size() == 0) return true;
-            return false;
+            return const_cast<DFA*>(this) -> isNULL();
         }
         
         DFA& determinize( void ) {
@@ -356,7 +355,7 @@ namespace cgh {
         
         virtual DFA& minimize(void) {
             if (this -> isMinimal()) return *this;
-            DFA* dfa = new DFA();
+            DFA* dfa = new DFA(this -> alphabet);
             removeDeadState();
             removeUnreachableState();
             if (isNULL()) return FA<Character>::EmptyDFA();
@@ -375,7 +374,7 @@ namespace cgh {
             DFAState2Map state2Map;
             state2Map[const_cast<State*>(iState)] = state;
             dfa -> makeCopyTrans(const_cast<State*>(iState), state2Map);
-            dfa -> clearFinalStateSet();
+            dfa -> clearFinalStates();
             DFAState<Character>* dfaState = state2Map[const_cast<State*>(fState)];
             dfa -> addFinalState(dfaState);
             dfa -> removeDeadState();
@@ -383,31 +382,31 @@ namespace cgh {
         }
         
         void removeUnreachableState() {
-            if (finalStateSet.size() == 0) return;
+            if (finalStates.size() == 0) return;
             if (this -> isReachable()) return;
-            DFAStateSet reachableStateSet;
-            DFAStateSet workSet;
-            workSet.insert(initialState);
-            reachableStateSet.insert(initialState);
-            getReachableStateSet(reachableStateSet, workSet);
-            if (!DFA::hasFinalState(reachableStateSet)) {
-                clearFinalStateSet();
+            DFAStates reachableStates;
+            DFAStates works;
+            works.insert(initialState);
+            reachableStates.insert(initialState);
+            getReachableStates(reachableStates, works);
+            if (!DFA::hasFinalState(reachableStates)) {
+                clearFinalStates();
                 return;
             }
-            if (reachableStateSet.size() != this -> stateSet.size()) {
-                DFAStateSet delSet;
-                for(DFAState<Character>* state : stateSet ) {
-                    if (reachableStateSet.count(state) == 0) {
-                        DFAStateSet targetStateSet = state -> getTargetStateSet();
-                        for (DFAState<Character>* targetState : targetStateSet) {
-                            if (reachableStateSet.count(targetState) > 0)
+            if (reachableStates.size() != this -> states.size()) {
+                DFAStates dels;
+                for(DFAState<Character>* state : states ) {
+                    if (reachableStates.count(state) == 0) {
+                        DFAStates targetStates = state -> getTargetStates();
+                        for (DFAState<Character>* targetState : targetStates) {
+                            if (reachableStates.count(targetState) > 0)
                                 state -> delDFATrans(targetState);
                         }
-                        delSet.insert(state);
+                        dels.insert(state);
                     }
                 }
-                for (DFAState<Character>* state : delSet) {
-                    stateSet.erase(state);
+                for (DFAState<Character>* state : dels) {
+                    states.erase(state);
                     delete state;
                 }
             }
@@ -416,27 +415,27 @@ namespace cgh {
 
          void removeDeadState() {
             if (isNULL()) return;
-            DFAState2DFAStateSetMap reverseMap;
+            DFAState2DFAStatesMap reverseMap;
             getReverseMap(reverseMap);
-            DFAStateSet liveStateSet(finalStateSet.begin(), finalStateSet.end());
-            getLiveStateSet(reverseMap, liveStateSet, finalStateSet);
-            if (liveStateSet.count(initialState) == 0) { 
-                clearFinalStateSet();
+            DFAStates liveStates(finalStates.begin(), finalStates.end());
+            getLiveStates(reverseMap, liveStates, finalStates);
+            if (liveStates.count(initialState) == 0) { 
+                clearFinalStates();
                 return;
             }
-            DFAStateSet delSet;
-            for (DFAState<Character>* state : stateSet) {
-                if (liveStateSet.count(state) == 0) {
-                    DFAStateSet sourceStateSet = reverseMap.find(state) -> second;
-                    for (DFAState<Character>* sourceState : sourceStateSet) {
-                        if (liveStateSet.count(sourceState) > 0)
+            DFAStates dels;
+            for (DFAState<Character>* state : states) {
+                if (liveStates.count(state) == 0) {
+                    DFAStates sourceStates = reverseMap.find(state) -> second;
+                    for (DFAState<Character>* sourceState : sourceStates) {
+                        if (liveStates.count(sourceState) > 0)
                             sourceState -> delDFATrans(state);
                     }
-                    delSet.insert(state);
+                    dels.insert(state);
                 }
             }
-            for(DFAState<Character>* state : delSet) {
-                stateSet.erase(state);
+            for(DFAState<Character>* state : dels) {
+                states.erase(state);
                 delete state;
             }
         }
@@ -466,7 +465,7 @@ namespace cgh {
         bool isEmpty() {
             if (isNULL()) return true;
             if (!this -> isReachable()) removeUnreachableState();
-            if (finalStateSet.size() == 0) return true;
+            if (finalStates.size() == 0) return true;
             return false;
         }
         
@@ -474,7 +473,7 @@ namespace cgh {
         {
             if(isNULL()) return;
             cout<<initialState -> getID()<<endl;
-            for(auto it = stateSet.begin(); it != stateSet.end(); it++)
+            for(auto it = states.begin(); it != states.end(); it++)
             {
                 if((*it) -> isFinal()) cout<<"$"<<(*it) -> getID()<<endl;;
                 (*it) -> output();
@@ -493,13 +492,13 @@ namespace cgh {
             f << "Q"<<initialState -> getID() << "[color=blue];\n";
 
             // cout final states
-            for (auto iter = finalStateSet.begin(); iter != finalStateSet.end(); iter++) {
+            for (auto iter = finalStates.begin(); iter != finalStates.end(); iter++) {
                 f << "Q" << (*iter) -> getID() << " [shape=doublecircle];\n";
             }
          
             
             // cout trisitions
-            for(auto iter = stateSet.begin(); iter != stateSet.end(); iter++)
+            for(auto iter = states.begin(); iter != states.end(); iter++)
             {
                 DFATransMap& transMap = (*iter) -> getTransMap();
                 ID id = (*iter) -> getID();
@@ -514,6 +513,7 @@ namespace cgh {
         }
         
         friend NFA<Character>;
+        friend FA<Character>;
     };
 }
 #endif /* DFA_hpp */

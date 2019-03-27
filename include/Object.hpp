@@ -21,9 +21,13 @@ namespace cgh{
 
     class Manage {
     public:
-        static vector<Object*> buffer;
+        static unordered_set<Object*> buffer;
         static void manage(Object* object) {
-            buffer.push_back(object);
+            buffer.insert(object);
+        }
+        static void del(Object* object) {
+            buffer.erase(object);
+            delete object;
         }
         ~Manage() {
             for (Object* object : buffer) {
@@ -32,6 +36,33 @@ namespace cgh{
                     object = nullptr;
                 }
             }
+        }
+        template<class T>
+        static void intersectSet(const unordered_set<T>& lhs, const unordered_set<T>& rhs, unordered_set<T>& res) {
+            for (auto item : lhs) {
+                if (rhs.count(item) > 0)
+                    res.insert(item);
+            }
+        }
+
+        template<class T>
+        static unordered_set<T> intersectSet(const unordered_set<T>& lhs, const unordered_set<T>& rhs) {
+            unordered_set<T> res;
+            intersectSet(lhs, rhs, res);
+            return res;
+        }
+
+        template<class T>
+        static void unionSet(const unordered_set<T>& lhs, const unordered_set<T>& rhs, unordered_set<T>& res) {
+            res.insert(lhs.begin(), lhs.end());
+            res.insert(rhs.begin(), rhs.end());
+        }
+
+        template<class T>
+        static unordered_set<T> unionSet(const unordered_set<T>& lhs, const unordered_set<T>& rhs) {
+            unordered_set<T> res;
+            unionSet(lhs, rhs, res);
+            return res;
         }
     };
 }

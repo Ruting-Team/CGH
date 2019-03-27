@@ -18,48 +18,58 @@ namespace cgh{
     template <class Character>
     class FA : public Object {
         typedef typename Alias4Char<Character>::Word Word;
-        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
-        typedef typename Alias4FA<Character>::FASet FASet;
-        typedef typename Alias4FA<Character>::DFASet DFASet;
+        typedef typename Alias4Char<Character>::Characters Characters;
+        typedef typename Alias4FA<Character>::FAs FAs;
+        typedef typename Alias4FA<Character>::DFAs DFAs;
         typedef typename Alias4FA<Character>::FAList FAList;
         typedef typename Alias4FA<Character>::DFAState2 DFAState2;
-        typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
+        typedef typename Alias4FA<Character>::DFAStates DFAStates;
         typedef typename Alias4FA<Character>::DFATransMap DFATransMap;
-        typedef typename Alias4FA<Character>::NFAStateSet NFAStateSet;
+        typedef typename Alias4FA<Character>::NFAStates NFAStates;
         typedef typename Alias4FA<Character>::NFATransMap NFATransMap;
         typedef typename Alias4FA<Character>::DFAState2Map DFAState2Map;
         typedef typename Alias4FA<Character>::NFAState2Map NFAState2Map;
         typedef typename Alias4FA<Character>::DFAStateSetMap DFAStateSetMap;
         typedef typename Alias4FA<Character>::DFAStatePairMap DFAStatePairMap;
-        typedef typename Alias4FA<Character>::Char2DFAStateSetMap Char2DFAStateSetMap;
+        typedef typename Alias4FA<Character>::Char2DFAStatesMap Char2DFAStatesMap;
         typedef typename Alias4FA<Character>::DFAState2NFAStateMap DFAState2NFAStateMap;
         
     protected:
         Flag flag;                  ///< Records some attributes for this FA.
-        CharacterSet alphabet;      ///< A set of characters which in the label on the transitions.
+        Characters alphabet;      ///< A set of characters which in the label on the transitions.
 
         /// \brief Default construction without arguments, initialize flag to 0.
-        FA() : flag(0){}
+        FA() : flag(0){
+        }
 
         /// \brief Construct FA with alphabet.
-        /// \param charSet The alphabet.
-        FA(const CharacterSet& charSet) : flag(0), alphabet(charSet.begin(), charSet.end()) {}
+        /// \param chars The alphabet.
+        FA(const Characters& chars) : flag(0), alphabet(chars.begin(), chars.end()) {
+        }
 
         /// \brief Construct FA from file.
         /// \param file The FA description file.
-        FA(FILE *file){}//todo
+        FA(FILE *file){
+            //todo
+        }
 
         /// \brief Sets this FA to deterministic or not by param b.
         /// \param b If b is true means deterministic otherwise not.
-        void setDeterministicFlag(bool b){flag = b ? (flag | 1):(flag & ~1);}
+        void setDeterministicFlag(bool b) {
+            flag = b ? (flag | 1):(flag & ~1);
+        }
 
-        /// \brief Sets this FA to reachable or not by param b.
+        /// \brief ss this FA to reachable or not by param b.
         /// \param b If b is true means reachable otherwise not.
-        void setReachableFlag(bool b){flag = b ? (flag | (1 << 1)):(flag & ~(1 << 1));}
+        void setReachableFlag(bool b) {
+            flag = b ? (flag | (1 << 1)):(flag & ~(1 << 1));
+        }
 
-        /// \brief Sets this FA to minimal or not by param b.
+        /// \brief ss this FA to minimal or not by param b.
         /// \param b If b is true means minimal otherwise not.
-        void setMinimalFlag(bool b){flag = b ? (flag | (1 << 2)):(flag & ~(1 << 2));}
+        void setMinimalFlag(bool b) {
+            flag = b ? (flag | (1 << 2)):(flag & ~(1 << 2));
+        }
 
         virtual FA& copy() = 0;
     private:
@@ -117,30 +127,30 @@ namespace cgh{
             }
         }
 
-        static void intersectFA(DFA<Character>* dfa, DFAState<Character>* sourceState, const DFAStateSet& stateSet, DFAStateSetMap &setMap) {
-            if(DFA<Character>::allFinalState(stateSet)) 
+        static void intersectFA(DFA<Character>* dfa, DFAState<Character>* sourceState, const DFAStates& states, DFAStateSetMap &setMap) {
+            if(DFA<Character>::allFinalState(states)) 
                 dfa -> addFinalState(sourceState);
-            setMap[stateSet] = sourceState;
-            DFATransMap& transMap = (*(stateSet.begin())) -> getTransMap();
-            DFAStateSet newStateSet;
+            setMap[states] = sourceState;
+            DFATransMap& transMap = (*(states.begin())) -> getTransMap();
+            DFAStates newStates;
             for (auto& mapPair : transMap) {
-                newStateSet.clear();
+                newStates.clear();
                 Character character = mapPair.first;
-                newStateSet.insert(mapPair.second);
-                for (DFAState<Character>* state : stateSet) {
-                    if (state == *(stateSet.begin())) continue;
+                newStates.insert(mapPair.second);
+                for (DFAState<Character>* state : states) {
+                    if (state == *(states.begin())) continue;
                     DFATransMap& otherTransMap = state -> getTransMap();
                     auto mapIt = otherTransMap.find(character);
                     if (mapIt != otherTransMap.end()) {
-                        newStateSet.insert(mapIt -> second);
+                        newStates.insert(mapIt -> second);
                     }
                 }
-                if (newStateSet.size() == stateSet.size()) {
+                if (newStates.size() == states.size()) {
                     DFAState<Character>* targetState = nullptr;
-                    auto setMapIt = setMap.find(newStateSet);
+                    auto setMapIt = setMap.find(newStates);
                     if (setMapIt == setMap.end()) {
                         targetState = dfa -> mkState();
-                        intersectFA(dfa, targetState, newStateSet, setMap);
+                        intersectFA(dfa, targetState, newStates, setMap);
                     } else {
                         targetState = setMapIt -> second;
                     }
@@ -148,26 +158,15 @@ namespace cgh{
                 }
             }
         }
-        static CharacterSet intersectSet(const CharacterSet& alphabet1, const CharacterSet& alphabet2) {
-            CharacterSet alphabet;
-            for (auto c : alphabet1) {
-                if (alphabet2.count(c) > 0) alphabet.insert(c);
-            }
-            return alphabet;
-        }
 
-        static CharacterSet unionSet(const CharacterSet& alphabet1, const CharacterSet& alphabet2) {
-            CharacterSet alphabet;
-            for (auto c : alphabet1) alphabet.insert(c);
-            for (auto c : alphabet2) alphabet.insert(c);
-            return alphabet;
-        }
         
         static void intersectFA(DFA<Character>& dfa, DFA<Character>& lhsDFA, DFA<Character>& rhsDFA) {
             DFAStatePairMap pairMap;
+            dfa.setAlphabet(Manage::unionSet(lhsDFA.getAlphabet(), rhsDFA.getAlphabet()));
             intersectFA(&dfa, dfa.mkInitialState(), DFAState2(lhsDFA.getInitialState(), rhsDFA.getInitialState()), pairMap);
             dfa.setReachableFlag(1);
         }
+
         static void intersectFA(DFA<Character>* dfa, DFAState<Character>* sourceState, const DFAState2& statePair, DFAStatePairMap& dfaStatePairMap) {
             if (statePair.first -> isFinal() && statePair.second -> isFinal())
                 dfa -> addFinalState(sourceState);
@@ -195,7 +194,7 @@ namespace cgh{
         }
 
         static void unionFA(NFA<Character>& nfa, DFA<Character>& lhsDFA, DFA<Character>& rhsDFA) {
-            nfa.setAlphabet(unionSet(lhsDFA.getAlphabet(), rhsDFA.getAlphabet()));
+            nfa.setAlphabet(Manage::unionSet(lhsDFA.getAlphabet(), rhsDFA.getAlphabet()));
             NFAState<Character>* initialState = nfa.mkInitialState();
             DFAState2NFAStateMap lhsState2Map;
             DFAState2NFAStateMap rhsState2Map;
@@ -212,7 +211,7 @@ namespace cgh{
         }
 
         static void concatenateFA(NFA<Character>& nfa, DFA<Character>& lhsDFA, DFA<Character>& rhsDFA) {
-            nfa.setAlphabet(unionSet(lhsDFA.getAlphabet(), rhsDFA.getAlphabet()));
+            nfa.setAlphabet(Manage::unionSet(lhsDFA.getAlphabet(), rhsDFA.getAlphabet()));
             NFAState<Character>* initialState = nfa.mkInitialState();
             DFAState2NFAStateMap lhsState2Map;
             DFAState2NFAStateMap rhsState2Map;
@@ -224,22 +223,23 @@ namespace cgh{
             rhsState2Map[rhsDFAState] = rhsNFAState;
             initialState -> addEpsilonTrans(lhsNFAState); 
             cpNFATransByDFA(&nfa, lhsDFAState, lhsState2Map);
-            for (NFAState<Character>* finalState : nfa -> getFinalStateSet()) {
+            for (NFAState<Character>* finalState : nfa -> getFinalStates()) {
                 finalState -> addEpsilonTrans(rhsNFAState);
             }
-            nfa.clearFinalStateSet();
+            nfa.clearFinalStates();
             cpNFATransByDFA(&nfa, rhsDFAState, rhsState2Map);
         }
 
-        static void complementFA(DFA<Character>* dfa, DFAState<Character>* state) {
-            DFAState<Character>* initialState = dfa -> mkInitialState();
+        static void complementFA(DFA<Character>& dfa, DFA<Character>& mdfa) {
+            DFAState<Character>* state = mdfa.getInitialState();
+            DFAState<Character>* initialState = dfa.mkInitialState();
             DFAState2Map stateMap;
             stateMap[state] = initialState;
-            cpDFATransByDFA(dfa, state, stateMap);
-            DFAState<Character>* trapState = dfa -> mkState();
-            dfa -> getFinalStateSet().clear();
-            for (DFAState<Character>* state : dfa -> getStateSet()) {
-                for (Character character : dfa -> getAlphabet()) {
+            dfa.cpTrans(state, stateMap);
+            DFAState<Character>* trapState = dfa.mkState();
+            dfa.getFinalStates().clear();
+            for (DFAState<Character>* state : dfa.getStates()) {
+                for (Character character : dfa.getAlphabet()) {
                     if (state -> getTransMap().count(character) == 0) {
                         state -> addTrans(character, trapState);
                     }
@@ -247,13 +247,24 @@ namespace cgh{
                 if (state -> isFinal()) {
                     state -> setFinalFlag(0);
                 } else {
-                    dfa -> addFinalState(state);
+                    dfa.addFinalState(state);
                 }
             }
         }
 
+        static void leftQuotient(DFA<Character>& dfa, DFA<Character>& mdfa, Word& word) {
+            Manage::manage(&dfa);
+            DFAState<Character>* state = mdfa.getTargetStateByWord(word);
+            DFAState<Character>* iniState = dfa.mkInitialState();
+            if(!state) return;
+            dfa.flag = mdfa.flag;
+            DFAState2Map state2Map;
+            state2Map[state] = iniState;
+            dfa.cpTrans(state, state2Map);
+        }
+
     public:
-        static Character epsilon;   ///< The epsilon define by users.
+        static Character epsilon;           ///< The epsilon define by users.
 
         /// \brief Virtual desconstruction fuction.
         virtual ~FA() {}
@@ -279,30 +290,33 @@ namespace cgh{
 
         /// \brief Gets the alphabet.
         /// \return A reference set of Characters.
-        CharacterSet& getAlphabet() {return alphabet;}
+        Characters& getAlphabet() {return alphabet;}
 
         /// \brief Gets the alphabet.
         /// \return A const reference set of Characters.
-        const CharacterSet& getAlphabet() const {return alphabet;}
+        const Characters& getAlphabet() const {return alphabet;}
         
-        /// \brief Sets alphabet given a set of Character.
+        /// \brief ss alphabet given a set of Characters.
         ///
-        /// Clears current alphabet and copy param charSet to alphabet.
-        /// \param charSet a const reference set of Character. 
-        void setAlphabet(const CharacterSet &charSet) {
+        /// Clears current alphabet and copy param chars to alphabet.
+        /// \param chars a const reference set of Character. 
+        void setAlphabet(const Characters &chars) {
             alphabet.clear();
-            alphabet.insert(charSet.begin(),charSet.end());
+            alphabet.insert(chars.begin(),chars.end());
         }
 
-        /// \brief Sets alphabet given a ordered_set of Character.
+        /// \brief ss alphabet given a ordered_set of Character.
         ///
-        /// Clears current alphabet and copy param charSet to alphabet.
-        /// \param charSet a const reference ordered_set of Character. 
-        void setAlphabet(const set<Character> &charSet) {
+        /// Clears current alphabet and copy param chars to alphabet.
+        /// \param chars a const reference ordered_set of Character. 
+        void setAlphabet(const set<Character> &chars) {
             alphabet.clear();
-            alphabet.insert(charSet.begin(),charSet.end());
+            alphabet.insert(chars.begin(),chars.end());
         }
 
+        /// \brief Adds param character in alphabet.
+        ///
+        /// \param character A Character to be added. 
         void addAlphabet(Character character) {
             alphabet.insert(character);
         }
@@ -357,8 +371,56 @@ namespace cgh{
         static DFA<Character>& complementFA(const FA& fa) {
             DFA<Character>& mdfa = fa.minimize();
             DFA<Character> dfa(fa.getAlphabet());
-            complementFA(&dfa, mdfa.getInitialState());
+            complementFA(dfa, mdfa);
             return dfa.minimize();
+        }
+
+        /// \brief Gets a FA which is the right quotient by param character of this FA.
+        /// \param character A Character.
+        /// \return A reference of FA.
+        static DFA<Character>& rightQuotient(FA& fa, Character character) {
+            Word word;
+            word.push_back(character);
+            return rightQuotient(fa, word);
+        }
+
+        /// \brief Gets a FA which is the right quotient by param word of this FA.
+        /// \param word A Word.
+        /// \return A reference of FA.
+        static DFA<Character>& rightQuotient(FA& fa, Word& word) {
+            DFA<Character> dfa(fa);
+            //DFAState2DFAStatesMap reverseMap;
+            //dfa.getReverseMap(reverseMap);
+            //DFAStates finStetes;
+            //for (DFAState<Character>* state : dfa.states) {
+            //    DFAState<Character>* targetState = state -> getTargetStateByChar(character);
+            //    if (targetState && targetState -> isFinal())
+            //        finStetes.insert(state);
+            //}
+            //dfa.clearFinalStates();
+            //for (DFAState<Character>* state : finStetes) {
+            //    dfa.addFinalState(state);
+            //}
+            return dfa.minimize();
+        }
+
+        /// \brief Gets a FA which is the left quotient by param character of this FA.
+        /// \param character A Character.
+        /// \return A reference of FA.
+        static DFA<Character>& leftQuotient(const FA& fa, Character character) {
+            Word word;
+            word.push_back(character);
+            return leftQuotient(fa, word);
+        }
+
+        /// \brief Gets a FA which is the left quotient by param word of this FA.
+        /// \param word A Word.
+        /// \return A reference of FA.
+        static DFA<Character>& leftQuotient(const FA& fa, Word& word) {
+            DFA<Character>& mdfa = fa.minimize();
+            DFA<Character>* dfa = new DFA<Character>(fa.getAlphabet());
+            leftQuotient(*dfa, mdfa, word);
+            return *dfa;
         }
 
         /// \brief Gets a FA which is the deference from param lhsFA to param rhsFA.
@@ -370,12 +432,38 @@ namespace cgh{
         static DFA<Character>& minusFA(const FA& lhsFA, const FA& rhsFA) {
             return intersectFA(lhsFA, complementFA(rhsFA));
         }
-        
-        /// \brief Gets whether this FA is NULL.
-        /// \return A boolean.
-        virtual bool isNULL() = 0;
-        virtual bool isNULL() const = 0;
 
+        /// \brief Makes a empty DFA.
+        /// \return reference of DFA.
+        static DFA<Character>& EmptyDFA() {
+            DFA<Character>* dfa = new DFA<Character>();
+            Manage::manage(dfa);
+            dfa -> mkInitialState();
+            return *dfa;
+        }
+
+        /// \brief Makes a empty NFA.
+        /// \return reference of NFA.
+        static NFA<Character>& EmptyNFA() {
+            NFA<Character>* nfa = new NFA<Character>();
+            Manage::manage(nfa);
+            nfa -> mkInitialState();
+            return *nfa; 
+        }
+
+        /// \brief Makes a sigma star DFA.
+        /// \return reference of DFA.
+        static DFA<Character>& SigmaStarFA(const Characters &chars) {
+            DFA<Character>* dfa = new DFA<Character>();
+            Manage::manage(dfa);
+            DFAState<Character>* iniState = dfa->mkDFAInitialState();
+            dfa->addFinalState(iniState);
+            dfa->setAlphabet(chars);
+            for(Character character : chars)
+                iniState->addTrans(character, iniState);
+            return *dfa;
+        }
+ 
         /// \brief Gets a FA which is the intersection of this FA and param fa.
         /// \param fa A const reference FA.
         /// \return A reference of FA.
@@ -403,47 +491,67 @@ namespace cgh{
             return complementFA(*this);
         }
 
+        /// \brief Gets a FA which is the left quotient by param character of this FA.
+        /// \param character left quotient character.
+        /// \return A reference of DFA.
         DFA<Character>& operator > (Character character) const {
             return leftQuotient(*this, character);
         }
 
+        /// \brief Gets a FA which is the left quotient by param word of this FA.
+        /// \param word left quotient word.
+        /// \return A reference of DFA.
         DFA<Character>& operator > (Word& word) const {
             return leftQuotient(*this, word);
         }
 
+        /// \brief Gets a FA which is the right quotient by param character of this FA.
+        /// \param character left quotient character.
+        /// \return A reference of DFA.
         DFA<Character>& operator < (Character character) const {
             return rightQuotient(*this, character);
         }
 
+        /// \brief Gets a FA which is the right quotient by param word of this FA.
+        /// \param word left quotient word.
+        /// \return A reference of DFA.
         DFA<Character>& operator < (Word& word) const {
             return rightQuotient(*this, word);
         }
 
-        /// \brief Gets a FA which is the concatination of this FA and param fa.
-        /// \param fa A const reference FA.
-        /// \return A reference of FA.
-        DFA<Character>& concatenateFA(const FA& fa) const {
-            return concatenateFA(*this, fa);
+        /// \brief Decide whether this FA is equal to param fa.
+        /// \param fa compared with this FA.
+        /// \return Boolean.
+        bool operator == (const FA& fa ) const {
+            return (*this <= fa) & (fa <= *this);
+            
         }
 
-        /// \brief Gets the intersection of param faSet.
-        /// \param faSet A set of FA.
+        /// \brief Decide whether this FA is subset of param fa.
+        /// \param fa compared with this FA.
+        /// \return Boolean.
+        bool operator <= (const FA& fa ) const {
+            return (*this - fa).isEmpty();
+        }
+
+        /// \brief Gets the intersection of param fas.
+        /// \param fas A set of FA.
         /// \return A reference of FA.
-        static FA& intersectFA(const FASet& faSet) {
-            DFASet dfaSet;
-            DFAStateSet stateSet;
-            for (FA* fa : faSet) {
+        static FA& intersectFA(const FAs& fas) {
+            DFAs dfas;
+            DFAStates states;
+            for (FA* fa : fas) {
                 DFA<Character>* dfa = &(fa -> determinize());
-                if(!fa -> isDeterministic()) dfaSet.insert(dfa);
+                if(!fa -> isDeterministic()) dfas.insert(dfa);
                 DFAState<Character>* initialState = dfa -> getInitialState();
-                stateSet.insert(initialState);
+                states.insert(initialState);
             }
             DFA<Character>* dfa = new DFA<Character>();
             DFAState<Character>* initialState = dfa -> mkInitialState();
             DFAStateSetMap setMap;
-            setMap[stateSet] = initialState;
-            intersectFA(dfa, initialState, stateSet, setMap);
-            for (DFA<Character>* dfa : dfaSet) {
+            setMap[states] = initialState;
+            intersectFA(dfa, initialState, states, setMap);
+            for (DFA<Character>* dfa : dfas) {
                 delete dfa;
             }
             dfa -> mkAlphabet();
@@ -451,7 +559,7 @@ namespace cgh{
             return *dfa;
         }
  
-        //        static bool multiIntersectionAndDeterminEmptiness(const FASet &faSet);//todo
+        //        static bool multiIntersectionAndDeterminEmptiness(const FAs &fas);//todo
         
         /// \brief Gets the concatenation of param faList.
         /// \param faList A list of FA.
@@ -459,37 +567,37 @@ namespace cgh{
         //static DFA<Character>& concatenateFA(const FAList& faList) {
         //    NFA<Character> nfa;
         //    NFAState<Character>* iniState = nfa.mkNFAInitialState();
-        //    NFAStateSet fStateSet;
-        //    fStateSet.insert(iniState);
+        //    NFAStates fStates;
+        //    fStates.insert(iniState);
         //    DFAState2NFAStateMap dfaState2Map;
         //    NFAState2Map nfaState2Map;
         //    for (FA* fa : faList) {
         //        NFAState<Character>* state = nfa -> mkState();
-        //        for (NFAState<Character>* nfaState : fStateSet)
+        //        for (NFAState<Character>* nfaState : fStates)
         //            nfaState -> addEpsilonTrans(state);
-        //        fStateSet.clear();
-        //        nfa -> clearFinalStateSet();
+        //        fStates.clear();
+        //        nfa -> clearFinalStates();
         //        DFA<Character> dfa = fa -> minimize();
         //        dfaState2Map.clear();
         //        DFAState<Character>* iniState = dfa.getInitialState();
         //        if(iniState->isFinal()) nfa -> addFinalState(state);
         //        dfaState2Map[iniState] = state;
         //        nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
-        //        fStateSet.insert(nfa -> finalStateSet.begin(), nfa -> finalStateSet.end());
+        //        fStates.insert(nfa -> finalStates.begin(), nfa -> finalStates.end());
         //    }
         //    nfa -> mkAlphabet();
         //    return *nfa;
         //}
         
-        ///// \brief Gets the union of param faSet.
-        ///// \param faSet A set of FA.
+        ///// \brief Gets the union of param fas.
+        ///// \param fas A set of FA.
         ///// \return A reference of FA.
-        //static FA& unionFA(const FASet& faSet) {
+        //static FA& unionFA(const FAs& fas) {
         //    NFA<Character>* nfa = new NFA<Character>();
         //    NFAState<Character>* iniState = nfa -> mkNFAInitialState();
         //    DFAState2NFAStateMap dfaState2Map;
         //    NFAState2Map nfaState2Map;
-        //    for(FA* fa : faSet)
+        //    for(FA* fa : fas)
         //    {
         //        NFAState<Character>* state = nfa -> mkNFAState();
         //        iniState -> addEpsilonTrans(state);
@@ -529,60 +637,10 @@ namespace cgh{
         /// \return A reference of DFA.
         virtual DFA<Character>& minimize( void ) const = 0;
 
-        /// \brief Gets a FA which is the right quotient by param character of this FA.
-        /// \param character A Character.
-        /// \return A reference of FA.
-        static DFA<Character>& rightQuotient(FA& fa, Character character) {
-            Word word;
-            word.push_back(character);
-            return rightQuotient(fa, word);
-        }
-
-        /// \brief Gets a FA which is the right quotient by param word of this FA.
-        /// \param word A Word.
-        /// \return A reference of FA.
-        static DFA<Character>& rightQuotient(FA& fa, Word& word) {
-            DFA<Character> dfa(fa);
-            //DFAState2DFAStateSetMap reverseMap;
-            //dfa.getReverseMap(reverseMap);
-            //DFAStateSet finSteteSet;
-            //for (DFAState<Character>* state : dfa.stateSet) {
-            //    DFAState<Character>* targetState = state -> getTargetStateByChar(character);
-            //    if (targetState && targetState -> isFinal())
-            //        finSteteSet.insert(state);
-            //}
-            //dfa.clearFinalStateSet();
-            //for (DFAState<Character>* state : finSteteSet) {
-            //    dfa.addFinalState(state);
-            //}
-            return dfa.minimize();
-        }
-
-        /// \brief Gets a FA which is the left quotient by param character of this FA.
-        /// \param character A Character.
-        /// \return A reference of FA.
-        static DFA<Character>& leftQuotient(FA& fa, Character character) {
-            Word word;
-            word.push_back(character);
-            return leftQuotient(fa, word);
-        }
-
-        /// \brief Gets a FA which is the left quotient by param word of this FA.
-        /// \param word A Word.
-        /// \return A reference of FA.
-        static DFA<Character>& leftQuotient(FA& fa, Word& word) {
-            DFA<Character>& mdfa = fa.minimize();
-            DFAState<Character>* state = mdfa.getTargetStateByWord(word);
-            if(!state) return FA<Character>::EmptyDFA();
-            DFA<Character> dfa;
-            dfa.flag = mdfa.flag;
-            dfa.setAlphabet(mdfa.getAlphabet());
-            DFAState2Map state2Map;
-            state2Map[state] = dfa.mkInitialState();
-            dfa.cpTrans(state, state2Map);
-            dfa.setReachableFlag(1);
-            return dfa.minimize();
-        }
+        /// \brief Gets whether this FA is NULL.
+        /// \return A boolean.
+        virtual bool isNULL() = 0;
+        virtual bool isNULL() const = 0;
 
         /// \brief Removes all unreachable states from initial state.
         virtual void removeUnreachableState() = 0;
@@ -602,55 +660,13 @@ namespace cgh{
         /// \return A boolean.
         virtual bool isAccepted(Character character) = 0;
         
-        virtual void output()const = 0;
+        virtual void output() const = 0;
 
-        virtual void print(string filename)const = 0;
+        virtual void print(string filename) const = 0;
         
         virtual bool isEmpty() = 0;
         
-        /// \brief Decide whether this FA is equal to param fa.
-        /// \param fa compared with this FA.
-        /// \return Boolean.
-        bool operator == (const FA& fa ) const {
-            return (*this <= fa) & (fa <= *this);
-            
-        }
-
-        /// \brief Decide whether this FA is subset of param fa.
-        /// \param fa compared with this FA.
-        /// \return Boolean.
-        bool operator <= (const FA& fa ) const {
-            return (!fa - *this).isEmpty();
-        }
-
-        /// \brief Makes a empty DFA.
-        /// \return reference of DFA.
-        static DFA<Character>& EmptyDFA() {
-            DFA<Character>* dfa = new DFA<Character>();
-            dfa -> mkInitialState();
-            return *dfa;
-        }
-
-        /// \brief Makes a empty NFA.
-        /// \return reference of NFA.
-        static NFA<Character>& EmptyNFA() {
-            NFA<Character>* nfa = new NFA<Character>();
-            nfa -> mkInitialState();
-            return *nfa; 
-        }
-
-        /// \brief Makes a sigma star DFA.
-        /// \return reference of DFA.
-        static DFA<Character>& SigmaStarFA(const CharacterSet &charSet) {
-            DFA<Character>* dfa = new DFA<Character>();
-            DFAState<Character>* iniState = dfa->mkDFAInitialState();
-            dfa->addFinalState(iniState);
-            dfa->setAlphabet(charSet);
-            for(Character character : charSet)
-                iniState->addTrans(character, iniState);
-            return *dfa;
-        }
-        
+       
         friend DFA<Character>;
         friend NFA<Character>;
         template <class L>

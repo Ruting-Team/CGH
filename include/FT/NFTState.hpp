@@ -15,8 +15,8 @@ namespace cgh{
 
     template <class Character>
     class NFTState : public NFAState<Label<Character> > {
-        typedef typename Alias4FA<Character>::NFAStateSet NFAStateSet;
-        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
+        typedef typename Alias4FA<Character>::NFAStates NFAStates;
+        typedef typename Alias4Char<Character>::Characters Characters;
         typedef typename Alias4FT<Character>::Char2LabelsMap Char2LabelsMap;
 
     private:
@@ -32,32 +32,32 @@ namespace cgh{
         //    }
         //}
 
-        void getTargetStateSetAndLowers(Character upper, CharacterSet& lowers, NFAStateSet& stateSet) {
+        void getTargetStatesAndLowers(Character upper, Characters& lowers, NFAStates& states) {
             auto mapIt = upperMap.find(upper);
             if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt.second) {
                     lowers.insert(label.getLower());
-                    NFAStateSet targetStateSet;
-                    this -> getTargetStateSet(label, targetStateSet);
-                    stateSet.insert(targetStateSet);
+                    NFAStates targetStates;
+                    this -> getTargetStates(label, targetStates);
+                    states.insert(targetStates);
                 }
             }
         }
 
     public:
-        /// \brief Gets the lowers and the target stateSet from upper.
+        /// \brief Gets the lowers and the target states from upper.
         /// \param upper The upper Character in label.
-        /// \param staetSet The target stateSet.
+        /// \param staets The target states.
         /// \return The set of Character.
-        CharacterSet getTargetStateSetAndLowers(Character upper, NFAStateSet& stateSet) {
-            CharacterSet lowers;
+        Characters getTargetStatesAndLowers(Character upper, NFAStates& states) {
+            Characters lowers;
             auto mapIt = upperMap.find(upper);
             if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt.second) {
                     lowers.insert(label.getLower());
-                    NFAStateSet targetStateSet;
-                    this -> getTargetStateSet(label, targetStateSet);
-                    stateSet.insert(targetStateSet);
+                    NFAStates targetStates;
+                    this -> getTargetStates(label, targetStates);
+                    states.insert(targetStates);
                 }
             }
             return lowers;

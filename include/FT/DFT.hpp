@@ -19,24 +19,38 @@ namespace cgh {
     class DFT : public DFA<Label<Character> >, public FT<Character> {
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::Words Words;
-        typedef typename Alias4FT<Character>::Labels Labels;
-        typedef typename Alias4FT<Character>::DFTStateSet DFTStateSet;
+        typedef typename Alias4Char<Character>::Characters Characters;
+        typedef typename Alias4Char<Label<Character> >::Characters Labels;
+        typedef typename Alias4Char<Label<Character> >::Word LabelWord;
+        typedef typename Alias4FA<Label<Character> >::DFAState2NFAStateMap DFAState2NFAStateMap;
+        typedef typename Alias4FT<Character>::DFTStates DFTStates;
     private:
-        void getTargetStateSetByUppers(Word& uppers, DFTStateSet& stateSet) {
-            DFTStateSet workSet;
-            DFTStateSet newWorkSet;
-            workSet.insert((DFTState<Character>*)(this -> initialState));
+        void getTargetStatesByUppers(Word& uppers, DFTStates& states) {
+            DFTStates works;
+            DFTStates newWorks;
+            works.insert((DFTState<Character>*)(this -> initialState));
             for (Character& upper : uppers) {
-                newWorkSet.clear();
-                for (DFTState<Character>* state : workSet) {
-                    state -> getTargetStateSetByUpper(upper, newWorkSet);
+                newWorks.clear();
+                for (DFTState<Character>* state : works) {
+                    state -> getTargetStatesByUpper(upper, newWorks);
                 }
-                if (newWorkSet.size() > 0) {
-                    workSet.clear();
-                    workSet.insert(newWorkSet.begin(), newWorkSet.end());
+                if (newWorks.size() > 0) {
+                    works.clear();
+                    works.insert(newWorks.begin(), newWorks.end());
                 }
             }
-            if (workSet.size()) stateSet.insert(workSet.begin(), workSet.end());
+            if (works.size()) states.insert(works.begin(), works.end());
+        }
+
+        ID getCode() {
+            auto& transMap = (this -> initialState) -> getTransMap();
+            ID code = hash<double>()(transMap.size() * 1234);
+            for (auto& mapPair : transMap) {
+                ID upperCode = hash<double>()(hash<Character>()(mapPair.first.upper) * 56.78);
+                ID lowerCode = hash<double>()(hash<Character>()(mapPair.first.lower) * 0.9876);
+                code ^= (upperCode + lowerCode);
+            }
+            return code;
         }
 
     public:
@@ -47,9 +61,24 @@ namespace cgh {
         DFT(const Labels& labels) : DFA<Label<Character> >(labels) {
         }
 
+        DFT(const Characters& chars) : DFA<Label<Character> >(), FT<Character>(chars) {
+            mkAlphabet();
+        }
+
+        DFT(const Labels& labels, const Characters& chars) : DFA<Label<Character> >(labels), FT<Character>(chars) {
+        }
+
+        void mkAlphabet() {
+            for (Character upper : this -> symbols) {
+                for (Character lower : this -> symbols) {
+                    this -> addAlphabet(Label<Character>(upper, lower));
+                }
+            }
+        }
+
         DFAState<Label<Character> >* mkState() {
             DFTState<Character>* dftState = new DFTState<Character>();
-            this -> stateSet.insert(dftState);
+            this -> states.insert(dftState);
             return dftState;
         }
 
@@ -66,16 +95,16 @@ namespace cgh {
         DFAState<Label<Character> >* mkFinalState() {
             DFAState<Label<Character> >* dftState = mkState();
             dftState -> setFinalFlag(1);
-            this -> finalStateSet.insert(dftState);
+            this -> finalStates.insert(dftState);
             return dftState;
         }
 
         DFA<Label<Character> >& minimize() {
             if (this -> isMinimal()) return *this;
-            DFT* dft = new DFT();
+            DFT* dft = new DFT(this -> symbols);
             this -> removeDeadState();
             this -> removeUnreachableState();
-            if (this -> isNULL()) return FA<Label<Character> >::EmptyDFA();
+            if (this -> isNULL()) return FT<Character>::EmptyDFT();
             DFA<Label<Character> >::minimize(dft);
             return *dft;
         }
@@ -100,19 +129,44 @@ namespace cgh {
             return FT<Character>::unionFT(*this, ft);
         }
 
-        //DFT<Character>& leftQuotient(Word& word) {
-        //    DFT<Character>& mdft = minimize();
-        //    DFAState<Character>* state = mdft.getTargetStateByWord(word);
-        //    if(!state) return FA<Character>::EmptyDFA();
-        //    DFA<Character> dfa;
-        //    dfa.flag = mdft.flag;
-        //    dfa.setAlphabet(mdft.getAlphabet());
-        //    DFAState2Map state2Map;
-        //    state2Map[state] = dfa.mkInitialState();
-        //    dfa.cpTrans(state, state2Map);
-        //    dfa.setReachableFlag(1);
-        //    return dfa.minimize();
-        //}
+        DFT<Character>& operator > (Label<Character> label) const {
+            return FT<Character>::leftQuotientFT(*this, label);
+        }
+
+        DFT<Character>& operator > (LabelWord& lWord) const {
+            return FT<Character>::leftQuotientFT(*this, lWord);
+        }
+
+        DFT<Character>& operator > (Character character) const {
+            return leftQuotientByUppers(character);
+        }
+
+        DFT<Character>& operator > (Word& word) const {
+            return leftQuotientByUppers(word);
+        }
+
+        DFT<Character>& leftQuotientByUppers(Character character) const  {
+            Word uppers;
+            uppers.push_back(character);
+            return leftQuotientByUppers(uppers);
+        }
+
+        DFT<Character>& leftQuotientByUppers(Word& uppers) const {
+            DFT<Character>& mdft = minimizeFT();
+            DFTStates initialStates;
+            mdft.getTargetStatesByUppers(uppers, initialStates);
+            if(initialStates.size() == 0) return FT<Character>::EmptyDFT();
+            DFAState2NFAStateMap state2Map;
+            NFT<Character> nft(mdft.getSymbols());
+            DFTState<Character>* dftIniState = mdft.getInitialState();
+            state2Map[dftIniState] = nft.mkInitialState();
+            nft.cpTransByDFA(dftIniState, state2Map);
+            NFAState<Label<Character> >* iniState = nft.mkInitialState();
+            for (DFTState<Character>* state : initialStates) {
+                iniState -> addEpsilonTrans(state2Map[state]);
+            }
+            return nft.minimizeFT();
+        }
 
     };
 };
