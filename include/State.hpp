@@ -18,14 +18,15 @@ namespace cgh{
         static ID counter;
 
     protected:
-        ID id; /// < The unique id for a state.
-        Flag flag; /// < Records some information for this state.
+        ID id;          /// < The unique id for a state.
+        Flag flag;      /// < Records some information for this state.
 
         /// \brief Construction function for this class.
         ///
         /// counter is a static variable that it will plus 1 when a new state is created.
         /// counter maintain that every state has unique id globally.
         State() : id (counter++), flag(0) {}
+
         virtual ~State() {}
 
     public:

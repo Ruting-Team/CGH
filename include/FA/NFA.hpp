@@ -13,6 +13,7 @@
 #include "NFAState.hpp"
 #include "../PDS/PDS.hpp"
 #include "RegExp.hpp"
+#include "NFAParser.hpp"
 
 namespace cgh {
     
@@ -35,7 +36,7 @@ namespace cgh {
         
     protected:
         typedef pair<NFAState<Character>*, Character> StateChar;
-        typedef pair<StateChar, Character> StateChar2;
+        typedef pair<NFAState<Character>*, Char2> StateChar2;
         typedef set<StateChar> StateChars;
         typedef set<StateChar2> StateChar2s;
         typedef unordered_map<Character, StateChars> Char2StateCharsMap;
@@ -43,9 +44,9 @@ namespace cgh {
         typedef unordered_map<NFAState<Character>*, Char2StateCharsMap> NeedMap;
         typedef unordered_map<NFAState<Character>*, Char2StateChar2sMap> Need2Map;
 
-        NFAState<Character>* initialState;     ///< The initial state for this NFA.
-        NFAStates states;       ///< The set of states for this NFA.
-        NFAStates finalStates;  ///< The set of final states for this NFA.
+        NFAState<Character>* initialState;      ///< The initial state for this NFA.
+        NFAStates states;                       ///< The set of states for this NFA.
+        NFAStates finalStates;                  ///< The set of final states for this NFA.
 
         void cpTransByDFA(DFAState<Character>* state, DFAState2NFAStateMap &state2map) {
             FA<Character>::cpNFATransByDFA(this, state, state2map);
@@ -137,91 +138,58 @@ namespace cgh {
             }
         }
         
-        bool addNeedMap(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
-            StateChar stateChar(sState, sc);
-            StateChars stateChars;
-            stateChars.insert(stateChar);
-            auto needmapIt = needMap.find(tState);
-            if (needmapIt != needMap.end()) {
-                auto mapIt = needmapIt -> second.find(tc);
-                if (mapIt != needmapIt -> second.end()) {
-                    if (!mapIt -> second.insert(stateChar).second) return false;
-                } else {
-                    needmapIt -> second[tc] = stateChars;
-                }
-            } else {
-                Char2StateCharsMap char2StateCharsMap;
-                char2StateCharsMap[tc] = stateChars;
-                needMap[tState] = char2StateCharsMap;
-            }
-            return true;
+        bool addNeedMap(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap &needMap) {
+            return needMap[tState][tc].insert(StateChar(sState, sc)).second;
         }
-        bool addNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map &need2Map) {
-            StateChar stateChar(sState, sc);
-            StateChar2 stateChar2(stateChar, tc2);
-            StateChar2s stateChar2s;
-            stateChar2s.insert(stateChar2);
-            auto need2MapIt = need2Map.find(tState);
-            if (need2MapIt != need2Map.end()) {
-                auto mapIt = need2MapIt -> second.find(tc1);
-                if (mapIt != need2MapIt -> second.end()) {
-                    if (!mapIt -> second.insert(stateChar2).second) return false;
-                } else {
-                    need2MapIt -> second[tc1] = stateChar2s;
-                }
-            } else {
-                Char2StateChar2sMap char2StateChar2sMap;
-                char2StateChar2sMap[tc1] = stateChar2s;
-                need2Map[tState] = char2StateChar2sMap;
-            }
-            return true;
+
+        bool addNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, Need2Map &need2Map) {
+            return need2Map[tState][tc1].insert(StateChar2(sState, Char2(sc, tc2))).second;
         }
         
         void addPreStarNeedMap(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
-            if (addNeedMap(sState, sc, tState, tc, needMap, need2Map))
+            if (addNeedMap(sState, sc, tState, tc, needMap))
                 addPreStarTrans(sState, sc, tState, tc, needMap, need2Map);
         }
         
         void addPreStarNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map) {
-            if (addNeed2Map(sState, sc, tState, tc1, tc2, needMap, need2Map)) {
-                NFAStates stateset = tState -> getTargetStatesByChar(tc1);
-                for (NFAState<Character>* state : stateset)
+            if (addNeed2Map(sState, sc, tState, tc1, tc2, need2Map)) {
+                NFAStates states;
+                tState -> getTargetStatesByChar(states, tc1);
+                for (NFAState<Character>* state : states)
                     addPreStarNeedMap(sState, sc, state, tc2, needMap, need2Map);
             }
         }
         
         void addPreStarTrans(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap& needMap, Need2Map& need2Map) {
-            NFAStates stateset;
-            tState -> getTargetStatesByChar(stateset, tc);
-            for (NFAState<Character>* state : stateset)
+            NFAStates states;
+            tState -> getTargetStatesByChar(states, tc);
+            for (NFAState<Character>* state : states)
                 if (sState -> addTrans(sc, state))
                     addPreStarTrans(sState, sc, state, needMap, need2Map);
         }
 
         void addPreStarTrans(NFAState<Character>* sState, Character c, NFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map) {
-            Char2StateCharsMap map = needMap[sState];
-            auto mapIt = map.find(c);
-            if (mapIt != map.end()) {
-                for (StateChar scpair : mapIt -> second)
-                    if (scpair.first -> addTrans(scpair.second, tState))
-                        addPreStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
-            }
-            Char2StateChar2sMap& map2 = need2Map[sState];
-            auto map2It = map2.find(c);
-            if (map2It != map2.end()) {
-                for (StateChar2 sc2pair : map2It -> second) {
-                    addPreStarNeedMap(sc2pair.first.first, sc2pair.first.second, tState, sc2pair.second, needMap, need2Map);
+            auto& stateChars = needMap[sState][c];
+            for (StateChar stateChar: stateChars) {
+                NFAState<Character>* state = stateChar.first;
+                Character character = stateChar.second;
+                if (state -> addTrans(character, tState)) {
+                    addPreStarTrans(state, character, tState, needMap, need2Map);
                 }
+            }
+            auto& stateChar2s = need2Map[sState][c];
+            for (StateChar2 stateChar2: stateChar2s) {
+                addPreStarNeedMap(stateChar2.first, stateChar2.second.first, tState, stateChar2.second.second, needMap, need2Map);
             }
         }
         
         void addPostStarNeedMap(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
-            if (addNeedMap(sState, sc, tState, tc, needMap, need2Map))
+            if (addNeedMap(sState, sc, tState, tc, needMap))
                 addPostStarTrans(sState, sc, tState, tc, needMap, need2Map);
         }
         
         void addPostStarNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map) {
-            if (addNeed2Map(sState, sc, tState, tc1, tc2, needMap, need2Map)) {
+            if (addNeed2Map(sState, sc, tState, tc1, tc2, need2Map)) {
                 NFAState<Character>* midState = mkState();
                 sState -> addTrans(sc, midState);
                 addPostStarTrans(sState, sc, midState, needMap, need2Map);
@@ -230,9 +198,9 @@ namespace cgh {
         }
         
         void addPostStarTrans(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap& needMap, Need2Map& need2Map) {
-            NFAStates nfaStates;
-            tState -> getTargetStatesByChar(nfaStates, tc);
-            for (NFAState<Character>* state : nfaStates) {
+            NFAStates states;
+            tState -> getTargetStatesByChar(states, tc);
+            for (NFAState<Character>* state : states) {
                 if (sState -> addTrans(sc, state)) {
                     addPostStarTrans(sState, sc, state, needMap, need2Map);
                 }
@@ -240,13 +208,12 @@ namespace cgh {
         }
         
         void addPostStarTrans(NFAState<Character>* sState, Character c, NFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map) {
-            Char2StateCharsMap& map = needMap[sState];
-            auto mapIt = map.find(c);
-            if (mapIt != map.end()) {
-                for (StateChar scpair : mapIt -> second) {
-                    if (scpair.first -> addTrans(scpair.second, tState)) {
-                        addPostStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
-                    }
+            StateChars& stateChars = needMap[sState][c];
+            for (StateChar stateChar: stateChars) {
+                NFAState<Character>* state = stateChar.first;
+                Character character = stateChar.second;
+                if (state -> addTrans(character, tState)) {
+                    addPostStarTrans(state, character, tState, needMap, need2Map);
                 }
             }
         }
@@ -303,8 +270,7 @@ namespace cgh {
         /// \brief Copy construction function by DFA.
         /// \param dfa The copied DFA.
         NFA(const DFA<Character>& dfa) {
-            if(!dfa.isNULL())
-            {
+            if(!dfa.isNULL()) {
                 this -> flag = dfa.flag;
                 this -> setAlphabet(dfa.alphabet);
                 NFAState<Character>* iniState = mkInitialState();
@@ -316,11 +282,18 @@ namespace cgh {
             }
         }
 
-        /// \brief Copy construction function by regEx.
+        /// \brief Construction function by regEx.
         /// \param regEx The regular expression.
         NFA(const string& regEx) {
             RegExp<Character> regExp(regEx);
             *this = *regExp.mkNFA();
+        }
+
+        /// \brief Construction function from file.
+        /// \param file the file name.
+        NFA(const string& file, const string& type = "-r") {
+            NFAParser<Character> parser;
+            *this = *parser.parse(file);
         }
         
         /// \brief Desconstruction function.

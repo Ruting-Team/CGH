@@ -11,6 +11,7 @@
 
 #include "../FA/NFA.hpp"
 #include "NFTState.hpp"
+#include "NFTParser.hpp"
 
 namespace cgh {
     
@@ -36,6 +37,13 @@ namespace cgh {
         }
 
         NFT(const Labels& labels, const Characters& chars) : DFA<Label<Character> >(labels), FT<Character>(chars) {
+        }
+
+        /// \brief Construction function from file.
+        /// \param file the file name.
+        NFT(const string& file, const string& type = "-r") {
+            NFTParser<Character> parser;
+            *this = *parser.parse(file);
         }
 
         ID getCode() {

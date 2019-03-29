@@ -90,7 +90,7 @@ namespace cgh{
             }
         }
 
-        static void cpNFATransByNFA(NFA<Character>* nfa, NFAState<Character> *state, NFAState2Map &state2map) {
+        static void cpNFATransByNFA(NFA<Character>* nfa, NFAState<Character>* state, NFAState2Map& state2map) {
             NFAState<Character>* sourceState = state2map[state];
             if (state -> isFinal()) nfa -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
@@ -296,7 +296,7 @@ namespace cgh{
         /// \return A const reference set of Characters.
         const Characters& getAlphabet() const {return alphabet;}
         
-        /// \brief ss alphabet given a set of Characters.
+        /// \brief Sets alphabet given a set of Characters.
         ///
         /// Clears current alphabet and copy param chars to alphabet.
         /// \param chars a const reference set of Character. 
@@ -305,7 +305,7 @@ namespace cgh{
             alphabet.insert(chars.begin(),chars.end());
         }
 
-        /// \brief ss alphabet given a ordered_set of Character.
+        /// \brief Sets alphabet given a ordered_set of Character.
         ///
         /// Clears current alphabet and copy param chars to alphabet.
         /// \param chars a const reference ordered_set of Character. 

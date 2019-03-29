@@ -96,8 +96,7 @@ namespace cgh{
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
         virtual bool addTrans(Character character, NFAState* target) {
-            NFAStates& states = nfaTransMap[character];
-            return states.insert(target).second;
+            return nfaTransMap[character].insert(target).second;
         }
 
         /// \brief Adds a epsilon transition for this state.
