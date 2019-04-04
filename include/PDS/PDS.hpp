@@ -1,6 +1,6 @@
 //
 //  PDS.hpp
-//  CGH-T
+//  CGH
 //
 //  Created by 何锦龙 on 2018/7/14.
 //  Copyright © 2018年 何锦龙. All rights reserved.
@@ -10,33 +10,49 @@
 #define PDS_hpp
 
 #include "PDSTransition.hpp"
+#include "PDSParser.hpp"
 
 namespace cgh {
 
     template <class Character>
     class PDS {
-        typedef typename Alias4FA<Character>::Char2 Char2;
-        typedef typename Alias4FA<Character>::NFAStateSet NFAStateSet;
+        typedef typename Alias4Char<Character>::Char2 Char2;
+        typedef typename Alias4Char<Character>::Characters Characters;
+        typedef typename Alias4FA<Character>::NFAStates NFAStates;
         typedef typename Alias4PDS<Character>::PDSTransList PDSTransList;
         typedef typename Alias4PDS<Character>::PopPDSTransList PopPDSTransList;
         typedef typename Alias4PDS<Character>::PushPDSTransList PushPDSTransList;
         typedef typename Alias4PDS<Character>::ReplacePDSTransList ReplacePDSTransList;
-        typedef typename Alias4PDS<Character>::PDSStateSet PDSStateSet;
+        typedef typename Alias4PDS<Character>::PDSStates PDSStates;
     private:
-        PDSStateSet stateSet;                   ///< The set of states for this PDS.
-        PDSStateSet controlStateSet;            ///< The set of control states for this PDS.
+        PDSStates states;                       ///< The set of states for this PDS.
+        PDSStates controlStates;                ///< The set of control states for this PDS.
         PopPDSTransList popTransList;           ///< The list of pop transitions for this PDS.
         PushPDSTransList pushTransList;         ///< The list of push transitions for this PDS.
         ReplacePDSTransList replaceTransList;   ///< The list of replace transitions for this PDS.
+        Characters alphabet;                    ///< The Alphabet fot this PDS.
     public:
         /// \brief Default construction function.
-        PDS() {}
+        PDS() {
+        }
+
+        /// brief Construction function with param characters.
+        /// \param characters The alphabet.
+        PDS(const Characters& characters) : alphabet(characters.begin(), characters.end()){
+        }
+
+        /// \brief Construction function from file.
+        /// \param file the file name.
+        PDS(const string& file, const string& type = "-r") {
+            PDSParser<Character> parser;
+            *this = *parser.parse(file);
+        }
 
         /// \brief Desconstruction function.
         ///
-        /// delete all states in the stateSet and all transtions.
+        /// delete all states in the states and all transtions.
         ~PDS() {
-            for (PDSState* state : stateSet) {
+            for (PDSState* state : states) {
                 delete state;
             }
             for (PopPDSTrans<Character>* trans : popTransList) {
@@ -50,14 +66,14 @@ namespace cgh {
             }
         }
 
-        PDSStateSet& getControlStateSet() { return controlStateSet; }
-        PDSStateSet& getStateSet() { return stateSet; }
+        PDSStates& getControlStates() { return controlStates; }
+        PDSStates& getStates() { return states; }
         PopPDSTransList& getPopTransList() { return popTransList;}
         PushPDSTransList& getPushTransList() { return pushTransList; }
         ReplacePDSTransList& getReplaceTransList() { return replaceTransList; }
         
-        const PDSStateSet& getControlStateSet() const { return controlStateSet; }
-        const PDSStateSet& getStateSet() const { return stateSet; }
+        const PDSStates& getControlStates() const { return controlStates; }
+        const PDSStates& getStates() const { return states; }
         const PopPDSTransList& getPopTransList() const { return popTransList;}
         const PushPDSTransList& getPushTransList() const { return pushTransList; }
         const ReplacePDSTransList& getReplaceTransList() const { return replaceTransList; }
@@ -67,7 +83,7 @@ namespace cgh {
         /// \return A PDSState pointer.
         PDSState* mkState() {
             PDSState* state = new PDSState();
-            stateSet.insert(state);
+            states.insert(state);
             return state;
         }
 
@@ -76,7 +92,7 @@ namespace cgh {
         /// \return A PDSState pointer.
         PDSState* mkControlState() {
             PDSState* state = mkState();
-            controlStateSet.insert(state);
+            controlStates.insert(state);
             return state;
         }
 
@@ -85,7 +101,7 @@ namespace cgh {
         ///// \return A PDSState pointer.
         //PDSState* mkState(ID id) {
         //    PDSState* state = new PDSState(id);
-        //    stateSet.insert(state);
+        //    states.insert(state);
         //    return state;
         //}
 
@@ -94,7 +110,7 @@ namespace cgh {
         ///// \return A PDSState pointer.
         //PDSState* mkControlState(ID id) {
         //    PDSState state = mkState(id);
-        //    controlStateSet.insert(state);
+        //    controlStates.insert(state);
         //    return state;
         //}
 
@@ -129,6 +145,18 @@ namespace cgh {
             ReplacePDSTrans<Character>* pdsTrans = new ReplacePDSTrans<Character>(sourceState, targetState, character, stack);
             replaceTransList.push_back(pdsTrans);
             return pdsTrans;
+        }
+
+        void output() {
+            for (auto transition : popTransList) {
+                transition -> output();
+            }
+            for (auto transition : replaceTransList) {
+                transition -> output();
+            }
+            for (auto transition : pushTransList) {
+                transition -> output();
+            }
         }
     };
 }

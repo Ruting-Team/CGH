@@ -47,13 +47,13 @@ namespace cgh{
             return lower;
         }
 
-        /// \brief Sets the upper character for this Label.
+        /// \brief ss the upper character for this Label.
         /// \param u the upper character.
         void setUpper(Character u) {
             upper = u;
         }
 
-        /// \brief Sets the lower character for this Label.
+        /// \brief ss the lower character for this Label.
         /// \param u the lower character.
         void setLower(Character l) {
             lower = l;
@@ -71,6 +71,8 @@ namespace cgh{
             out << label.getUpper() << "," << label.getLower(); 
             return out;
         }
+
+        friend DFT<Character>;
 
 
     };

@@ -13,6 +13,7 @@
 #include "NFAState.hpp"
 #include "../PDS/PDS.hpp"
 #include "RegExp.hpp"
+#include "NFAParser.hpp"
 
 namespace cgh {
     
@@ -22,30 +23,31 @@ namespace cgh {
     {
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::Char2 Char2;
-        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
+        typedef typename Alias4Char<Character>::Characters Characters;
 
-        typedef typename Alias4FA<Character>::NFAStateSet NFAStateSet;
+        typedef typename Alias4FA<Character>::NFAStates NFAStates;
         typedef typename Alias4FA<Character>::NFATransMap NFATransMap;
         typedef typename Alias4FA<Character>::NFAState2Map NFAState2Map;
         typedef typename Alias4FA<Character>::DFAState2NFAStateMap DFAState2NFAStateMap;
-        typedef typename Alias4FA<Character>::NFAStateSet2DFAStateMap NFAStateSet2DFAStateMap;
-        typedef typename Alias4FA<Character>::NFAState2NFAStateSetMap NFAState2NFAStateSetMap;
+        typedef typename Alias4FA<Character>::NFAStates2DFAStateMap NFAStates2DFAStateMap;
+        typedef typename Alias4FA<Character>::NFAState2NFAStatesMap NFAState2NFAStatesMap;
         typedef typename Alias4PDS<Character>::PDSState2NFAStateMap PDSState2NFAStateMap;
-        typedef typename Alias4PDS<Character>::PDSStateSet PDSStateSet;
+        typedef typename Alias4PDS<Character>::PDSStates PDSStates;
         
     protected:
         typedef pair<NFAState<Character>*, Character> StateChar;
-        typedef pair<StateChar, Character> StateChar2;
-        typedef set<StateChar> StateCharSet;
-        typedef set<StateChar2> StateChar2Set;
-        typedef unordered_map<Character, StateCharSet> Char2StateCharSetMap;
-        typedef unordered_map<Character, StateChar2Set> Char2StateChar2SetMap;
-        typedef unordered_map<NFAState<Character>*, Char2StateCharSetMap> NeedMap;
-        typedef unordered_map<NFAState<Character>*, Char2StateChar2SetMap> Need2Map;
+        typedef pair<NFAState<Character>*, Char2> StateChar2;
+        typedef set<StateChar> StateChars;
+        typedef set<StateChar2> StateChar2s;
+        typedef unordered_map<Character, StateChars> Char2StateCharsMap;
+        typedef unordered_map<Character, StateChar2s> Char2StateChar2sMap;
+        typedef unordered_map<NFAState<Character>*, Char2StateCharsMap> NeedMap;
+        typedef unordered_map<NFAState<Character>*, Char2StateChar2sMap> Need2Map;
+        typedef unordered_map<StateChar, NFAState<Character>*> PostStarMap;
 
-        NFAState<Character>* initialState;     ///< The initial state for this NFA.
-        NFAStateSet stateSet;       ///< The set of states for this NFA.
-        NFAStateSet finalStateSet;  ///< The set of final states for this NFA.
+        NFAState<Character>* initialState;      ///< The initial state for this NFA.
+        NFAStates states;                       ///< The set of states for this NFA.
+        NFAStates finalStates;                  ///< The set of final states for this NFA.
 
         void cpTransByDFA(DFAState<Character>* state, DFAState2NFAStateMap &state2map) {
             FA<Character>::cpNFATransByDFA(this, state, state2map);
@@ -55,22 +57,22 @@ namespace cgh {
             FA<Character>::cpNFATransByNFA(this, state, state2map);
         }
 
-        void getReachableStateSet(NFAStateSet& reachableStateSet, NFAStateSet& workSet) {
-            NFAStateSet targetStateSet, newWorkSet;
-            for (NFAState<Character>* state : workSet) {
-                targetStateSet.clear();
-                state -> getTargetStateSet(targetStateSet);
-                for (NFAState<Character>* targetState : targetStateSet) {
-                    if (reachableStateSet.insert(targetState).second)
-                        newWorkSet.insert(targetState);
+        void getReachableStates(NFAStates& reachableStates, NFAStates& works) {
+            NFAStates targetStates, newWorks;
+            for (NFAState<Character>* state : works) {
+                targetStates.clear();
+                state -> getTargetStates(targetStates);
+                for (NFAState<Character>* targetState : targetStates) {
+                    if (reachableStates.insert(targetState).second)
+                        newWorks.insert(targetState);
                 }
             }
-            if (newWorkSet.size() == 0) return;
-            getReachableStateSet(reachableStateSet, newWorkSet);
+            if (newWorks.size() == 0) return;
+            getReachableStates(reachableStates, newWorks);
         }
         
-        void getReverseMap(NFAState2NFAStateSetMap& reverseMap) {
-            for (NFAState<Character>* state : stateSet) {
+        void getReverseMap(NFAState2NFAStatesMap& reverseMap) {
+            for (NFAState<Character>* state : states) {
                 for (auto& mapPair : state -> getTransMap()) {
                     for (NFAState<Character>* nfaState : mapPair.second) {
                         reverseMap[nfaState].insert(state);
@@ -79,50 +81,50 @@ namespace cgh {
             }
         }
         
-        void getLiveStateSet(const NFAState2NFAStateSetMap& reverseMap, NFAStateSet& liveStateSet, NFAStateSet& workSet) {
-            NFAStateSet newWorkSet;
-            for (NFAState<Character>* state : workSet) {
+        void getLiveStates(const NFAState2NFAStatesMap& reverseMap, NFAStates& liveStates, NFAStates& works) {
+            NFAStates newWorks;
+            for (NFAState<Character>* state : works) {
                 auto mapIt = reverseMap.find(state);
                 if (mapIt != reverseMap.end()) {
                     for (NFAState<Character>* reverseState : mapIt -> second) {
-                        if (liveStateSet.insert(reverseState).second) {
-                            newWorkSet.insert(reverseState);
+                        if (liveStates.insert(reverseState).second) {
+                            newWorks.insert(reverseState);
                         }
                     }
                 }
             }
-            if (workSet.size() == 0) return;
-            getLiveStateSet(reverseMap, liveStateSet, newWorkSet);
+            if (works.size() == 0) return;
+            getLiveStates(reverseMap, liveStates, newWorks);
         }
 
-        void getTransMapByStateSet(const NFAStateSet& stateSet, NFATransMap& nfaTransMap) const {
-            for (NFAState<Character>* state : stateSet) {
-                NFAStateSet workSet;
+        void getTransMapByStates(const NFAStates& states, NFATransMap& nfaTransMap) const {
+            for (NFAState<Character>* state : states) {
+                NFAStates works;
                 for (auto& mapPair : state -> getTransMap()) {
                     if (mapPair.first != FA<Character>::epsilon) {
-                        workSet.clear();
-                        state -> getTargetStateSetByChar(workSet, mapPair.first);
-                        if (workSet.size() > 0)
-                            nfaTransMap[mapPair.first].insert(workSet.begin(), workSet.end());
+                        works.clear();
+                        state -> getTargetStatesByChar(works, mapPair.first);
+                        if (works.size() > 0)
+                            nfaTransMap[mapPair.first].insert(works.begin(), works.end());
                     }
                 }
             }
         }
         
         void determinize(DFA<Character>* dfa) const {
-            NFAStateSet epsilonClosure;
+            NFAStates epsilonClosure;
             initialState -> getEpsilonClosure(epsilonClosure);
             epsilonClosure.insert(initialState);
-            NFAStateSet2DFAStateMap setMap;
+            NFAStates2DFAStateMap setMap;
             determinize(dfa, dfa -> mkInitialState(), epsilonClosure, setMap);
             dfa -> setReachableFlag(1);
             Manage::manage(dfa);
         }
 
-        void determinize(DFA<Character>* dfa, DFAState<Character>* sourceState, const NFAStateSet& nfaStateSet, NFAStateSet2DFAStateMap &setMap) const {
-            if (hasFinalState(nfaStateSet)) dfa -> addFinalState(sourceState);
+        void determinize(DFA<Character>* dfa, DFAState<Character>* sourceState, const NFAStates& nfaStates, NFAStates2DFAStateMap &setMap) const {
+            if (hasFinalState(nfaStates)) dfa -> addFinalState(sourceState);
             NFATransMap transMap;
-            getTransMapByStateSet(nfaStateSet, transMap);
+            getTransMapByStates(nfaStates, transMap);
             for (auto& mapPair : transMap) {
                 auto setMapIt = setMap.find(mapPair.second);
                 DFAState<Character>* targetState = nullptr;
@@ -137,102 +139,73 @@ namespace cgh {
             }
         }
         
-        bool addNeedMap(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
-            StateChar stateChar(sState, sc);
-            StateCharSet stateCharSet;
-            stateCharSet.insert(stateChar);
-            auto needmapIt = needMap.find(tState);
-            if (needmapIt != needMap.end()) {
-                auto mapIt = needmapIt -> second.find(tc);
-                if (mapIt != needmapIt -> second.end()) {
-                    if (!mapIt -> second.insert(stateChar).second) return false;
-                } else {
-                    needmapIt -> second[tc] = stateCharSet;
-                }
-            } else {
-                Char2StateCharSetMap char2StateCharSetMap;
-                char2StateCharSetMap[tc] = stateCharSet;
-                needMap[tState] = char2StateCharSetMap;
-            }
-            return true;
+        bool addNeedMap(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap &needMap) {
+            return needMap[tState][tc].insert(StateChar(sState, sc)).second;
         }
-        bool addNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map &need2Map) {
-            StateChar stateChar(sState, sc);
-            StateChar2 stateChar2(stateChar, tc2);
-            StateChar2Set stateChar2Set;
-            stateChar2Set.insert(stateChar2);
-            auto need2MapIt = need2Map.find(tState);
-            if (need2MapIt != need2Map.end()) {
-                auto mapIt = need2MapIt -> second.find(tc1);
-                if (mapIt != need2MapIt -> second.end()) {
-                    if (!mapIt -> second.insert(stateChar2).second) return false;
-                } else {
-                    need2MapIt -> second[tc1] = stateChar2Set;
-                }
-            } else {
-                Char2StateChar2SetMap char2StateChar2SetMap;
-                char2StateChar2SetMap[tc1] = stateChar2Set;
-                need2Map[tState] = char2StateChar2SetMap;
-            }
-            return true;
+
+        bool addNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, Need2Map &need2Map) {
+            return need2Map[tState][tc1].insert(StateChar2(sState, Char2(sc, tc2))).second;
         }
         
         void addPreStarNeedMap(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
-            if (addNeedMap(sState, sc, tState, tc, needMap, need2Map))
+            if (addNeedMap(sState, sc, tState, tc, needMap))
                 addPreStarTrans(sState, sc, tState, tc, needMap, need2Map);
         }
         
         void addPreStarNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map) {
-            if (addNeed2Map(sState, sc, tState, tc1, tc2, needMap, need2Map)) {
-                NFAStateSet stateset = tState -> getTargetStateSetByChar(tc1);
-                for (NFAState<Character>* state : stateset)
+            if (addNeed2Map(sState, sc, tState, tc1, tc2, need2Map)) {
+                NFAStates states;
+                tState -> getTargetStatesByChar(states, tc1);
+                for (NFAState<Character>* state : states)
                     addPreStarNeedMap(sState, sc, state, tc2, needMap, need2Map);
             }
         }
         
         void addPreStarTrans(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap& needMap, Need2Map& need2Map) {
-            NFAStateSet stateset;
-            tState -> getTargetStateSetByChar(stateset, tc);
-            for (NFAState<Character>* state : stateset)
+            NFAStates states;
+            tState -> getTargetStatesByChar(states, tc);
+            for (NFAState<Character>* state : states)
                 if (sState -> addTrans(sc, state))
                     addPreStarTrans(sState, sc, state, needMap, need2Map);
         }
 
         void addPreStarTrans(NFAState<Character>* sState, Character c, NFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map) {
-            Char2StateCharSetMap map = needMap[sState];
-            auto mapIt = map.find(c);
-            if (mapIt != map.end()) {
-                for (StateChar scpair : mapIt -> second)
-                    if (scpair.first -> addTrans(scpair.second, tState))
-                        addPreStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
-            }
-            Char2StateChar2SetMap& map2 = need2Map[sState];
-            auto map2It = map2.find(c);
-            if (map2It != map2.end()) {
-                for (StateChar2 sc2pair : map2It -> second) {
-                    addPreStarNeedMap(sc2pair.first.first, sc2pair.first.second, tState, sc2pair.second, needMap, need2Map);
+            auto& stateChars = needMap[sState][c];
+            for (StateChar stateChar: stateChars) {
+                NFAState<Character>* state = stateChar.first;
+                Character character = stateChar.second;
+                if (state -> addTrans(character, tState)) {
+                    addPreStarTrans(state, character, tState, needMap, need2Map);
                 }
+            }
+            auto& stateChar2s = need2Map[sState][c];
+            for (StateChar2 stateChar2: stateChar2s) {
+                addPreStarNeedMap(stateChar2.first, stateChar2.second.first, tState, stateChar2.second.second, needMap, need2Map);
             }
         }
         
         void addPostStarNeedMap(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
-            if (addNeedMap(sState, sc, tState, tc, needMap, need2Map))
+            if (addNeedMap(sState, sc, tState, tc, needMap))
                 addPostStarTrans(sState, sc, tState, tc, needMap, need2Map);
         }
         
-        void addPostStarNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map) {
-            if (addNeed2Map(sState, sc, tState, tc1, tc2, needMap, need2Map)) {
-                NFAState<Character>* midState = mkState();
-                sState -> addTrans(sc, midState);
-                addPostStarTrans(sState, sc, midState, needMap, need2Map);
+        void addPostStarNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map, PostStarMap& postStarMap) {
+            if (addNeed2Map(sState, sc, tState, tc1, tc2, need2Map)) {
+                NFAState<Character>* midState = postStarMap[StateChar(sState, sc)];
+                if (!midState) {
+                    midState = mkState();
+                    postStarMap[StateChar(sState, sc)] = midState;
+                    sState -> addTrans(sc, midState);
+                    addPostStarTrans(sState, sc, midState, needMap, need2Map);
+                }
                 addPostStarNeedMap(midState, tc2, tState, tc1, needMap, need2Map);
             }
         }
         
         void addPostStarTrans(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc, NeedMap& needMap, Need2Map& need2Map) {
-            NFAStateSet nfaStateSet;
-            tState -> getTargetStateSetByChar(nfaStateSet, tc);
-            for (NFAState<Character>* state : nfaStateSet) {
+            NFAStates states;
+            tState -> getTargetStatesByChar(states, tc);
+            for (NFAState<Character>* state : states) {
                 if (sState -> addTrans(sc, state)) {
                     addPostStarTrans(sState, sc, state, needMap, need2Map);
                 }
@@ -240,23 +213,22 @@ namespace cgh {
         }
         
         void addPostStarTrans(NFAState<Character>* sState, Character c, NFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map) {
-            Char2StateCharSetMap& map = needMap[sState];
-            auto mapIt = map.find(c);
-            if (mapIt != map.end()) {
-                for (StateChar scpair : mapIt -> second) {
-                    if (scpair.first -> addTrans(scpair.second, tState)) {
-                        addPostStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
-                    }
+            StateChars& stateChars = needMap[sState][c];
+            for (StateChar stateChar: stateChars) {
+                NFAState<Character>* state = stateChar.first;
+                Character character = stateChar.second;
+                if (state -> addTrans(character, tState)) {
+                    addPostStarTrans(state, character, tState, needMap, need2Map);
                 }
             }
         }
 
         void mkPDSState2Map(NFA* nfa, const PDS<Character>& pds, NFAState2Map& copyMap, PDSState2NFAStateMap& state2Map) {
-            PDSStateSet pdsStateSet;
+            PDSStates pdsStates;
             for (auto& mapPair : state2Map)
-                pdsStateSet.insert(mapPair.first);
-            for (PDSState* state : pds.getStateSet()) {
-                if (pdsStateSet.find(state) == pdsStateSet.end()) {
+                pdsStates.insert(mapPair.first);
+            for (PDSState* state : pds.getStates()) {
+                if (pdsStates.find(state) == pdsStates.end()) {
                     state2Map[state] = nfa -> mkState();
                 } else {
                     state2Map[state] = copyMap[state2Map[state]];
@@ -270,8 +242,8 @@ namespace cgh {
         }
 
         /// \brief Construction function with alphabet.
-        /// \param charSet The alphabet.
-        NFA(const CharacterSet& charSet) : FA<Character>(charSet), initialState(nullptr) {
+        /// \param chars The alphabet.
+        NFA(const Characters& chars) : FA<Character>(chars), initialState(nullptr) {
         }
 
         /// \brief Copy construction function.
@@ -303,8 +275,7 @@ namespace cgh {
         /// \brief Copy construction function by DFA.
         /// \param dfa The copied DFA.
         NFA(const DFA<Character>& dfa) {
-            if(!dfa.isNULL())
-            {
+            if(!dfa.isNULL()) {
                 this -> flag = dfa.flag;
                 this -> setAlphabet(dfa.alphabet);
                 NFAState<Character>* iniState = mkInitialState();
@@ -316,11 +287,18 @@ namespace cgh {
             }
         }
 
-        /// \brief Copy construction function by regEx.
+        /// \brief Construction function by regEx.
         /// \param regEx The regular expression.
         NFA(const string& regEx) {
             RegExp<Character> regExp(regEx);
             *this = *regExp.mkNFA();
+        }
+
+        /// \brief Construction function from file.
+        /// \param file the file name.
+        NFA(const string& file, const string& type = "-r") {
+            NFAParser<Character> parser;
+            *this = *parser.parse(file);
         }
         
         /// \brief Desconstruction function.
@@ -328,7 +306,7 @@ namespace cgh {
         /// delete all pointers of states for this NFA.
         ~NFA() {
             initialState = nullptr;
-            for (NFAState<Character>* state : stateSet) {
+            for (NFAState<Character>* state : states) {
                 delete state;
             }
         }
@@ -345,30 +323,30 @@ namespace cgh {
             initialState = state;
         }
 
-        /// \brief Adds param state to finalStateSet.
-        /// \param state The state to be added in finalStateSet.
+        /// \brief Adds param state to finalStates.
+        /// \param state The state to be added in finalStates.
         void addFinalState(NFAState<Character>* state) {
-            finalStateSet.insert(state);
+            finalStates.insert(state);
             state -> setFinalFlag(1);
         }
 
-        /// \brief Deletes param state from finalStateSet.
-        /// \param state The state to be deleted from finalStateSet.
+        /// \brief Deletes param state from finalStates.
+        /// \param state The state to be deleted from finalStates.
         void delFinalState(NFAState<Character>* state) {
             state -> setFinalFlag(0);
-            finalStateSet.erase(state);
+            finalStates.erase(state);
         }
 
-        /// \brief Gets stateSet.
+        /// \brief Gets states.
         /// \return The set reference of NFAState pointer for this NFA.
-        NFAStateSet& getStateSet() {
-            return stateSet;
+        NFAStates& getStates() {
+            return states;
         }
 
-        /// \brief Gets finalStateSet.
+        /// \brief Gets finalStates.
         /// \return The set reference of NFAState pointer for this NFA.
-        NFAStateSet& getFinalStateSet() {
-            return finalStateSet;
+        NFAStates& getFinalStates() {
+            return finalStates;
         }
 
         /// \brief Gets initialState.
@@ -377,16 +355,16 @@ namespace cgh {
             return initialState;
         }
 
-        /// \brief Gets stateSet, a const function.
+        /// \brief Gets states, a const function.
         /// \return The const set reference of NFAState pointer for this NFA.
-        const NFAStateSet& getStateSet() const {
-            return stateSet;
+        const NFAStates& getStates() const {
+            return states;
         }
 
-        /// \brief Gets finalStateSet, a const function.
+        /// \brief Gets finalStates, a const function.
         /// \return The const set reference of NFAState pointer for this NFA.
-        const NFAStateSet& getFinalStateSet() const {
-            return finalStateSet;
+        const NFAStates& getFinalStates() const {
+            return finalStates;
         }
 
         /// \brief Gets initialState, a const function.
@@ -395,29 +373,29 @@ namespace cgh {
             return initialState;
         }
 
-        /// \brief Removes all state in the finalStateSet for this NFA.
-        void clearFinalStateSet() {
-            for (NFAState<Character>* state : finalStateSet) {
+        /// \brief Removes all state in the finalStates for this NFA.
+        void clearFinalStates() {
+            for (NFAState<Character>* state : finalStates) {
                 state -> setFinalFlag(0);
             }
-            finalStateSet.clear();
+            finalStates.clear();
         }
 
-        /// \brief Checks whether given param stateSet has finalState.
-        /// \param stateSet The NFAStateSet for checking.
-        /// \return True means param stateSet has finalState, otherwise not.
-        static bool hasFinalState(const NFAStateSet& stateSet) {
-            for (NFAState<Character>* state : stateSet) {
+        /// \brief Checks whether given param states has finalState.
+        /// \param states The NFAStates for checking.
+        /// \return True means param states has finalState, otherwise not.
+        static bool hasFinalState(const NFAStates& states) {
+            for (NFAState<Character>* state : states) {
                 if (state -> isFinal()) return true;
             }
             return false;
         }
 
-        /// \brief Checks whether all states in the given param stateSet are finalState.
-        /// \param stateSet The NFAStateSet for checking.
+        /// \brief Checks whether all states in the given param states are finalState.
+        /// \param states The NFAStates for checking.
         /// \return True means all states are finalState, otherwise not.
-        static bool allFinalState(const NFAStateSet& stateSet) {
-            for (NFAState<Character>* state : stateSet) {
+        static bool allFinalState(const NFAStates& states) {
+            for (NFAState<Character>* state : states) {
                 if (!state -> isFinal()) return false;
             }
             return true;
@@ -427,15 +405,15 @@ namespace cgh {
         /// \return A NFAState pointer made by this NFA.
         virtual NFAState<Character>* mkState() {
             NFAState<Character>* state = new NFAState<Character>();
-            stateSet.insert(state);
+            states.insert(state);
             return state;
         }
 
         /// \brief Deletes a state in this NFA.
         /// \param state The state to be deleted in this NFA.
         void delState(NFAState<Character>* state) {
-            stateSet.erase(state);
-            finalStateSet.erase(state);
+            states.erase(state);
+            finalStates.erase(state);
             if (initialState == state) initialState = nullptr;
             delete state;
         }
@@ -452,18 +430,18 @@ namespace cgh {
         virtual NFAState<Character>* mkFinalState() {
             NFAState<Character>* state = mkState();
             state -> setFinalFlag(1);
-            finalStateSet.insert(state);
+            finalStates.insert(state);
             return state;
         }
 
         bool isNULL() {
             if (!this -> isReachable()) removeUnreachableState();
-            if (finalStateSet.size() == 0) return true;
+            if (finalStates.size() == 0) return true;
             return false;
         }
 
         bool isNULL() const {
-            if (finalStateSet.size() == 0) return true;
+            if (finalStates.size() == 0) return true;
             return false;
         }
 
@@ -493,7 +471,7 @@ namespace cgh {
             NFAState2Map state2Map;
             state2Map[const_cast<State*>(iState)] = iniState;
             nfa -> cpTransByNFA((const_cast<State*>(iState)), state2Map);
-            nfa -> clearFinalStateSet();
+            nfa -> clearFinalStates();
             NFAState<Character>* nfaState = (state2Map[const_cast<State*>(fState)]);
             nfa -> addFinalState(nfaState);
             nfa -> removeDeadState();
@@ -501,30 +479,30 @@ namespace cgh {
         }
 
         void removeUnreachableState() {
-            if (finalStateSet.size() == 0) return;
+            if (finalStates.size() == 0) return;
             if (this -> isReachable()) return;
-            NFAStateSet reachableStateSet, workSet;
-            workSet.insert(initialState);
-            reachableStateSet.insert(initialState);
-            getReachableStateSet(reachableStateSet, workSet);
-            if (!NFA::hasFinalState(reachableStateSet)) {
-                clearFinalStateSet();
+            NFAStates reachableStates, works;
+            works.insert(initialState);
+            reachableStates.insert(initialState);
+            getReachableStates(reachableStates, works);
+            if (!NFA::hasFinalState(reachableStates)) {
+                clearFinalStates();
                 return;
             }
-            if (reachableStateSet.size() != this -> stateSet.size()) {
-                NFAStateSet delSet;
-                for (NFAState<Character>* state : stateSet) {
-                    if (reachableStateSet.count(state) == 0) {
-                        NFAStateSet targetStateSet = state -> getTargetStateSet();
-                        for (NFAState<Character>* tState : targetStateSet) {
-                            if (reachableStateSet.count(tState) > 0)
+            if (reachableStates.size() != this -> states.size()) {
+                NFAStates dels;
+                for (NFAState<Character>* state : states) {
+                    if (reachableStates.count(state) == 0) {
+                        NFAStates targetStates = state -> getTargetStates();
+                        for (NFAState<Character>* tState : targetStates) {
+                            if (reachableStates.count(tState) > 0)
                                 state -> delNFATrans(tState);
                         }
-                        delSet.insert(state);
+                        dels.insert(state);
                     }
                 }
-                for (NFAState<Character>* state : delSet) {
-                    stateSet.erase(state);
+                for (NFAState<Character>* state : dels) {
+                    states.erase(state);
                     delete state;
                 }
             }
@@ -533,27 +511,27 @@ namespace cgh {
 
         void removeDeadState() {
             if (isNULL()) return;
-            NFAState2NFAStateSetMap reverseMap;
+            NFAState2NFAStatesMap reverseMap;
             getReverseMap(reverseMap);
-            NFAStateSet liveStateSet(finalStateSet.begin(), finalStateSet.end());
-            getLiveStateSet(reverseMap, liveStateSet, finalStateSet);
-            if (liveStateSet.count(initialState) == 0) {
-                clearFinalStateSet();
+            NFAStates liveStates(finalStates.begin(), finalStates.end());
+            getLiveStates(reverseMap, liveStates, finalStates);
+            if (liveStates.count(initialState) == 0) {
+                clearFinalStates();
                 return;
             }
-            NFAStateSet delSet;
-            for(NFAState<Character>* state : stateSet) {
-                if (liveStateSet.count(state) == 0) {
-                    NFAStateSet sourceStateSet = reverseMap.find(state) -> second;
-                    for (NFAState<Character>* sState : sourceStateSet) {
-                        if (liveStateSet.count(sState) > 0)
+            NFAStates dels;
+            for(NFAState<Character>* state : states) {
+                if (liveStates.count(state) == 0) {
+                    NFAStates sourceStates = reverseMap.find(state) -> second;
+                    for (NFAState<Character>* sState : sourceStates) {
+                        if (liveStates.count(sState) > 0)
                             sState -> delNFATrans(state);
                     }
-                    delSet.insert(state);
+                    dels.insert(state);
                 }
             }
-            for (NFAState<Character>* state : delSet) {
-                stateSet.erase(state);
+            for (NFAState<Character>* state : dels) {
+                states.erase(state);
                 delete state;
             }
         }
@@ -562,39 +540,39 @@ namespace cgh {
         
         bool isAccepted(const Word &word) {
             if (isNULL()) return false;
-            NFAStateSet workSet;
-            workSet.insert(initialState);
+            NFAStates works;
+            works.insert(initialState);
             for (Character c : word) {
-                if (workSet.size() > 0) {
-                    NFAStateSet newWorkSet;
-                    for(NFAState<Character>* state : workSet)
-                        state -> getTargetStateSetByChar(newWorkSet, c);
-                    workSet.clear();
-                    if (newWorkSet.size() > 0) {
-                        workSet.insert(newWorkSet.begin(), newWorkSet.end());
+                if (works.size() > 0) {
+                    NFAStates newWorks;
+                    for(NFAState<Character>* state : works)
+                        state -> getTargetStatesByChar(newWorks, c);
+                    works.clear();
+                    if (newWorks.size() > 0) {
+                        works.insert(newWorks.begin(), newWorks.end());
                     } else {
                         return false;
                     }
                 }
             }
-            if (workSet.size() == 0) return false;
-            if (NFA::hasFinalState(workSet)) return true;
+            if (works.size() == 0) return false;
+            if (NFA::hasFinalState(works)) return true;
             return false;
         }
 
         bool isAccepted(Character character) {
             if (isNULL()) return false;
-            NFAStateSet workSet;
-            initialState -> getTargetStateSetByChar(workSet, character);
-            if (workSet.size() == 0) return false;
-            if (NFA::hasFinalState(workSet)) return true;
+            NFAStates works;
+            initialState -> getTargetStatesByChar(works, character);
+            if (works.size() == 0) return false;
+            if (NFA::hasFinalState(works)) return true;
             return false;
         }
         
         bool isEmpty() {
             if (isNULL()) return true;
             if (!this -> isReachable()) removeUnreachableState();
-            if (finalStateSet.size() == 0) return true;
+            if (finalStates.size() == 0) return true;
             return false;
         }
         
@@ -645,6 +623,7 @@ namespace cgh {
             NFA* nfa = new NFA(*this, copyMap);
             NeedMap needMap;
             Need2Map need2Map;
+            PostStarMap postStarMap;
             mkPDSState2Map(this, pds, copyMap, state2Map);
             
             for (PopPDSTrans<Character>* trans : pds.getPopTransList()) {
@@ -667,7 +646,7 @@ namespace cgh {
                 NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
                 Character character = trans -> getChar();
                 Char2& stack = trans -> getStack();
-                nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map);
+                nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map, postStarMap);
             }
             nfa -> removeUnreachableState();
             nfa -> removeDeadState();
@@ -679,7 +658,7 @@ namespace cgh {
         void output()const{
             if(!initialState) return;
             cout<<initialState -> getID()<<endl;
-            for(auto it = stateSet.begin(); it != stateSet.end(); it++)
+            for(auto it = states.begin(); it != states.end(); it++)
             {
                 if((*it)->isFinal()) cout<<"$"<<(*it)->getID()<<endl;;
                 dynamic_cast<NFAState<Character>*>((*it))->output();
@@ -699,14 +678,14 @@ namespace cgh {
             
             
             // cout final states
-            for (auto iter = finalStateSet.begin(); iter != finalStateSet.end(); iter++) {
+            for (auto iter = finalStates.begin(); iter != finalStates.end(); iter++) {
                 f << "Q" << (*iter) -> getID() << " [shape=doublecircle];\n";
             }
             f << ";\n";
             
             
             // cout trisitions
-            for(auto iter = stateSet.begin(); iter != stateSet.end(); iter++)
+            for(auto iter = states.begin(); iter != states.end(); iter++)
             {
                 NFATransMap& transMap = (*iter)->getTransMap();
                 ID id = (*iter)->getID();

@@ -14,68 +14,69 @@ namespace cgh{
 
     template <class Character>
     class DFTState : public DFAState<Label<Character> > {
-        typedef typename Alias4FA<Character>::DFAStateSet DFAStateSet;
-        typedef typename Alias4FT<Character>::DFTStateSet DFTStateSet;
-        typedef typename Alias4Char<Character>::CharacterSet CharacterSet;
+        typedef typename Alias4FA<Character>::DFAStates DFAStates;
+        typedef typename Alias4FT<Character>::DFTStates DFTStates;
+        typedef typename Alias4Char<Character>::Characters Characters;
+        typedef typename Alias4Char<Character>::Word Word;
+        typedef typename Alias4Char<Character>::Words Words;
         typedef typename Alias4FT<Character>::Char2LabelsMap Char2LabelsMap;
-        typedef typename Alias4FT<Character>::DFTTransMap DFTTransMap;
+        typedef typename Alias4FT<Character>::Char2DFTStateMap Char2DFTStateMap;
+        typedef typename Alias4FT<Character>::DFTState2WordsMap DFTState2WordsMap;
 
     private:
         Char2LabelsMap upperMap;      ///< the map from upper to Labels.
         Char2LabelsMap lowerMap;      ///< the map from lower to Labels.
 
-        //void mkChar2LabelsMap() {
-        //    if (char2LabelsMap.size() == 0) {
-        //        for (auto& mapPair : this -> nfaTansMap) {
-        //            Label<Character>& label = mapPair.first;
-        //            char2LabelsMap[label.getUpper()] = label;
-        //        }
-        //    }
-        //}
-
-        void getTargetStateSetAndLowers(Character upper, DFTTransMap& map) {
+        void translate(Character upper, Words& words,  DFTState2WordsMap& map) {
             auto mapIt = upperMap.find(upper);
             if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt -> second) {
-                    map[label.getLower()] = (DFTState*)(this -> getTargetStateByChar(label));
+                    Character lower = label.getLower();
+                    DFTState* state = (DFTState*)(this -> getTargetStateByChar(label));
+                    if (state) {
+                        for (Word word : words) {
+                            word.push_back(lower);
+                            map[state].push_back(word);
+                        }
+                    }
                 }
             }
         }
 
-        void getTargetStateSetByUpper(Character upper, DFTStateSet& stateSet) {
+        void getTargetStatesAndLowers(Character upper, Char2DFTStateMap& map) {
             auto mapIt = upperMap.find(upper);
             if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt -> second) {
-                    stateSet.insert((DFTState*)(this -> getTargetStateByChar(label)));
+                    map[label.getLower()] = (DFTState*)this -> getTargetStateByChar(label);
                 }
             }
         }
 
-        void getTargetStateSetAndUppers(Character upper, DFTTransMap& map) {
+        void getTargetStatesByUpper(Character upper, DFTStates& states) {
             auto mapIt = upperMap.find(upper);
             if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt -> second) {
-                    map[label.getLower()] = this -> getTargetStateByChar(label);
+                    states.insert((DFTState*)(this -> getTargetStateByChar(label)));
                 }
             }
         }
 
-        void getTargetStateSetByLower(Character lower, DFTStateSet& stateSet) {
+        void getTargetStatesByLower(Character lower, DFTStates& states) {
             auto mapIt = lowerMap.find(lower);
             if (mapIt != lowerMap.end()) {
                 for (auto& label : mapIt -> second) {
-                    stateSet.insert((DFTState*)(this -> getTargetStateByChar(label)));
+                    states.insert((DFTState*)(this -> getTargetStateByChar(label)));
                 }
             }
         }
 
     public:
-        /// \brief Gets the lowers and the target stateSet from upper.
+        /// \brief Gets the lowers and the target states from upper.
         /// \param upper The upper Character in label.
-        /// \param staetSet The target stateSet.
+        /// \param staets The target states.
         /// \return The set of Character.
-        DFTTransMap getTargetStateSetAndLowers(Character upper) {
-            DFTTransMap map;
+        Char2DFTStateMap getTargetStatesAndLowers(Character upper) {
+            Char2DFTStateMap map;
             auto mapIt = upperMap.find(upper);
             if (mapIt != upperMap.end()) {
                 for (auto& label : mapIt.second) {
@@ -85,8 +86,8 @@ namespace cgh{
             return map;
         }
 
-        DFTTransMap getTargetStateSetAndUppers(Character lower) {
-            DFTTransMap map;
+        Char2DFTStateMap getTargetStatesAndUppers(Character lower) {
+            Char2DFTStateMap map;
             auto mapIt = lowerMap.find(lower);
             if (mapIt != lowerMap.end()) {
                 for (auto& label : mapIt.second) {
@@ -111,9 +112,8 @@ namespace cgh{
         }
 
         friend FT<Character>;
-
+        friend DFT<Character>;
     };
-
 }
 
 

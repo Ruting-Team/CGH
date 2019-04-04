@@ -1,6 +1,6 @@
 //
 //  PDSTrans.hpp
-//  CGH-T
+//  CGH
 //
 //  Created by 何锦龙 on 2018/7/14.
 //  Copyright © 2018年 何锦龙. All rights reserved.
@@ -39,6 +39,11 @@ namespace cgh {
     public:
         PopPDSTrans() : PDSTrans<Character>() {}
         PopPDSTrans(PDSState* sState, PDSState* tState, Character c) : PDSTrans<Character>(sState, tState, c) {}
+        void output() {
+            cout << this -> sourceState -> getID() << " " 
+                 << this -> character << " "
+                 << this -> targetState -> getID() << endl;
+        }
     };
     
     template <class Character>
@@ -51,6 +56,13 @@ namespace cgh {
         PushPDSTrans(PDSState* sState, PDSState* tState, Character c, const Char2& s) : PDSTrans<Character>(sState, tState, c), stack(s.first, s.second) {}
         Char2& getStack() { return stack; }
         const Char2& getStack() const { return stack; }
+        void output() {
+            cout << this -> sourceState -> getID() << " " 
+                 << this -> character << " "
+                 << stack.first << ","
+                 << stack.second << " "
+                 << this -> targetState -> getID() << endl;
+        }
     };
     
     template <class Character>
@@ -62,6 +74,12 @@ namespace cgh {
         ReplacePDSTrans(PDSState* sState, PDSState* tState, Character c, Character s) : PDSTrans<Character>(sState, tState, c), stack(s) {}
         Character getStack() { return stack; }
         const Character getStack() const { return stack; }
+            void output() {
+            cout << this -> sourceState -> getID() << " " 
+                 << this -> character << " "
+                 << stack << " "
+                 << this -> targetState -> getID() << endl;
+        }
     };
 }
 
