@@ -43,6 +43,7 @@ namespace cgh {
         typedef unordered_map<Character, StateChar2s> Char2StateChar2sMap;
         typedef unordered_map<NFAState<Character>*, Char2StateCharsMap> NeedMap;
         typedef unordered_map<NFAState<Character>*, Char2StateChar2sMap> Need2Map;
+        typedef unordered_map<StateChar, NFAState<Character>*> PostStarMap;
 
         NFAState<Character>* initialState;      ///< The initial state for this NFA.
         NFAStates states;                       ///< The set of states for this NFA.
@@ -188,11 +189,15 @@ namespace cgh {
                 addPostStarTrans(sState, sc, tState, tc, needMap, need2Map);
         }
         
-        void addPostStarNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map) {
+        void addPostStarNeed2Map(NFAState<Character>* sState, Character sc, NFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map, PostStarMap& postStarMap) {
             if (addNeed2Map(sState, sc, tState, tc1, tc2, need2Map)) {
-                NFAState<Character>* midState = mkState();
-                sState -> addTrans(sc, midState);
-                addPostStarTrans(sState, sc, midState, needMap, need2Map);
+                NFAState<Character>* midState = postStarMap[StateChar(sState, sc)];
+                if (!midState) {
+                    midState = mkState();
+                    postStarMap[StateChar(sState, sc)] = midState;
+                    sState -> addTrans(sc, midState);
+                    addPostStarTrans(sState, sc, midState, needMap, need2Map);
+                }
                 addPostStarNeedMap(midState, tc2, tState, tc1, needMap, need2Map);
             }
         }
@@ -618,6 +623,7 @@ namespace cgh {
             NFA* nfa = new NFA(*this, copyMap);
             NeedMap needMap;
             Need2Map need2Map;
+            PostStarMap postStarMap;
             mkPDSState2Map(this, pds, copyMap, state2Map);
             
             for (PopPDSTrans<Character>* trans : pds.getPopTransList()) {
@@ -640,7 +646,7 @@ namespace cgh {
                 NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
                 Character character = trans -> getChar();
                 Char2& stack = trans -> getStack();
-                nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map);
+                nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map, postStarMap);
             }
             nfa -> removeUnreachableState();
             nfa -> removeDeadState();

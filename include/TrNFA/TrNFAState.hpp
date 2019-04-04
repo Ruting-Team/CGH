@@ -15,6 +15,7 @@ namespace cgh {
     template<class Character>
     class TrNFAState : public State {
         typedef typename Alias4Char<Character>::Word Word;
+        typedef typename Alias4FT<Character>::DFT2 DFT2;
         typedef typename Alias4TrNFA<Character>::TrNFATransMap TrNFATransMap;
         typedef typename Alias4TrNFA<Character>::TrNFAStates TrNFAStates;
         typedef typename Alias4TrNFA<Character>::DFT2TrNFAStatesMap DFT2TrNFAStatesMap;
@@ -27,6 +28,7 @@ namespace cgh {
 
         }
 
+    public:
         void getDFT2TrNFAStatesMapByChar(DFT2TrNFAStatesMap& targetMap, Character character, DFTPairMap& compositionMap, DFT<Character>* dftid) {
             if (character == FA<Character>::epsilon) {
             } else {
@@ -57,7 +59,6 @@ namespace cgh {
                 }
             }
         }
-
         void getEpsilonClosure(DFT2TrNFAStatesMap& epsilonClosure, DFTPairMap& compositionMap, DFT<Character>* lhsDFT) {
             auto mapIt = trnfaTransMap.find(FA<Character>::epsilon);
             if (mapIt != trnfaTransMap.end()) { 

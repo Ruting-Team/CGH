@@ -17,13 +17,14 @@ namespace cgh {
     template <class Character>
     class FT {
         typedef typename Alias4Char<Character>::Word Word;
+        typedef typename Alias4Char<Character>::Words Words;
         typedef typename Alias4Char<Character>::Characters Characters;
         typedef typename Alias4Char<Label<Character> >::Word LabelWord;
         typedef typename Alias4FA<Label<Character> >::DFATransMap DFATransMap;
         typedef typename Alias4FT<Character>::FTs FTs;
         typedef typename Alias4FT<Character>::DFTs DFTs;
         typedef typename Alias4FT<Character>::DFTState2 DFTState2;
-        typedef typename Alias4FT<Character>::DFTTransMap DFTTransMap;
+        typedef typename Alias4FT<Character>::Char2DFTStateMap Char2DFTStateMap;
         typedef typename Alias4FT<Character>::DFTStatePairMap DFTStatePairMap;
         typedef typename Alias4FT<Character>::DFT2 DFT2;
         typedef typename Alias4FT<Character>::DFTLabelPair DFTLabelPair;
@@ -58,7 +59,7 @@ namespace cgh {
                 DFTState<Character>* newLhsDFTState = (DFTState<Character>*)(lhsPair.second);
                 Character lhsUpper = lhsLabel.getUpper();
                 Character lhsLower = lhsLabel.getLower();
-                DFTTransMap map;
+                Char2DFTStateMap map;
                 rhsDFTState -> getTargetStatesAndLowers(lhsLower, map);
                 for (auto& rhsPair: map) {
                     Character rhsLower = rhsPair.first;
@@ -116,7 +117,6 @@ namespace cgh {
         /// \param symbols The symbols.
         FT(const Characters& symbols) :  symbols(symbols.begin(), symbols.end()) {
         }
-
 
         /// \brief Sets symbols given a set of Characters.
         ///
@@ -221,6 +221,26 @@ namespace cgh {
             return leftQuotientFT(ft, lWord);
         }
 
+        /// \brief Translates a input param character by param ft.
+        /// \param character input.
+        /// \return Character.
+        static Word translate(const FT& ft, Character character) {
+            DFT<Character>& mdft = ft.minimizeFT();
+            Word word;
+            mdft.translate(character, word);
+            return word;
+        }
+
+        /// \brief Translates a input param character by param ft.
+        /// \param character input.
+        /// \return Character.
+        static Words translate(const FT& ft, Word& word) {
+            DFT<Character>& mdft = ft.minimizeFT();
+            Words words;
+            mdft.translate(word, words);
+            return words;
+        }
+
         /// \brief Makes a empty DFT.
         /// \return reference of DFT.
         static DFT<Character>& EmptyDFT() {
@@ -237,6 +257,20 @@ namespace cgh {
             Manage::manage(nft);
             nft -> mkInitialState();
             return *nft;
+        }
+
+        /// \brief Makes a id DFT.
+        /// \return reference of DFT.
+        static DFT<Character>& IDDFT(const Characters& chars) {
+            DFT<Character>* dft = new DFT<Character>();
+            Manage::manage(dft);
+            DFAState<Label<Character> >* state = dft -> mkInitialState();
+            dft -> addFinalState(state);
+            for (Character c : chars) {
+                Label<Character> l(c, c);
+                state -> addTrans(l, state);
+            }
+            return *dft;
         }
 
         /// \brief Gets the FT closure from param fts in left quotient in param characters.
@@ -330,6 +364,14 @@ namespace cgh {
         /// \return A reference of DFT.
         DFT<Character>& operator * (const FT& ft) {
             return composeFT(*this, ft);
+        }
+
+        Word operator [] (Character character) {
+            return translate(*this, character);
+        }
+
+        Words operator [] (Word word) {
+            return translate(*this ,word);
         }
     };
 };

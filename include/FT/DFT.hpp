@@ -24,6 +24,9 @@ namespace cgh {
         typedef typename Alias4Char<Label<Character> >::Word LabelWord;
         typedef typename Alias4FA<Label<Character> >::DFAState2NFAStateMap DFAState2NFAStateMap;
         typedef typename Alias4FT<Character>::DFTStates DFTStates;
+        typedef typename Alias4FT<Character>::Char2DFTStateMap Char2DFTStateMap;
+        typedef typename Alias4FT<Character>::DFTState2WordsMap DFTState2WordsMap;
+
     private:
         void getTargetStatesByUppers(Word& uppers, DFTStates& states) {
             DFTStates works;
@@ -166,6 +169,38 @@ namespace cgh {
                 iniState -> addEpsilonTrans(state2Map[state]);
             }
             return nft.minimizeFT();
+        }
+
+        void translate(Character upper, Word& lowers) {
+            Char2DFTStateMap map;
+            ((DFTState<Character>*)(this -> initialState)) -> getTargetStatesAndLowers(upper, map);
+            for (auto& mapPair : map) {
+                lowers.push_back(mapPair.first);
+            }
+        }
+
+        void translate(Word& uppers, Words& lowerss) {
+            DFTState2WordsMap works;
+            DFTState2WordsMap newWorks;
+            Words words;
+            words.push_back(Word());
+            works[(DFTState<Character>*)(this -> initialState)] = words; 
+            for (Character& upper : uppers) {
+                newWorks.clear();
+                for (auto& mapPair : works) {
+                    DFTState<Character>* state = mapPair.first;
+                    state -> translate(upper, mapPair.second, newWorks);
+                }
+                if (newWorks.size()) {
+                    works.clear();
+                    works.insert(newWorks.begin(), newWorks.end());
+                }
+            }
+            if (works.size()) {
+                for (auto& mapPair : works) {
+                    lowerss.insert(lowerss.end(), mapPair.second.begin(), mapPair.second.end());
+                }
+            }
         }
 
     };

@@ -2,6 +2,7 @@
 #define CGH_hpp
 #include "FT/DFT.hpp"
 #include "FT/NFT.hpp"
+#include "TrNFA/TrNFA.hpp"
 #include "NuXmv/NuXmv.hpp"
 
 namespace cgh{

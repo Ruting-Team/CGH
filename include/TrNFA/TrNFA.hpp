@@ -21,9 +21,13 @@ namespace cgh {
         typedef typename Alias4TrNFA<Character>::TrNFAState2Map TrNFAState2Map;
         typedef typename Alias4TrNFA<Character>::DFT2TrNFAStatesMap DFT2TrNFAStatesMap;
         typedef typename Alias4TrNFA<Character>::TrPDSState2TrNFAStateMap TrPDSState2TrNFAStateMap;
+        typedef typename Alias4FT<Character>::DFT2 DFT2;
+        typedef typename Alias4FT<Character>::DFTLabelPair DFTLabelPair;
+        typedef typename Alias4FT<Character>::DFTPairMap DFTPairMap;
+        typedef typename Alias4FT<Character>::DFTLabel2DFTMap DFTLabel2DFTMap;
 
         typedef pair<Character, DFT<Character>*> TrNFALabel;
-        typedef pair<Char2, TrNFALabel> TrNFALabel2;
+        typedef pair<Char2, DFT<Character>*> TrNFALabel2;
         typedef pair<TrNFAState<Character>*, TrNFALabel> StateLabel;
         typedef pair<TrNFAState<Character>*, TrNFALabel2> StateLabel2;
         typedef set<StateLabel> StateLabels;
@@ -37,6 +41,7 @@ namespace cgh {
         TrNFAStates states;                       ///< The set of states for this TRNFA.
         TrNFAStates finalStates;                  ///< The set of final states for this TrNFA.
         Characters alphabet;                      ///< A set of characters which in the label on the transitions.
+        DFT<Character> dftid;
 
         void cpTrans(TrNFAState<Character>* state, TrNFAState2Map& state2map) {
             TrNFAState<Character>* sourceState = state2map[state];
@@ -59,8 +64,6 @@ namespace cgh {
             }
         }
 
-        
-
         bool addNeedMap(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, DFT<Character>* dft, NeedMap &needMap) {
             return needMap[tState][tc].insert(StateLabel(sState, TrTrNFALabel(sc, dft))).second;
         }
@@ -69,94 +72,119 @@ namespace cgh {
             return need2Map[tState][tc1].insert(StateLabel2(sState, TrTrNFALabel2(Char2(sc, tc2), dft))).second;
         }
         
-        void addPreStarNeedMap(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, DFT<Character>* dft, NeedMap &needMap, Need2Map& need2Map) {
+        void addPreStarNeedMap(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, DFT<Character>* dft, NeedMap &needMap, Need2Map& need2Map, DFTPairMap compositionMap, DFTLabel2DFTMap& leftQuotientMap) {
             if (addNeedMap(sState, sc, tState, tc, dft, needMap))
-                addPreStarTrans(sState, sc, tState, tc, dft, needMap, need2Map);
+                addPreStarTrans(sState, sc, tState, tc, dft, needMap, need2Map, compositionMap, leftQuotientMap);
         }
         
-        void addPreStarNeed2Map(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc1, Character tc2, DFT<Character>* dft, NeedMap& needMap, Need2Map& need2Map) {
+        void addPreStarNeed2Map(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc1, Character tc2, DFT<Character>* dft, NeedMap& needMap, Need2Map& need2Map, DFTPairMap compositionMap, DFTLabel2DFTMap& leftQuotientMap) {
             if (addNeed2Map(sState, sc, tState, tc1, tc2, dft, need2Map)) {
                 TrNFAStates stateset = tState -> getTargetStatesByChar(tc1);
                 for (TrNFAState<Character>* state : stateset)
-                    addPreStarNeedMap(sState, sc, state, tc2, needMap, need2Map);
+                    addPreStarNeedMap(sState, sc, state, tc2, needMap, need2Map, compositionMap, leftQuotientMap);
             }
         }
         
-        void addPreStarTrans(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, NeedMap& needMap, Need2Map& need2Map) {
+        void addPreStarTrans(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, DFT<Character>* lhsDFT, NeedMap& needMap, Need2Map& need2Map, DFTPairMap compositionMap, DFTLabel2DFTMap& leftQuotientMap) {
             TrNFAStates stateset;
-            tState -> getTargetStatesByChar(stateset, tc);
-            for (TrNFAState<Character>* state : stateset)
-                if (sState -> addTrans(sc, state))
-                    addPreStarTrans(sState, sc, state, needMap, need2Map);
-        }
-
-        void addPreStarTrans(TrNFAState<Character>* sState, Character c, TrNFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map) {
-            Char2StateCharsMap map = needMap[sState];
-            auto mapIt = map.find(c);
-            if (mapIt != map.end()) {
-                for (StateChar scpair : mapIt -> second)
-                    if (scpair.first -> addTrans(scpair.second, tState))
-                        addPreStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
-            }
-            Char2StateChar2sMap& map2 = need2Map[sState];
-            auto map2It = map2.find(c);
-            if (map2It != map2.end()) {
-                for (StateChar2 sc2pair : map2It -> second) {
-                    addPreStarNeedMap(sc2pair.first, sc2pair.second.first, tState, sc2pair.second.second, needMap, need2Map);
-                }
-            }
-        }
-        
-        void addPostStarNeedMap(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
-            if (addNeedMap(sState, sc, tState, tc, needMap))
-                addPostStarTrans(sState, sc, tState, tc, needMap, need2Map);
-        }
-        
-        void addPostStarNeed2Map(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map) {
-            if (addNeed2Map(sState, sc, tState, tc1, tc2, need2Map)) {
-                TrNFAState<Character>* midState = mkState();
-                sState -> addTrans(sc, midState);
-                addPostStarTrans(sState, sc, midState, needMap, need2Map);
-                addPostStarNeedMap(midState, tc2, tState, tc1, needMap, need2Map);
-            }
-        }
-        
-        void addPostStarTrans(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, NeedMap& needMap, Need2Map& need2Map) {
-            TrNFAStates trnfaStates;
-            tState -> getTargetStatesByChar(trnfaStates, tc);
-            for (TrNFAState<Character>* state : trnfaStates) {
-                if (sState -> addTrans(sc, state)) {
-                    addPostStarTrans(sState, sc, state, needMap, need2Map);
-                }
-            }
-        }
-        
-        void addPostStarTrans(TrNFAState<Character>* sState, Character c, TrNFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map) {
-            Char2StateCharsMap& map = needMap[sState];
-            auto mapIt = map.find(c);
-            if (mapIt != map.end()) {
-                for (StateChar scpair : mapIt -> second) {
-                    if (scpair.first -> addTrans(scpair.second, tState)) {
-                        addPostStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
+            DFT2TrNFAStatesMap targetMap;
+            tState -> getDFT2TrNFAStatesMapByChar(targetMap, tc, compositionMap, dftid);
+            for (auto& mapPair : targetMap) {
+                DFT<Character>* rhsDFT = mapPair.first;
+                DFT<Character>* dft = compositionMap[DFT2(lhsDFT, rhsDFT)];
+                if (dft) {
+                    for (TrNFAState<Character>* state : mapPair.second) {
+                        if (sState -> addTrans(sc, dft, state))
+                            addPreStarTrans(sState, sc, dft, state, needMap, need2Map, compositionMap, leftQuotientMap);
                     }
                 }
             }
         }
 
-        void mkTrPDSState2Map(TrNFA* trnfa, const TrPDS<Character>& trpds, TrNFAState2Map& copyMap, TrPDSState2TrNFAStateMap& state2Map) {
-            TrPDSStates trpdsStates;
-            for (auto& mapPair : state2Map)
-                trpdsStates.insert(mapPair.first);
-            for (TrPDSState* state : trpds.getStates()) {
-                if (trpdsStates.find(state) == trpdsStates.end()) {
-                    state2Map[state] = trnfa -> mkState();
-                } else {
-                    state2Map[state] = copyMap[state2Map[state]];
+        void addPreStarTrans(TrNFAState<Character>* sState, Character c, DFT<Character>* rhsDFT, TrNFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map, DFTPairMap& compositionMap, DFTLabel2DFTMap& leftQuotientMap) {
+            StateLabels& stateLabels = needMap[sState][c];
+            for (StateLabel slpair : stateLabels) {
+                TrNFAState<Character>* sState = slpair.first;
+                Character c = slpair.second.first;
+                DFT<Character>* lhsDFT = slpair.second.second;
+                DFT<Character>* dft = compositionMap[DFT2(lhsDFT, rhsDFT)];
+                if (dft) {
+                    if (sState -> addTrans(c, dft, tState)) {
+                        addPreStarTrans(sState, c, dft, tState, needMap, need2Map, compositionMap, leftQuotientMap);
+                    }
+                }
+            }
+            StateLabel2s& stateLabel2s = need2Map[sState][c];
+            for (StateLabel2 sl2pair : stateLabel2s) {
+                TrNFAState<Character>* sState = sl2pair.first;
+                Character c1 = sl2pair.second.first.first;
+                Character c2 = sl2pair.second.first.second;
+                DFT<Character>* oldDFT = sl2pair.second.second;
+                Word word = (*rhsDFT)[c1];
+                for (Character c : word) {
+                    DFT<Character>* qtDFT = leftQuotientMap[DFTLabelPair(rhsDFT, Label<Character>(c1, c))];
+                    DFT<Character>* dft = compositionMap[DFT2(rhsDFT, qtDFT)];
+                    if (dft) {
+                        addPreStarNeedMap(sState, c, tState, c2, dft, needMap, need2Map, compositionMap, leftQuotientMap);
+                    }
                 }
             }
         }
+        
+        //void addPostStarNeedMap(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, NeedMap &needMap, Need2Map& need2Map) {
+        //    if (addNeedMap(sState, sc, tState, tc, needMap))
+        //        addPostStarTrans(sState, sc, tState, tc, needMap, need2Map);
+        //}
+        //
+        //void addPostStarNeed2Map(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc1, Character tc2, NeedMap& needMap, Need2Map& need2Map) {
+        //    if (addNeed2Map(sState, sc, tState, tc1, tc2, need2Map)) {
+        //        TrNFAState<Character>* midState = mkState();
+        //        sState -> addTrans(sc, midState);
+        //        addPostStarTrans(sState, sc, midState, needMap, need2Map);
+        //        addPostStarNeedMap(midState, tc2, tState, tc1, needMap, need2Map);
+        //    }
+        //}
+        //
+        //void addPostStarTrans(TrNFAState<Character>* sState, Character sc, TrNFAState<Character>* tState, Character tc, NeedMap& needMap, Need2Map& need2Map) {
+        //    TrNFAStates trnfaStates;
+        //    tState -> getTargetStatesByChar(trnfaStates, tc);
+        //    for (TrNFAState<Character>* state : trnfaStates) {
+        //        if (sState -> addTrans(sc, state)) {
+        //            addPostStarTrans(sState, sc, state, needMap, need2Map);
+        //        }
+        //    }
+        //}
+        //
+        //void addPostStarTrans(TrNFAState<Character>* sState, Character c, TrNFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map) {
+        //    Char2StateCharsMap& map = needMap[sState];
+        //    auto mapIt = map.find(c);
+        //    if (mapIt != map.end()) {
+        //        for (StateChar scpair : mapIt -> second) {
+        //            if (scpair.first -> addTrans(scpair.second, tState)) {
+        //                addPostStarTrans(scpair.first, scpair.second, tState, needMap, need2Map);
+        //            }
+        //        }
+        //    }
+        //}
+
+        //void mkTrPDSState2Map(TrNFA* trnfa, const TrPDS<Character>& trpds, TrNFAState2Map& copyMap, TrPDSState2TrNFAStateMap& state2Map) {
+        //    TrPDSStates trpdsStates;
+        //    for (auto& mapPair : state2Map)
+        //        trpdsStates.insert(mapPair.first);
+        //    for (TrPDSState* state : trpds.getStates()) {
+        //        if (trpdsStates.find(state) == trpdsStates.end()) {
+        //            state2Map[state] = trnfa -> mkState();
+        //        } else {
+        //            state2Map[state] = copyMap[state2Map[state]];
+        //        }
+        //    }
+        //}
 
     public:
+        /// \brief Default Construction function.
+        TrNFA() {
+        }
+
         /// \brief Copy construction function.
         /// \param trnfa The copied TrNFA.
         TrNFA(const TrNFA& trnfa) {
@@ -174,6 +202,12 @@ namespace cgh {
             TrNFAState<Character>* iniState = mkInitialState();
             state2Map[trnfa.initialState] = iniState;
             cpTrans(trnfa.initialState, state2Map);
+        }
+
+        /// \brief DesConstruction function
+        ~TrNFA() {
+            for (TrNFAState<Character>* state : states)
+                delete state;
         }
 
         /// \brief Sets alphabet given a set of Characters.
@@ -315,13 +349,12 @@ namespace cgh {
         /// \param trpds Provides the rules for pre*.
         /// \param state2Map Records the relation between trpds and trnfa.
         /// \return A reference of TrNFA.
-        TrNFA& preStar(const TrPDS<Character>& trpds, TrPDSState2TrNFAStateMap& state2Map) {
+        TrNFA& preStar(const TrPDS<Character>& trpds, TrPDSState2TrNFAStateMap& state2Map, DFTPairMap& compositionMap, DFTLabel2DFTMap& leftQuotientMap) {
             TrNFAState2Map copyMap;
             TrNFA* trnfa = new TrNFA(*this, copyMap);
             NeedMap needMap;
             Need2Map need2Map;
             mkTrPDSState2Map(this, trpds, copyMap, state2Map);
-            
             for (PopTrPDSTrans<Character>* trans : trpds.getPopTransList()) {
                 TrNFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
                 TrNFAState<Character>* targetState = state2Map[trans -> getTargetState()];
@@ -334,7 +367,7 @@ namespace cgh {
                 TrNFAState<Character>* targetState = state2Map[trans -> getTargetState()];
                 Character character = trans -> getChar();
                 Character stack = trans -> getStack();
-                trnfa -> addPreStarNeedMap(sourceState, character, targetState, stack, needMap, need2Map);
+                trnfa -> addPreStarNeedMap(sourceState, character, targetState, stack, needMap, need2Map, compositionMap, leftQuotientMap);
             }
 
             for (PushTrPDSTrans<Character>* trans : trpds.getPushTransList()) {
@@ -342,10 +375,8 @@ namespace cgh {
                 TrNFAState<Character>* targetState = state2Map[trans -> getTargetState()];
                 Character character = trans -> getChar();
                 Char2 stack = trans -> getStack();
-                trnfa -> addPreStarNeed2Map(sourceState, character, targetState, stack.first, stack.second, needMap, need2Map);
+                trnfa -> addPreStarNeed2Map(sourceState, character, targetState, stack.first, stack.second, needMap, need2Map, compositionMap, leftQuotientMap);
             }
-            trnfa -> removeUnreachableState();
-            trnfa -> removeDeadState();
             return *trnfa;
         }
         

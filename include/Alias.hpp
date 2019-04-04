@@ -171,6 +171,7 @@ namespace cgh {
     template <class Character>
     class Alias4FT {
     public:
+        typedef typename Alias4Char<Character>::Words Words;
         typedef unordered_set<FT<Character>*> FTs;
         typedef unordered_set<DFT<Character>*> DFTs;
         typedef unordered_set<DFTState<Character>*> DFTStates;
@@ -179,7 +180,8 @@ namespace cgh {
         typedef pair<DFTState<Character>*, DFTState<Character>* > DFTState2;
         typedef unordered_map<ID, DFTs> ID2DFTsMap;
         typedef unordered_map<DFT2, DFT<Character>*> DFTPairMap;
-        typedef unordered_map<Character, DFTState<Character>*> DFTTransMap;
+        typedef unordered_map<Character, DFTState<Character>*> Char2DFTStateMap;
+        typedef unordered_map<DFTState<Character>*, Words> DFTState2WordsMap;
         typedef unordered_map<DFTLabelPair, DFT<Character>*> DFTLabel2DFTMap;
         typedef unordered_map<DFTState2, NFTState<Character>*> DFTStatePairMap;
         typedef unordered_map<Character, unordered_set<Label<Character> > > Char2LabelsMap;
