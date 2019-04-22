@@ -9,8 +9,7 @@
 #ifndef NFTParser_hpp
 #define NFTParser_hpp
 
-#include "../Parser.hpp"
-#include "../State.hpp"
+#include "Parser.hpp"
 
 using namespace std;
 
@@ -33,34 +32,27 @@ namespace cgh {
         }
 
         /// \brief Constructs NFT.
-        NFT<Character>* parse(const string& fileName) {
-            fstream fin;
-            fin.open(fileName, fstream::in);
-            string info = fileName + " not found or open failed!";
-            if (!fin.is_open()) {
-                ErrorReport::report(info, ERROR);
-                exit(-1);
-            }
+        NFT<Character>* parse(fstream& fin) {
+            IDs finalStates;
+            ID stateNumber = this -> parseStateNumber(fin);
+            ID initialState = this -> parseStateNumber(fin);
+            this -> parseStates(fin, finalStates);
             this -> parseAlphabet(fin);
             NFT<Character>* result = new NFT<Character>(this -> alphabet);
-            ID stateNumber = this -> parseStateNumber(fin);
-            this -> parseInitialState(fin);
-            this -> parseFinalStates(fin);
             parseTransitions(fin);
-            fin.close();
             // construct NFT
             vector<NFAState<Label<Character> >* > stateVector;
             // update state info
             for (ID pos = 0; pos < stateNumber; pos++) {
-                if (pos == this -> initialState) { 
+                if (pos == initialState) { 
                     stateVector.push_back(result -> mkInitialState()); 
-                } else if (this -> finalStates.find(pos) != this -> finalStates.end()) {
+                } else if (finalStates.find(pos) != finalStates.end()) {
                     stateVector.push_back(result -> mkFinalState());
                 } else {
                     stateVector.push_back(result -> mkState());
                 }
             }
-            if (this -> finalStates.count(this -> initialState) > 0) {
+            if (finalStates.count(initialState) > 0) {
                 result -> addFinalState(result -> getInitialState());
             }
             // update transition info
@@ -83,17 +75,24 @@ namespace cgh {
         /// \param transitions transitions
         void parseTransitions(fstream& fin) {
             this -> parseComment(fin);
+            string line;
             int src;
-            Character uc;
-            Character lc;
+            Character u;
+            Character l;
             int dst;
-            while(fin >> src >> uc >> lc >> dst) {
-                transitions.push_back(make_tuple(src, Char2(uc, lc), dst));
+            getline(fin, line);
+            while (getline(fin, line)) {
+                stringstream stream;
+                stream << line;
+                if (line == "endNFT") {
+                    break;
+                } else {
+                    stream >> src >> u >> l >> dst;
+                    transitions.push_back(make_tuple(src, Char2(u, l), dst));
+                }
             }
         }
     };
-    
-    
     
     
 }

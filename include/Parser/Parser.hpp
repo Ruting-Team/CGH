@@ -8,45 +8,11 @@
 
 #ifndef PARSER_HPP
 #define PARSER_HPP
-#include "Alias.hpp"
+#include "../CGH.hpp"
 
 using namespace std;
 
 namespace cgh {
-    /// \brief Error Report Level
-    enum LogLevel {
-        ERROR,
-        DEBUG_,
-        WARN,
-        INFO,
-    };
-    
-    /// \brief Reports the error info.
-    class ErrorReport {
-    public:
-         /// \brief Reports some info and displays in terminal
-         /// \param info  [info string]
-         /// \param level [report level, default INFO]
-        void static report(string info, LogLevel level = INFO) {
-            switch (level) {
-                case ERROR:
-                    cout << "ERROR: " << info << endl;
-                    exit(-1);
-                    break;
-                case DEBUG_:
-                    cout << "DEBUG: " << info << endl;
-                    break;
-                case WARN:
-                    cout << "WARN: " << info << endl;
-                    break;
-                case INFO:
-                    cout << "INFO: " << info << endl;
-                    break;
-                default:
-                    break;
-            }
-        }
-    };
     
     /// \brief Parses from file.
     template <class Character>
@@ -55,9 +21,7 @@ namespace cgh {
         typedef unordered_set<ID> IDs;
     protected:
         Characters alphabet;
-        IDs finalStates;
         IDs states;
-        ID initialState;
 
     public:
         /// \brief Defualt construction.
@@ -107,25 +71,14 @@ namespace cgh {
             fin >> number;
             return number;
         }
-        
-        /// \brief Parses the initial state. 
-        ///
-        /// Example : initial: 0
-        /// Assume line 4 is: word: $initial_state
-        /// \param fin input stream
-        /// \return initial_state
-        void parseInitialState(fstream& fin) {
-            parseComment(fin);
-            fin >> initialState;
-        }
-        
+
         /// \brief Parses the final states.
         ///
         /// Example : final: 3, 4
         /// Assume line 5 is: word: $states_list
         /// \param fin input stream
         /// \param finalStates final states set
-        void parseFinalStates(fstream& fin) {
+        void parseStates(fstream& fin, IDs& states) {
             parseComment(fin);
             string line;
             getline(fin, line);
@@ -133,7 +86,7 @@ namespace cgh {
             stream << line;
             ID state;
             while(stream >> state) {
-                finalStates.insert(state);
+                states.insert(state);
             }
         }
     };

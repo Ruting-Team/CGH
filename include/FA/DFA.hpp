@@ -354,7 +354,11 @@ namespace cgh {
         }
         
         virtual DFA& minimize(void) {
-            if (this -> isMinimal()) return *this;
+            if (this -> isMinimal()) 
+            {
+                //minimize(this);
+                return *this;
+            }
             DFA* dfa = new DFA(this -> alphabet);
             removeDeadState();
             removeUnreachableState();

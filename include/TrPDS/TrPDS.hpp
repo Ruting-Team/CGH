@@ -10,12 +10,14 @@
 #define TrPDS_hpp
 
 #include "TrPDSTransition.hpp"
+#include "../Object.hpp"
 
 namespace cgh {
 
     template <class Character>
-    class TrPDS {
-        typedef typename Alias4FA<Character>::Char2 Char2;
+    class TrPDS : public Object {
+        typedef typename Alias4Char<Character>::Char2 Char2;
+        typedef typename Alias4Char<Character>::Characters Characters;
         typedef typename Alias4FA<Character>::NFAStates NFAStates;
         typedef typename Alias4TrPDS<Character>::TrPDSTransList TrPDSTransList;
         typedef typename Alias4TrPDS<Character>::PopTrPDSTransList PopTrPDSTransList;
@@ -29,11 +31,15 @@ namespace cgh {
         PopTrPDSTransList popTransList;           ///< The list of pop transitions for this TrPDS.
         PushTrPDSTransList pushTransList;         ///< The list of push transitions for this TrPDS.
         ReplaceTrPDSTransList replaceTransList;   ///< The list of replace transitions for this TrPDS.
+        Characters alphabet;                      ///< A set of characters which in the label on the transitions.
         DFTs dfts;                                ///> The set of DFT in this TrPDS.
 
     public:
         /// \brief Default construction function.
         TrPDS() {}
+
+        TrPDS(const Characters& chars) : alphabet(chars.begin(), chars.end()) {
+        }
 
         /// \brief Desconstruction function.
         ///

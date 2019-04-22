@@ -179,12 +179,14 @@ namespace cgh {
         typedef pair<DFT<Character>*, Label<Character>> DFTLabelPair;
         typedef pair<DFTState<Character>*, DFTState<Character>* > DFTState2;
         typedef unordered_map<ID, DFTs> ID2DFTsMap;
+        typedef unordered_map<DFTState<Character>*, DFTState<Character>*> DFTState2Map;
         typedef unordered_map<DFT2, DFT<Character>*> DFTPairMap;
         typedef unordered_map<Character, DFTState<Character>*> Char2DFTStateMap;
         typedef unordered_map<DFTState<Character>*, Words> DFTState2WordsMap;
         typedef unordered_map<DFTLabelPair, DFT<Character>*> DFTLabel2DFTMap;
         typedef unordered_map<DFTState2, NFTState<Character>*> DFTStatePairMap;
         typedef unordered_map<Character, unordered_set<Label<Character> > > Char2LabelsMap;
+        typedef unordered_map<DFT<Character>*, DFT<Character>* > DFT2Map;
     };
 
     /****************** Alias4TrNFA ******************/

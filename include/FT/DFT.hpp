@@ -44,14 +44,23 @@ namespace cgh {
             }
             if (works.size()) states.insert(works.begin(), works.end());
         }
-
+    public:
         ID getCode() {
             auto& transMap = (this -> initialState) -> getTransMap();
             ID code = hash<double>()(transMap.size() * 1234);
+            DFTStates secondStates;
             for (auto& mapPair : transMap) {
+                secondStates.insert((DFTState<Character>*)mapPair.second);
                 ID upperCode = hash<double>()(hash<Character>()(mapPair.first.upper) * 56.78);
                 ID lowerCode = hash<double>()(hash<Character>()(mapPair.first.lower) * 0.9876);
                 code ^= (upperCode + lowerCode);
+            }
+            for (DFTState<Character>* state : secondStates) {
+                for (auto& mapPair : state -> getTransMap()) {
+                    ID upperCode = hash<double>()(hash<Character>()(mapPair.first.upper) * 8.43);
+                    ID lowerCode = hash<double>()(hash<Character>()(mapPair.first.lower) * 0.012);
+                    code ^= (upperCode + lowerCode);
+                }
             }
             return code;
         }
@@ -103,12 +112,16 @@ namespace cgh {
         }
 
         DFA<Label<Character> >& minimize() {
-            if (this -> isMinimal()) return *this;
+            if (this -> isMinimal()) {
+                //Manage::manage(this);
+                return *this;
+            }
             DFT* dft = new DFT(this -> symbols);
             this -> removeDeadState();
             this -> removeUnreachableState();
             if (this -> isNULL()) return FT<Character>::EmptyDFT();
             DFA<Label<Character> >::minimize(dft);
+            Manage::manage(dft);
             return *dft;
         }
 

@@ -13,7 +13,6 @@
 #include "NFAState.hpp"
 #include "../PDS/PDS.hpp"
 #include "RegExp.hpp"
-#include "NFAParser.hpp"
 
 namespace cgh {
     
@@ -294,13 +293,6 @@ namespace cgh {
             *this = *regExp.mkNFA();
         }
 
-        /// \brief Construction function from file.
-        /// \param file the file name.
-        NFA(const string& file, const string& type = "-r") {
-            NFAParser<Character> parser;
-            *this = *parser.parse(file);
-        }
-        
         /// \brief Desconstruction function.
         ///
         /// delete all pointers of states for this NFA.
@@ -585,7 +577,7 @@ namespace cgh {
             NFA* nfa = new NFA(*this, copyMap);
             NeedMap needMap;
             Need2Map need2Map;
-            mkPDSState2Map(this, pds, copyMap, state2Map);
+            mkPDSState2Map(nfa, pds, copyMap, state2Map);
             
             for (PopPDSTrans<Character>* trans : pds.getPopTransList()) {
                 NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
@@ -609,8 +601,7 @@ namespace cgh {
                 Char2 stack = trans -> getStack();
                 nfa -> addPreStarNeed2Map(sourceState, character, targetState, stack.first, stack.second, needMap, need2Map);
             }
-            nfa -> removeUnreachableState();
-            nfa -> removeDeadState();
+            Manage::manage(nfa);
             return *nfa;
         }
         
@@ -624,7 +615,7 @@ namespace cgh {
             NeedMap needMap;
             Need2Map need2Map;
             PostStarMap postStarMap;
-            mkPDSState2Map(this, pds, copyMap, state2Map);
+            mkPDSState2Map(nfa, pds, copyMap, state2Map);
             
             for (PopPDSTrans<Character>* trans : pds.getPopTransList()) {
                 NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
@@ -648,8 +639,7 @@ namespace cgh {
                 Char2& stack = trans -> getStack();
                 nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map, postStarMap);
             }
-            nfa -> removeUnreachableState();
-            nfa -> removeDeadState();
+            Manage::manage(nfa);
             return *nfa;
         }
         

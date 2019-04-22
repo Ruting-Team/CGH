@@ -36,7 +36,7 @@ namespace cgh{
         
     protected:
         Flag flag;                  ///< Records some attributes for this FA.
-        Characters alphabet;      ///< A set of characters which in the label on the transitions.
+        Characters alphabet;        ///< A set of characters which in the label on the transitions.
 
         /// \brief Default construction without arguments, initialize flag to 0.
         FA() : flag(0){
@@ -56,19 +56,19 @@ namespace cgh{
         /// \brief Sets this FA to deterministic or not by param b.
         /// \param b If b is true means deterministic otherwise not.
         void setDeterministicFlag(bool b) {
-            flag = b ? (flag | 1):(flag & ~1);
+            flag = b ? (flag | 1) : (flag & ~1);
         }
 
         /// \brief ss this FA to reachable or not by param b.
         /// \param b If b is true means reachable otherwise not.
         void setReachableFlag(bool b) {
-            flag = b ? (flag | (1 << 1)):(flag & ~(1 << 1));
+            flag = b ? (flag | (1 << 1)) : (flag & ~(1 << 1));
         }
 
         /// \brief ss this FA to minimal or not by param b.
         /// \param b If b is true means minimal otherwise not.
         void setMinimalFlag(bool b) {
-            flag = b ? (flag | (1 << 2)):(flag & ~(1 << 2));
+            flag = b ? (flag | (1 << 2)) : (flag & ~(1 << 2));
         }
 
         virtual FA& copy() = 0;

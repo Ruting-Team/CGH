@@ -104,6 +104,16 @@ namespace cgh {
             auto& states = trnfaTransMap[character][dft];
             return states.insert(target).second;
         }
+
+        void output() {
+            for (auto& mapPair : trnfaTransMap) {
+                for (auto& mapPair1 : mapPair.second) {
+                    for (auto state : mapPair1.second) {
+                        cout << getID() << " " << mapPair.first << " " << mapPair1.first << " " << state -> getID() << endl;
+                    }
+                }
+            }
+        }
     };
 };
 

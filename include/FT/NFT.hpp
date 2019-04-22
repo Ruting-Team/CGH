@@ -11,13 +11,12 @@
 
 #include "../FA/NFA.hpp"
 #include "NFTState.hpp"
-#include "NFTParser.hpp"
 
 namespace cgh {
     
     /// \brief A class of Nondeterministic Finite Automaton.
     template <class Character>
-    class NFT : public NFA<Label<Character> >, FT<Character> {
+    class NFT : public NFA<Label<Character> >, public FT<Character> {
     public:
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::Words Words;

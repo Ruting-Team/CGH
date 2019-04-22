@@ -10,12 +10,12 @@
 #define PDS_hpp
 
 #include "PDSTransition.hpp"
-#include "PDSParser.hpp"
+#include "../Object.hpp"
 
 namespace cgh {
 
     template <class Character>
-    class PDS {
+    class PDS :public Object {
         typedef typename Alias4Char<Character>::Char2 Char2;
         typedef typename Alias4Char<Character>::Characters Characters;
         typedef typename Alias4FA<Character>::NFAStates NFAStates;
@@ -39,13 +39,6 @@ namespace cgh {
         /// brief Construction function with param characters.
         /// \param characters The alphabet.
         PDS(const Characters& characters) : alphabet(characters.begin(), characters.end()){
-        }
-
-        /// \brief Construction function from file.
-        /// \param file the file name.
-        PDS(const string& file, const string& type = "-r") {
-            PDSParser<Character> parser;
-            *this = *parser.parse(file);
         }
 
         /// \brief Desconstruction function.

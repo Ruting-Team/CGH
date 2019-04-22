@@ -9,8 +9,7 @@
 #ifndef TrNFAParser_hpp
 #define TrNFAParser_hpp
 
-#include "../Parser.hpp"
-#include "../State.hpp"
+#include "Parser.hpp"
 
 using namespace std;
 
@@ -21,54 +20,50 @@ namespace cgh {
     class TrNFAParser : public Parser<Character> {
         typedef typename Alias4Char<Character>::Characters Characters;
         typedef unordered_set<ID> IDs;
-        typedef pair<Character, ID> TrNFALabel;
+        typedef pair<Character, string> TrNFALabel;
         typedef tuple<ID, TrNFALabel, ID> TrNFATransition;
         typedef vector<TrNFATransition> TrNFATransitions;
     private:
         TrNFATransitions transitions;
+        vector<TrNFAState<Character>* > stateVector;
 
     public:
+        vector<TrNFAState<Character>*> getStateVector() {
+            return stateVector;
+        }
         /// \brief Defualt construction.
         TrNFAParser() { 
         }
 
         /// \brief Constructs TrNFA.
-        TrNFA<Character>* parse(const string& fileName) {
-            fstream fin;
-            fin.open(fileName, fstream::in);
-            string info = fileName + " not found or open failed!";
-            if (!fin.is_open()) {
-                ErrorReport::report(info, ERROR);
-                exit(-1);
-            }
-            this -> parseAlphabet(fin);
-            TrNFA<Character>* result = new TrNFA<Character>(this -> alphabet);
+        TrNFA<Character>* parse(fstream& fin, unordered_map<string, DFT<Character>* >& dftMap) {
+            IDs finalStates;
             ID stateNumber = this -> parseStateNumber(fin);
-            this -> parseInitialState(fin);
-            this -> parseFinalStates(fin);
+            ID initialState = this -> parseStateNumber(fin);
+            this -> parseStates(fin, finalStates);
+            this -> parseAlphabet(fin);
+            TrNFA<Character>* result = new TrNFA<Character>(this -> alphabet, dftMap["Tid"]);
             parseTransitions(fin);
-            fin.close();
             // construct TrNFA
-            vector<TrNFAState<Character>* > stateVector;
             // update state info
             for (ID pos = 0; pos < stateNumber; pos++) {
-                if (pos == this -> initialState) { 
+                if (pos == initialState) { 
                     stateVector.push_back(result -> mkInitialState()); 
-                } else if (this -> finalStates.find(pos) != this -> finalStates.end()) {
+                } else if (finalStates.find(pos) != finalStates.end()) {
                     stateVector.push_back(result -> mkFinalState());
                 } else {
                     stateVector.push_back(result -> mkState());
                 }
             }
-            if (this -> finalStates.count(this -> initialState) > 0) {
+            if (finalStates.count(initialState) > 0) {
                 result -> addFinalState(result -> getInitialState());
             }
             // update transition info
             for (ID i = 0; i < transitions.size(); i++) {
                 ID sourceState = get<0>(transitions[i]);
                 ID targetState = get<2>(transitions[i]);
-                Character character = get<1>(transitions[i]);
-                stateVector[sourceState] -> addTrans(character, stateVector[targetState]);
+                TrNFALabel label = get<1>(transitions[i]);
+                stateVector[sourceState] -> addTrans(label.first, dftMap[label.second], stateVector[targetState]);
             }
             
             return result;
@@ -83,11 +78,21 @@ namespace cgh {
         /// \param transitions transitions
         void parseTransitions(fstream& fin) {
             this -> parseComment(fin);
+            string line;
             int src;
-            Character ch;
+            Character c;
+            string t;
             int dst;
-            while(fin >> src >> ch >> dst) {
-                transitions.push_back(make_tuple(src, ch, dst));
+            getline(fin, line);
+            while (getline(fin, line)) {
+                stringstream stream;
+                stream << line;
+                if (line == "endTrNFA") {
+                    break;
+                } else {
+                    stream >> src >> c >> t >> dst;
+                    transitions.push_back(make_tuple(src, TrNFALabel(c, t), dst));
+                }
             }
         }
     };
