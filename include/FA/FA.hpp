@@ -637,11 +637,6 @@ namespace cgh{
         /// \return A reference of DFA.
         virtual DFA<Character>& minimize( void ) const = 0;
 
-        /// \brief Gets whether this FA is NULL.
-        /// \return A boolean.
-        virtual bool isNULL() = 0;
-        virtual bool isNULL() const = 0;
-
         /// \brief Removes all unreachable states from initial state.
         virtual void removeUnreachableState() = 0;
 
@@ -665,6 +660,7 @@ namespace cgh{
         virtual void print(string filename) const = 0;
         
         virtual bool isEmpty() = 0;
+        virtual bool isEmpty() const = 0;
         
        
         friend DFA<Character>;

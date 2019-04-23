@@ -78,7 +78,7 @@ namespace cgh {
         }
 
         DFA<Label<Character> >& determinize( void ) {
-            if (this -> isNULL()) return FT<Character>::EmptyDFT();
+            if (this -> isEmpty()) return FT<Character>::EmptyDFT();
             DFT<Character>* dft = new DFT<Character>(this -> symbols);
             NFA<Label<Character> >::determinize(dft);
             return *dft;

@@ -135,10 +135,10 @@ namespace cgh {
                     TrPDS<char>* trpds = trpdsMap[trpdsName];
                     DFTLabel2DFTMap leftQuotientMap;
                     DFTPairMap compositionMap;
-                    DFT2Map reverseMap;
-                    cout << FT<char>::getDFTClosure(dfts, trnfa -> getAlphabet(), leftQuotientMap, compositionMap, reverseMap).size() << endl;
+                    DFT2Map inversionMap;
+                    cout << FT<char>::getDFTClosure(dfts, trnfa -> getAlphabet(), leftQuotientMap, compositionMap, inversionMap).size() << endl;
 
-                    trnfa -> preStar(*trpds, stateMap, compositionMap, leftQuotientMap).output();
+                    trnfa -> postStar(*trpds, stateMap, compositionMap, leftQuotientMap, inversionMap).output();
 
                 }
             }

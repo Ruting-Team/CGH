@@ -119,7 +119,7 @@ namespace cgh {
                     if (compositionMap.count(DFT2(lhs, rhs)) > 0)
                         continue;
                     DFT<Character>* dft = &((*lhs) * (*rhs));
-                    if (dft -> isNULL()) {
+                    if (dft -> isEmpty()) {
                         Manage::del(dft);
                         continue;
                     }
@@ -131,6 +131,23 @@ namespace cgh {
                 }
             }
         }
+        static void unionDFTs(const DFTs& lhsDFTs, const DFTs& rhsDFTs, DFTs& dftClosure, DFTs& newDFTs, DFTPairMap& unionMap, ID2DFTsMap& codeMap) {
+            for (DFT<Character>* lhs : lhsDFTs) {
+                for (DFT<Character>* rhs : rhsDFTs) {
+                    if (unionMap.count(DFT2(lhs, rhs)) > 0)
+                        continue;
+                    DFT<Character>* dft = &((*lhs) | (*rhs));
+                    if (isNewDFT(codeMap, dft)) {
+                        dft -> output();
+                        cout << endl;
+                        dftClosure.insert(dft);
+                        newDFTs.insert(dft);
+                    }
+                    unionMap[DFT2(lhs, rhs)] = dft;
+                }
+            }
+        }
+
         static void mkCodeMap(DFTs& dfts, ID2DFTsMap& codeMap) {
             for (DFT<Character>* dft : dfts) {
                 codeMap[dft -> getCode()].insert(dft);
@@ -250,10 +267,10 @@ namespace cgh {
             return leftQuotientFT(ft, lWord);
         }
 
-        /// \brief Gets a FT which is the reverse FT of param ft.
+        /// \brief Gets a FT which is the inverse FT of param ft.
         /// \param ft A FT.
         /// \return A reference of FT.
-        static DFT<Character>& reverseFT(const FT& ft) {
+        static DFT<Character>& inverseFT(const FT& ft) {
             DFT<Character>& mdft = ft.minimizeFT();
             DFT<Character>* dft = new DFT<Character>(ft.getSymbols());
             dft -> setMinimalFlag(1);
@@ -316,20 +333,20 @@ namespace cgh {
             return *dft;
         }
 
-        /// \brief Gets the FT closure in reverse.
+        /// \brief Gets the FT closure in inverse.
         /// \param characters A reference of Characters.
-        static void getDFTClosureInReverse(DFTs& dfts, DFTs& dftClosure, DFTs& newWorks, DFT2Map& reverseMap, ID2DFTsMap& codeMap) {
+        static void getDFTClosureInInverse(DFTs& dfts, DFTs& dftClosure, DFTs& newWorks, DFT2Map& inversionMap, ID2DFTsMap& codeMap) {
             DFTs works;
             works.insert(dfts.begin(), dfts.end());
             for (DFT<Character>* dft : works) {
-                if (reverseMap.count(dft) == 0) {
-                    DFT<Character>* rDFT = &reverseFT(*dft);
+                if (inversionMap.count(dft) == 0) {
+                    DFT<Character>* rDFT = &inverseFT(*dft);
                     if (isNewDFT(codeMap, rDFT)) {
                         newWorks.insert(rDFT);
                         dftClosure.insert(rDFT);
                     }
-                    reverseMap[dft] = rDFT;
-                    reverseMap[rDFT] = dft;
+                    inversionMap[dft] = rDFT;
+                    inversionMap[rDFT] = dft;
                 }
             }
         }
@@ -348,7 +365,7 @@ namespace cgh {
                         for (Character lower : characters) {
                             Label<Character> label(upper, lower);
                             DFT<Character>* newDFT = &(*dft > label);
-                            if (newDFT -> isNULL()) {
+                            if (newDFT -> isEmpty()) {
                                 Manage::del(newDFT);
                                 continue;
                             }
@@ -390,7 +407,7 @@ namespace cgh {
         /// \param fss A reference of FTs.
         /// \param characters A reference of Characters.
         /// \return FTs.
-        static DFTs getDFTClosure(DFTs& dfts, Characters& characters, DFTLabel2DFTMap& leftQuotientMap, DFTPairMap& compositionMap, DFT2Map& reverseMap) {
+        static DFTs getDFTClosure(DFTs& dfts, Characters& characters, DFTLabel2DFTMap& leftQuotientMap, DFTPairMap& compositionMap, DFT2Map& inversionMap) {
             DFTs dftClosure;
             ID2DFTsMap codeMap;
             DFTs works;
@@ -399,7 +416,7 @@ namespace cgh {
             dftClosure.insert(dfts.begin(), dfts.end());
             mkCodeMap(dftClosure, codeMap);
             getDFTClosureInLeftQuotient(dfts, characters, dftClosure, newWorks, leftQuotientMap, codeMap);
-            //getDFTClosureInReverse(dftClosure, dftClosure, newWorks, reverseMap, codeMap);
+            getDFTClosureInInverse(dftClosure, dftClosure, newWorks, inversionMap, codeMap);
             newWorks.clear();
             works.insert(dftClosure.begin(), dftClosure.end());
             composeDFTs(works, works, dftClosure, newWorks, compositionMap, codeMap);
@@ -408,7 +425,7 @@ namespace cgh {
                 if (newerWorks.size() > 0) {
                     newWorks.insert(newerWorks.begin(), newerWorks.end());
                 }
-                //getDFTClosureInReverse(newWorks, dftClosure, newerWorks, reverseMap, codeMap);
+                getDFTClosureInInverse(newWorks, dftClosure, newerWorks, inversionMap, codeMap);
                 if (newerWorks.size() > 0) {
                     newWorks.insert(newerWorks.begin(), newerWorks.end());
                 }
@@ -416,6 +433,7 @@ namespace cgh {
                 newerWorks.clear();
                 composeDFTs(works, newWorks, dftClosure, newerWorks, compositionMap, codeMap);
                 composeDFTs(newWorks, works, dftClosure, newerWorks, compositionMap, codeMap);
+                //unionDFTs(newWorks, works, dftClosure, newerWorks, unionMap, codeMap);
                 newWorks.clear();
             } while (newerWorks.size() > 0);
             for (auto dft : dftClosure) {

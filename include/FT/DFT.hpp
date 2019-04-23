@@ -119,7 +119,7 @@ namespace cgh {
             DFT* dft = new DFT(this -> symbols);
             this -> removeDeadState();
             this -> removeUnreachableState();
-            if (this -> isNULL()) return FT<Character>::EmptyDFT();
+            if (this -> isEmpty()) return FT<Character>::EmptyDFT();
             DFA<Label<Character> >::minimize(dft);
             Manage::manage(dft);
             return *dft;
@@ -214,6 +214,14 @@ namespace cgh {
                     lowerss.insert(lowerss.end(), mapPair.second.begin(), mapPair.second.end());
                 }
             }
+        }
+
+        Labels getInitialLabels() {
+            Labels labels;
+            for (auto& mapPair : this -> initialState -> getTransMap()) {
+                labels.insert(mapPair.first);
+            }
+            return labels;
         }
 
     };

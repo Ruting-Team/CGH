@@ -15,11 +15,14 @@ namespace cgh {
     template<class Character>
     class TrNFAState : public State {
         typedef typename Alias4Char<Character>::Word Word;
+        typedef typename Alias4Char<Label<Character> >::Characters Labels;
         typedef typename Alias4FT<Character>::DFT2 DFT2;
         typedef typename Alias4TrNFA<Character>::TrNFATransMap TrNFATransMap;
         typedef typename Alias4TrNFA<Character>::TrNFAStates TrNFAStates;
         typedef typename Alias4TrNFA<Character>::DFT2TrNFAStatesMap DFT2TrNFAStatesMap;
+        typedef typename Alias4FT<Character>::DFTLabelPair DFTLabelPair;
         typedef typename Alias4FT<Character>::DFTPairMap DFTPairMap;
+        typedef typename Alias4FT<Character>::DFTLabel2DFTMap DFTLabel2DFTMap;
 
     private: 
         TrNFATransMap trnfaTransMap;
@@ -29,8 +32,43 @@ namespace cgh {
         }
 
     public:
-        void getDFT2TrNFAStatesMapByChar(DFT2TrNFAStatesMap& targetMap, Character character, DFTPairMap& compositionMap, DFT<Character>* dftid) {
+        void getTargetMap(TrNFATransMap& targetMap, DFTPairMap& compositionMap, DFTLabel2DFTMap& leftQuotientMap, DFT<Character>* tid) {
+            DFT2TrNFAStatesMap epsilonClosure;
+            getEpsilonClosure(epsilonClosure, compositionMap, tid);
+            epsilonClosure[tid].insert(this);
+            for (auto& epsMapPair : epsilonClosure) {
+                DFT<Character>* lhsDFT = epsMapPair.first;
+                TrNFAStates& epsilonStates = epsMapPair.second;
+                Labels labels = lhsDFT -> getInitialLabels();
+                for (Label<Character> label : labels) {
+                    Character upper = label.getUpper();
+                    Character lower = label.getLower();
+                    DFT<Character>* qtDFT = leftQuotientMap[DFTLabelPair(lhsDFT, label)];
+                    for (TrNFAState<Character>* epsState : epsilonStates) {
+                        auto mapIt = epsState -> trnfaTransMap.find(lower);
+                        if (mapIt != trnfaTransMap.end()) { 
+                            auto& map = mapIt -> second;
+                            for (auto& mapPair : map) {
+                                DFT<Character>* rhsDFT = mapPair.first;
+                                DFT<Character>* dft = compositionMap[DFT2(qtDFT, rhsDFT)];
+                                if (!dft) continue;
+                                TrNFAStates& states = mapPair.second;
+                                TrNFAStates& targetStates = targetMap[upper][dft];
+                                for (TrNFAState<Character>* state : states) {
+                                    targetMap[upper][dft].insert(state);
+                                    //if (targetStates.insert(state).second) {
+                                    //    state -> getEpsilonClosure(targetMap[upper], compositionMap, dft);
+                                    //}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        void getDFT2TrNFAStatesMapByChar(DFT2TrNFAStatesMap& targetMap, Character character, DFTPairMap& compositionMap, DFTLabel2DFTMap& leftQuotientMap, DFT<Character>* dftid) {
             if (character == FA<Character>::epsilon) {
+                getEpsilonClosure(targetMap, compositionMap, dftid);
             } else {
                 DFT2TrNFAStatesMap epsilonClosure;
                 getEpsilonClosure(epsilonClosure, compositionMap, dftid);
@@ -38,19 +76,24 @@ namespace cgh {
                 for (auto& epsMapPair : epsilonClosure) {
                     DFT<Character>* lhsDFT = epsMapPair.first;
                     TrNFAStates& epsilonStates = epsMapPair.second;
-                    for (TrNFAState<Character>* epsState : epsilonStates) {
-                        auto mapIt = epsState -> trnfaTransMap.find(character);
-                        if (mapIt != trnfaTransMap.end()) { 
-                            auto& map = mapIt -> second;
-                            for (auto& mapPair : map) {
-                                DFT<Character>* rhsDFT = mapPair.first;
-                                DFT<Character>* dft = compositionMap[DFT2(lhsDFT, rhsDFT)];
-                                if (!dft) continue;
-                                TrNFAStates& states = mapPair.second;
-                                TrNFAStates& targetStates = targetMap[dft];
-                                for (TrNFAState<Character>* state : states) {
-                                    if (targetStates.insert(state).second) {
-                                        state -> getEpsilonClosure(targetMap, compositionMap, dft);
+                    Word word = (*lhsDFT)[character];
+                    for (Character c : word) {
+                        Label<Character> label(character, c);
+                        DFT<Character>* qtDFT = leftQuotientMap[DFTLabelPair(lhsDFT, label)];
+                        for (TrNFAState<Character>* epsState : epsilonStates) {
+                            auto mapIt = epsState -> trnfaTransMap.find(c);
+                            if (mapIt != trnfaTransMap.end()) { 
+                                auto& map = mapIt -> second;
+                                for (auto& mapPair : map) {
+                                    DFT<Character>* rhsDFT = mapPair.first;
+                                    DFT<Character>* dft = compositionMap[DFT2(qtDFT, rhsDFT)];
+                                    if (!dft) continue;
+                                    TrNFAStates& states = mapPair.second;
+                                    TrNFAStates& targetStates = targetMap[dft];
+                                    for (TrNFAState<Character>* state : states) {
+                                        if (targetStates.insert(state).second) {
+                                            state -> getEpsilonClosure(targetMap, compositionMap, dft);
+                                        }
                                     }
                                 }
                             }
