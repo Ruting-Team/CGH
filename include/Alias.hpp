@@ -102,7 +102,7 @@ namespace cgh {
     typedef vector<Transition*> Transitions;
     typedef vector<Transition*> Transitions;
     typedef vector<Condition*> Conditions;
-    
+
     /****************** Alias4Char ******************/
 
     template <class Character>
@@ -128,6 +128,16 @@ namespace cgh {
         typedef unordered_map<NFAState<Character>*, DFAState<Character>*> NFAState2DFAStateMap;
         typedef unordered_map<NFAState<Character>*, NFAStates> NFAState2NFAStatesMap;
         typedef unordered_map<NFAStates, DFAState<Character>*> NFAStates2DFAStateMap;
+
+        typedef pair<NFAState<Character>*, Character> StateChar;
+        typedef pair<NFAState<Character>*, typename Alias4Char<Character>::Char2> StateChar2;
+        typedef set<StateChar> StateChars;
+        typedef set<StateChar2> StateChar2s;
+        typedef unordered_map<Character, StateChars> Char2StateCharsMap;
+        typedef unordered_map<Character, StateChar2s> Char2StateChar2sMap;
+        typedef unordered_map<NFAState<Character>*, Char2StateCharsMap> NeedMap;
+        typedef unordered_map<NFAState<Character>*, Char2StateChar2sMap> Need2Map;
+        typedef unordered_map<StateChar, NFAState<Character>*> PostStarMap;
         
         /***************** DFAState  *****************/
         

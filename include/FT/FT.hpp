@@ -43,17 +43,17 @@ namespace cgh {
         virtual void mkAlphabet() = 0;
         //virtual DFT<Character>& determinizeFT() = 0;
         
-        static void cpRTrans(DFT<Character>* dft, DFAState<Label<Character> >* state, DFTState2Map& state2map)
+        static void cpRTrans(DFT<Character>* dft, DFAState<Label<Character> >* state, DFTState2Map& state2Map)
         {
-            DFAState<Label<Character> >* sourceState = state2map[state];
+            DFAState<Label<Character> >* sourceState = state2Map[state];
             if (state -> isFinal()) dft -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
                 DFAState<Label<Character> >* targetState = nullptr;
-                auto state2MapIt = state2map.find(mapPair.second);
-                if (state2MapIt == state2map.end()) {
+                auto state2MapIt = state2Map.find(mapPair.second);
+                if (state2MapIt == state2Map.end()) {
                     targetState = dft -> mkState();
-                    state2map[mapPair.second] = targetState;
-                    cpRTrans(dft, mapPair.second, state2map);
+                    state2Map[mapPair.second] = targetState;
+                    cpRTrans(dft, mapPair.second, state2Map);
                 } else {
                     targetState = state2MapIt -> second;
                 }

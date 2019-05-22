@@ -31,28 +31,27 @@ namespace cgh {
         typedef typename Alias4FA<Character>::NFAState2NFAStatesMap NFAState2NFAStatesMap;
         typedef typename Alias4PDS<Character>::PDSState2NFAStateMap PDSState2NFAStateMap;
         typedef typename Alias4PDS<Character>::PDSStates PDSStates;
-        
-        typedef pair<NFAState<Character>*, Character> StateChar;
-        typedef pair<NFAState<Character>*, Char2> StateChar2;
-        typedef set<StateChar> StateChars;
-        typedef set<StateChar2> StateChar2s;
-        typedef unordered_map<Character, StateChars> Char2StateCharsMap;
-        typedef unordered_map<Character, StateChar2s> Char2StateChar2sMap;
-        typedef unordered_map<NFAState<Character>*, Char2StateCharsMap> NeedMap;
-        typedef unordered_map<NFAState<Character>*, Char2StateChar2sMap> Need2Map;
-        typedef unordered_map<StateChar, NFAState<Character>*> PostStarMap;
+        typedef typename Alias4FA<Character>::StateChar StateChar;
+        typedef typename Alias4FA<Character>::StateChar2 StateChar2;
+        typedef typename Alias4FA<Character>::StateChars StateChars;
+        typedef typename Alias4FA<Character>::StateChar2s StateChar2s;
+        typedef typename Alias4FA<Character>::Char2StateCharsMap Char2StateCharsMap;
+        typedef typename Alias4FA<Character>::Char2StateChar2sMap Char2StateChar2sMap;
+        typedef typename Alias4FA<Character>::NeedMap NeedMap;
+        typedef typename Alias4FA<Character>::Need2Map Need2Map;
+        typedef typename Alias4FA<Character>::PostStarMap PostStarMap;
 
     protected:
         NFAState<Character>* initialState;      ///< The initial state for this NFA.
         NFAStates states;                       ///< The set of states for this NFA.
         NFAStates finalStates;                  ///< The set of final states for this NFA.
 
-        void cpTransByDFA(DFAState<Character>* state, DFAState2NFAStateMap& state2map) {
-            FA<Character>::cpNFATransByDFA(this, state, state2map);
+        void cpTransByDFA(DFAState<Character>* state, DFAState2NFAStateMap& state2Map) {
+            FA<Character>::cpNFATransByDFA(this, state, state2Map);
         }
 
-        void cpTransByNFA(NFAState<Character>* state, NFAState2Map& state2map) {
-            FA<Character>::cpNFATransByNFA(this, state, state2map);
+        void cpTransByNFA(NFAState<Character>* state, NFAState2Map& state2Map) {
+            FA<Character>::cpNFATransByNFA(this, state, state2Map);
         }
 
         void getReachableStates(NFAStates& reachableStates, NFAStates& works) const {
@@ -186,7 +185,8 @@ namespace cgh {
             if (!midState) {
                 midState = mkState();
                 postStarMap[StateChar(sState, sc)] = midState;
-                sState -> addTrans(sc, midState);
+            }
+            if (sState -> addTrans(sc, midState)) {
                 addPostStarTrans(sState, sc, midState, needMap, need2Map);
             }
             addPostStarNeedMap(midState, tc2, tState, tc1, needMap, need2Map);
@@ -238,6 +238,33 @@ namespace cgh {
                 } else {
                     state2Map[state] = copyMap[state2Map[state]];
                 }
+            }
+        }
+
+        void postStar(NFA& nfa, const PDS<Character>& pds, PDSState2NFAStateMap& state2Map, PostStarMap& postStarMap) {
+            NeedMap needMap;
+            Need2Map need2Map;
+            for (PushPDSTrans<Character>* trans : pds.getPushTransList()) {
+                NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
+                NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
+                Character character = trans -> getChar();
+                Char2& stack = trans -> getStack();
+                nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map, postStarMap);
+            }
+
+            for (PopPDSTrans<Character>* trans : pds.getPopTransList()) {
+                NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
+                NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
+                Character character = trans -> getChar();
+                nfa -> addPostStarNeedMap(targetState, FA<Character>::epsilon, sourceState, character, needMap, need2Map);
+            }
+
+            for (ReplacePDSTrans<Character>* trans : pds.getReplaceTransList()) {
+                NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
+                NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
+                Character character = trans -> getChar();
+                Character stack = trans -> getStack();
+                nfa -> addPostStarNeedMap(targetState, stack, sourceState, character, needMap, need2Map);
             }
         }
 
@@ -437,7 +464,7 @@ namespace cgh {
         }
 
         DFA<Character>& minimize( void ) const {
-            return const_cast<NFA*>(this) -> minimize();
+            return determinize().minimize();
         }
 
         virtual DFA<Character>& determinize( void ) {
@@ -448,7 +475,9 @@ namespace cgh {
         }
 
         virtual DFA<Character>& determinize( void ) const {
-            return const_cast<NFA*>(this) -> determinize();
+            DFA<Character>* dfa = new DFA<Character>(this -> alphabet);
+            determinize(dfa);
+            return *dfa;
         }
         
         FA<Character>& subset(NFAState<Character>* iState, NFAState<Character>* fState) {
@@ -614,41 +643,19 @@ namespace cgh {
         /// \param pds Provides the rules for post*.
         /// \param state2Map Records the relation between pds and nfa.
         /// \return A reference of NFA.
+        void postStar(const PDS<Character>& pds, PDSState2NFAStateMap& state2Map, PostStarMap& postStarMap) {
+            postStar(this, pds, state2Map, postStarMap);
+        }
+
         NFA& postStar(const PDS<Character>& pds, PDSState2NFAStateMap& state2Map) {
             NFAState2Map copyMap;
             NFA* nfa = new NFA(*this, copyMap);
-            NeedMap needMap;
-            Need2Map need2Map;
             PostStarMap postStarMap;
             mkPDSState2Map(nfa, pds, copyMap, state2Map);
-
-            for (PushPDSTrans<Character>* trans : pds.getPushTransList()) {
-                NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
-                NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
-                Character character = trans -> getChar();
-                Char2& stack = trans -> getStack();
-                nfa -> addPostStarNeed2Map(targetState, stack.first, sourceState, character, stack.second, needMap, need2Map, postStarMap);
-            }
-
-            for (PopPDSTrans<Character>* trans : pds.getPopTransList()) {
-                NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
-                NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
-                Character character = trans -> getChar();
-                nfa -> addPostStarNeedMap(targetState, FA<Character>::epsilon, sourceState, character, needMap, need2Map);
-            }
-
-            for (ReplacePDSTrans<Character>* trans : pds.getReplaceTransList()) {
-                NFAState<Character>* sourceState = state2Map[trans -> getSourceState()];
-                NFAState<Character>* targetState = state2Map[trans -> getTargetState()];
-                Character character = trans -> getChar();
-                Character stack = trans -> getStack();
-                nfa -> addPostStarNeedMap(targetState, stack, sourceState, character, needMap, need2Map);
-            }
+            postStar(nfa, pds, state2Map, postStarMap);
             Manage::manage(nfa);
             return *nfa;
         }
-        
-        
     
         void output()const{
             if(!initialState) return;

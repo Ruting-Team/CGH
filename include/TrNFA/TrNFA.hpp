@@ -475,8 +475,6 @@ namespace cgh {
                 DFT<Character>* t = trans -> getDFT();
                 trnfa -> addPostStarNeedMap(targetState, stack, sourceState, character, inversionMap[t], needMap, need2Map, compositionMap, leftQuotientMap);
             }
-
-            
             Manage::manage(trnfa);
             return *trnfa;
         }

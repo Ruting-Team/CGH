@@ -16,8 +16,7 @@ namespace cgh {
 
     /// \brief A class of Deterministic Finite Automaton.
     template <class Character>
-    class DFA : public FA<Character>
-    {
+    class DFA : public FA<Character> {
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::Characters Characters;
 
@@ -29,11 +28,11 @@ namespace cgh {
         
     protected:
         DFAState<Character>* initialState;     ///< The initial state for this DFA.
-        DFAStates states;       ///< The set of states for this DFA.
-        DFAStates finalStates;  ///< The set of final states for this DFA.
+        DFAStates states;                      ///< The set of states for this DFA.
+        DFAStates finalStates;                 ///< The set of final states for this DFA.
 
-        void cpTrans(DFAState<Character>* state, DFAState2Map& state2map) {
-            FA<Character>::cpDFATransByDFA(this, state, state2map);
+        void cpTrans(DFAState<Character>* state, DFAState2Map& state2Map) {
+            FA<Character>::cpDFATransByDFA(this, state, state2Map);
         }
 
         void getReachableStates(DFAStates& reachableStates, DFAStates& works) const {

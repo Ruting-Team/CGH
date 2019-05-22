@@ -73,16 +73,16 @@ namespace cgh{
 
         virtual FA& copy() = 0;
     private:
-        static void cpNFATransByDFA(NFA<Character>* nfa, DFAState<Character>* state, DFAState2NFAStateMap& state2map) {
-            NFAState<Character>* sourceState = state2map[state];
+        static void cpNFATransByDFA(NFA<Character>* nfa, DFAState<Character>* state, DFAState2NFAStateMap& state2Map) {
+            NFAState<Character>* sourceState = state2Map[state];
             if (state -> isFinal()) nfa -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
                 NFAState<Character>* targetState = nullptr;
-                auto state2MapIt = state2map.find(mapPair.second);
-                if (state2MapIt == state2map.end()) {
+                auto state2MapIt = state2Map.find(mapPair.second);
+                if (state2MapIt == state2Map.end()) {
                     targetState = nfa -> mkState();
-                    state2map[mapPair.second] = targetState;
-                    cpNFATransByDFA(nfa, mapPair.second, state2map);
+                    state2Map[mapPair.second] = targetState;
+                    cpNFATransByDFA(nfa, mapPair.second, state2Map);
                 } else {
                     targetState = state2MapIt -> second;
                 }
@@ -90,17 +90,17 @@ namespace cgh{
             }
         }
 
-        static void cpNFATransByNFA(NFA<Character>* nfa, NFAState<Character>* state, NFAState2Map& state2map) {
-            NFAState<Character>* sourceState = state2map[state];
+        static void cpNFATransByNFA(NFA<Character>* nfa, NFAState<Character>* state, NFAState2Map& state2Map) {
+            NFAState<Character>* sourceState = state2Map[state];
             if (state -> isFinal()) nfa -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
                 for (NFAState<Character>* state : mapPair.second){
                     NFAState<Character>* targetState = nullptr;
-                    auto state2MapIt = state2map.find(state);
-                    if (state2MapIt == state2map.end()) {
+                    auto state2MapIt = state2Map.find(state);
+                    if (state2MapIt == state2Map.end()) {
                         targetState = nfa -> mkState();
-                        state2map[state] = targetState;
-                        cpNFATransByNFA(nfa, state, state2map);
+                        state2Map[state] = targetState;
+                        cpNFATransByNFA(nfa, state, state2Map);
                     } else {
                         targetState = state2MapIt -> second;
                     }
@@ -109,17 +109,17 @@ namespace cgh{
             }
         }
 
-        static void cpDFATransByDFA(DFA<Character>* dfa, DFAState<Character>* state, DFAState2Map& state2map)
+        static void cpDFATransByDFA(DFA<Character>* dfa, DFAState<Character>* state, DFAState2Map& state2Map)
         {
-            DFAState<Character>* sourceState = state2map[state];
+            DFAState<Character>* sourceState = state2Map[state];
             if (state -> isFinal()) dfa -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
                 DFAState<Character>* targetState = nullptr;
-                auto state2MapIt = state2map.find(mapPair.second);
-                if (state2MapIt == state2map.end()) {
+                auto state2MapIt = state2Map.find(mapPair.second);
+                if (state2MapIt == state2Map.end()) {
                     targetState = dfa -> mkState();
-                    state2map[mapPair.second] = targetState;
-                    cpDFATransByDFA(dfa, mapPair.second, state2map);
+                    state2Map[mapPair.second] = targetState;
+                    cpDFATransByDFA(dfa, mapPair.second, state2Map);
                 } else {
                     targetState = state2MapIt -> second;
                 }
