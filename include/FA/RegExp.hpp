@@ -222,13 +222,13 @@ namespace cgh {
             } else {
                 if (opt -> isStarOpt()) {
                     NFAState<Character>* iniState = nfa -> getInitialState();
-                    for (NFAState<Character>* state : nfa -> getFinalStateSet()) {
+                    for (NFAState<Character>* state : nfa -> getFinalStates()) {
                         state -> addEpsilonTrans(iniState);
                     }
                     nfa -> addFinalState(iniState);
                 } else if (opt -> isPlusOpt()) {
                     NFAState<Character>* iniState = nfa -> getInitialState();
-                    for (NFAState<Character>* state : nfa -> getFinalStateSet()) {
+                    for (NFAState<Character>* state : nfa -> getFinalStates()) {
                         state -> addEpsilonTrans(iniState);
                     }
                 } else if (opt -> isQustionOpt()) {
@@ -266,16 +266,16 @@ namespace cgh {
             } else if (lhsNFA && !rhsNFA) {
                 if (opt -> isCatOpt()) {
                     NFAState<Character>* finState = lhsNFA -> mkState();
-                    for (NFAState<Character>* state : lhsNFA -> getFinalStateSet()) {
+                    for (NFAState<Character>* state : lhsNFA -> getFinalStates()) {
                         for (char ch : rc -> getChar()) {
                             state -> addTrans(ch, finState);
                         }
                     }
-                    lhsNFA -> clearFinalStateSet();
+                    lhsNFA -> clearFinalStates();
                     lhsNFA -> addFinalState(finState);
                 } else if (opt -> isUnionOpt()) {
                     NFAState<Character>* iniState = lhsNFA -> getInitialState();
-                    for (NFAState<Character>* state : lhsNFA -> getFinalStateSet()) {
+                    for (NFAState<Character>* state : lhsNFA -> getFinalStates()) {
                         for (char ch : rc -> getChar()) {
                             iniState -> addTrans(ch, state);
                         }
@@ -291,7 +291,7 @@ namespace cgh {
                     rhsNFA -> setInitialState(state);
                 } else if (opt -> isUnionOpt()) {
                     NFAState<Character>* iniState = rhsNFA -> getInitialState();
-                    for (NFAState<Character>* state : rhsNFA -> getFinalStateSet()) {
+                    for (NFAState<Character>* state : rhsNFA -> getFinalStates()) {
                         for (char ch : rc -> getChar()) {
                             iniState -> addTrans(ch, state);
                         }
@@ -300,29 +300,29 @@ namespace cgh {
                 lc -> setNFA(rhsNFA);
             } else if (lhsNFA && rhsNFA) {
                 if (opt -> isCatOpt()) {
-                    lhsNFA -> getStateSet().insert(rhsNFA -> getStateSet().begin(), rhsNFA -> getStateSet().end());
+                    lhsNFA -> getStates().insert(rhsNFA -> getStates().begin(), rhsNFA -> getStates().end());
                     NFAState<Character>* iniState = rhsNFA -> getInitialState();
-                    for (NFAState<Character>* state : lhsNFA -> getFinalStateSet()) {
+                    for (NFAState<Character>* state : lhsNFA -> getFinalStates()) {
                         state -> addEpsilonTrans(iniState);
                     }
-                    lhsNFA -> clearFinalStateSet();
-                    for (NFAState<Character>* state : rhsNFA -> getFinalStateSet()) {
+                    lhsNFA -> clearFinalStates();
+                    for (NFAState<Character>* state : rhsNFA -> getFinalStates()) {
                         lhsNFA -> addFinalState(state);
                     }
-                    rhsNFA -> getStateSet().clear();
+                    rhsNFA -> getStates().clear();
                     delete rhsNFA;
                 } else if (opt -> isUnionOpt()) {
-                    lhsNFA -> getStateSet().insert(rhsNFA -> getStateSet().begin(), rhsNFA -> getStateSet().end());
+                    lhsNFA -> getStates().insert(rhsNFA -> getStates().begin(), rhsNFA -> getStates().end());
                     NFAState<Character>* iniState = lhsNFA -> mkState();
                     NFAState<Character>* lhsIniState = lhsNFA -> getInitialState();
                     NFAState<Character>* rhsIniState = rhsNFA -> getInitialState();
                     iniState -> addEpsilonTrans(lhsIniState);
                     iniState -> addEpsilonTrans(rhsIniState);
-                    for (NFAState<Character>* state : rhsNFA -> getFinalStateSet()) {
+                    for (NFAState<Character>* state : rhsNFA -> getFinalStates()) {
                         lhsNFA -> addFinalState(state);
                     }
                     lhsNFA -> setInitialState(iniState);
-                    rhsNFA -> getStateSet().clear();
+                    rhsNFA -> getStates().clear();
                     delete rhsNFA;
                 }
             }
@@ -423,7 +423,6 @@ namespace cgh {
                 for (char c : regEx[0] -> getChar()) {
                     iniState -> addTrans(c, finState);
                 }
-                nfa -> mkAlphabet();
                 return nfa;
             }
             Chars suffixExp;
@@ -443,7 +442,6 @@ namespace cgh {
                 }
             }
             NFA<Character>* nfa = charStack.top() -> getNFA();
-            nfa -> mkAlphabet();
             return nfa;
         }
     };

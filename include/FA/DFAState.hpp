@@ -23,8 +23,8 @@ namespace cgh{
     ///    dfaState0 -> delDFATrans(dfaState1);
     ///    dfaState0 -> delDFATrans('b', dfaState0);
     ///    DFATransMap& dfaTransMap = dfaState0 -> getTransMap();
-    ///    DFAStates dfaStates = dfaState0 -> getTargets();
-    ///    DFAState* targetState = dfaState0 -> getTargetState('a');
+    ///    DFAStates dfaStates = dfaState0 -> getTargetStates();
+    ///    DFAState* targetState = dfaState0 -> getTargetStateByChar('a');
     ///    dfa -> delDFAState(dfaState0);
     template <class Character>
     class DFAState : public State {
@@ -43,24 +43,19 @@ namespace cgh{
 
     public:
         /// \brief Gets the reference of transition map for this state.
-        ///
-        /// responsibility to use a reference to get this map, otherwise it will call copy construction.
-        /// This reference map can be used to modify.
-        /// \return A map reference. 
+        /// \return A reference of map. 
         DFATransMap& getTransMap() {return dfaTransMap;}
 
         /// \brief Gets a const transition map for this state.
-        ///
-        /// This map can not be used to modify.
-        /// \return A const map. 
+        /// \return A const reference of map. 
         const DFATransMap& getTransMap() const {return dfaTransMap;}
 
-        /// \brief Adds a transition which label is param character and target state is param target for this state.
+        /// \brief Adds a transition which from param character to param target.
         ///
         /// If this state has the a transition with the same label as pram character, then do nothing and return false.
         /// Otherwise add transition and return true;
         /// The target state must be created by the same DFA with this state.
-        /// \param character The label in the transition, which is a template class.
+        /// \param character The label in the transition.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
         virtual bool addTrans(Character character, DFAState* target) {
@@ -69,14 +64,14 @@ namespace cgh{
             return true;
         }
 
-        /// \brief Deletes a transition which label is param character and target state is param target for this state.
+        /// \brief Deletes a transition which form param character to param target.
         ///
         /// If this state has this transition, then delete it and return true;
         /// Otherwise do nothing and return false;
-        /// \param character The label in the transition, which is a template class.
+        /// \param character The label in the transition.
         /// \param target The target state in the transition.
         /// Returns a boolean representing whether the transition is deleted successfully.
-        bool delDFATrans(Character character, const DFAState* target) {
+        bool delDFATrans(Character character, DFAState* target) {
             auto mapIt = dfaTransMap.find(character);
             if (mapIt != dfaTransMap.end() && mapIt -> second == target) {
                 dfaTransMap.erase(mapIt);
@@ -91,7 +86,7 @@ namespace cgh{
         /// Otherwise do nothing and return false;
         /// \param target The target state in the transition.
         /// \return A boolean representing whether the target state is deleted successfully.
-        bool delDFATrans(const DFAState* target) {
+        bool delDFATrans(DFAState* target) {
             Characters chars;
             for (auto& mapPair : dfaTransMap)
                 if (mapPair.second == target)
@@ -106,7 +101,7 @@ namespace cgh{
         /// 
         /// If this character in the keys of transition map, then delete it and return true;
         /// Otherwise do nothing and return false;
-        /// \param character The label in the transition, which is a template class.
+        /// \param character The label in the transition.
         /// \return A boolean representing whether delete all transitions with given character successfully.
         bool delDFATrans(Character character) {
             return dfaTransMap.erase(character);
@@ -116,8 +111,7 @@ namespace cgh{
         /// \return A const set of states in DFA.
         const DFAStates getTargetStates() {
             DFAStates states;
-            for (auto& mapPair : dfaTransMap)
-                states.insert(mapPair.second);
+            getTargetStates(states);
             return states;
         }
 

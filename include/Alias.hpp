@@ -102,7 +102,7 @@ namespace cgh {
     typedef vector<Transition*> Transitions;
     typedef vector<Transition*> Transitions;
     typedef vector<Condition*> Conditions;
-    
+
     /****************** Alias4Char ******************/
 
     template <class Character>
@@ -128,6 +128,16 @@ namespace cgh {
         typedef unordered_map<NFAState<Character>*, DFAState<Character>*> NFAState2DFAStateMap;
         typedef unordered_map<NFAState<Character>*, NFAStates> NFAState2NFAStatesMap;
         typedef unordered_map<NFAStates, DFAState<Character>*> NFAStates2DFAStateMap;
+
+        typedef pair<NFAState<Character>*, Character> StateChar;
+        typedef pair<NFAState<Character>*, typename Alias4Char<Character>::Char2> StateChar2;
+        typedef set<StateChar> StateChars;
+        typedef set<StateChar2> StateChar2s;
+        typedef unordered_map<Character, StateChars> Char2StateCharsMap;
+        typedef unordered_map<Character, StateChar2s> Char2StateChar2sMap;
+        typedef unordered_map<NFAState<Character>*, Char2StateCharsMap> NeedMap;
+        typedef unordered_map<NFAState<Character>*, Char2StateChar2sMap> Need2Map;
+        typedef unordered_map<StateChar, NFAState<Character>*> PostStarMap;
         
         /***************** DFAState  *****************/
         
@@ -144,10 +154,10 @@ namespace cgh {
         
         /***************** FA  *****************/
         
-        typedef list<FA<Character>*> FAList;
-        typedef unordered_set<FA<Character>*> FAs;
-        typedef unordered_set<DFA<Character>*> DFAs;
-        typedef unordered_set<NFA<Character>*> NFAs;
+        typedef list<const FA<Character>*> FAList;
+        typedef vector<const FA<Character>*> FAVec;
+        typedef unordered_set<const FA<Character>*> FAs;
+        typedef unordered_set<const DFA<Character>*> DFAs;
         typedef unordered_map<Character, ID> Char2IDMap;
 
     };
@@ -179,12 +189,14 @@ namespace cgh {
         typedef pair<DFT<Character>*, Label<Character>> DFTLabelPair;
         typedef pair<DFTState<Character>*, DFTState<Character>* > DFTState2;
         typedef unordered_map<ID, DFTs> ID2DFTsMap;
+        typedef unordered_map<DFTState<Character>*, DFTState<Character>*> DFTState2Map;
         typedef unordered_map<DFT2, DFT<Character>*> DFTPairMap;
         typedef unordered_map<Character, DFTState<Character>*> Char2DFTStateMap;
         typedef unordered_map<DFTState<Character>*, Words> DFTState2WordsMap;
         typedef unordered_map<DFTLabelPair, DFT<Character>*> DFTLabel2DFTMap;
         typedef unordered_map<DFTState2, NFTState<Character>*> DFTStatePairMap;
         typedef unordered_map<Character, unordered_set<Label<Character> > > Char2LabelsMap;
+        typedef unordered_map<DFT<Character>*, DFT<Character>* > DFT2Map;
     };
 
     /****************** Alias4TrNFA ******************/

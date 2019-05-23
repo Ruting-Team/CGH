@@ -64,6 +64,24 @@ namespace cgh{
             unionSet(lhs, rhs, res);
             return res;
         }
+
+        static vector<string> split(const string& s, const string& seprate) {
+            vector<string> res;
+            size_t seprate_len = seprate.length();
+            size_t start = 0;
+            size_t index;
+            if ((index = s.find(seprate, start)) == s.npos) {
+                res.push_back(s);
+                return res;
+            }
+            while ((index = s.find(seprate,start)) != s.npos) {
+                res.push_back(s.substr(start,index - start));
+                start = index + seprate_len;
+            }
+            if (start < s.length())
+                res.push_back(s.substr(start,s.length()-start));
+            return res;
+        }
     };
 }
 #endif /* Object_hpp */

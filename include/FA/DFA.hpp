@@ -16,8 +16,7 @@ namespace cgh {
 
     /// \brief A class of Deterministic Finite Automaton.
     template <class Character>
-    class DFA : public FA<Character>
-    {
+    class DFA : public FA<Character> {
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::Characters Characters;
 
@@ -29,14 +28,14 @@ namespace cgh {
         
     protected:
         DFAState<Character>* initialState;     ///< The initial state for this DFA.
-        DFAStates states;       ///< The set of states for this DFA.
-        DFAStates finalStates;  ///< The set of final states for this DFA.
+        DFAStates states;                      ///< The set of states for this DFA.
+        DFAStates finalStates;                 ///< The set of final states for this DFA.
 
-        void cpTrans(DFAState<Character>* state, DFAState2Map& state2map) {
-            FA<Character>::cpDFATransByDFA(this, state, state2map);
+        void cpTrans(DFAState<Character>* state, DFAState2Map& state2Map) {
+            FA<Character>::cpDFATransByDFA(this, state, state2Map);
         }
 
-        void getReachableStates(DFAStates& reachableStates, DFAStates& works) {
+        void getReachableStates(DFAStates& reachableStates, DFAStates& works) const {
             if (works.size() == 0) return;
             DFAStates newWorks, newReachables;
             for (DFAState<Character>* state : works) {
@@ -334,20 +333,9 @@ namespace cgh {
             return dfaState;
         }
 
-        bool isNULL() {
-            if (!this -> isReachable()) removeUnreachableState();
-            if (initialState -> getTransMap().size() == 0) return true;
-            if (finalStates.size() == 0) return true;
-            return false;
-        }
-
-        bool isNULL() const {
-            return const_cast<DFA*>(this) -> isNULL();
-        }
-        
-        DFA& determinize( void ) {
-            return *this;
-        }
+        //DFA& determinize( void ) {
+        //    return *this;
+        //}
 
         DFA& determinize( void ) const {
             return const_cast<DFA&>(*this);
@@ -358,7 +346,7 @@ namespace cgh {
             DFA* dfa = new DFA(this -> alphabet);
             removeDeadState();
             removeUnreachableState();
-            if (isNULL()) return FA<Character>::EmptyDFA();
+            if (isEmpty()) return FA<Character>::EmptyDFA();
             minimize(dfa);
             return *dfa;
         }
@@ -368,7 +356,7 @@ namespace cgh {
         }
         
         FA<Character>& subset(const DFAState<Character>* iState, const DFAState<Character>* fState) {
-            if (isNULL()) return FA<Character>::EmptyDFA();
+            if (isEmpty()) return FA<Character>::EmptyDFA();
             DFA* dfa = new DFA(this -> alphabet);
             DFAState<Character>* state = dfa -> mkInitialState();
             DFAState2Map state2Map;
@@ -414,7 +402,7 @@ namespace cgh {
         }
 
          void removeDeadState() {
-            if (isNULL()) return;
+            if (isEmpty()) return;
             DFAState2DFAStatesMap reverseMap;
             getReverseMap(reverseMap);
             DFAStates liveStates(finalStates.begin(), finalStates.end());
@@ -443,7 +431,7 @@ namespace cgh {
         //Word getOneRun();
 
         bool isAccepted(const Word &word) {
-            if (isNULL()) return false;
+            if (isEmpty()) return false;
             DFAState<Character>* state = initialState;
             for (Character c : word) {
                 state = state -> getTargetStateByChar(c) ;
@@ -454,7 +442,7 @@ namespace cgh {
         }
 
         bool isAccepted(Character character) {
-            if (isNULL()) return false;
+            if (isEmpty()) return false;
             DFAState<Character>* state = initialState;
             state = state -> getTargetStateByChar(character) ;
             if (!state) return false;
@@ -463,15 +451,25 @@ namespace cgh {
         }
         
         bool isEmpty() {
-            if (isNULL()) return true;
             if (!this -> isReachable()) removeUnreachableState();
             if (finalStates.size() == 0) return true;
+            return false;
+        }
+
+        bool isEmpty() const {
+            if (!this -> isReachable()) {
+                DFAStates states;
+                DFAStates works;
+                works.insert(initialState);
+                getReachableStates(states, works);
+                if (!hasFinalState(states)) return true;
+            }
             return false;
         }
         
         void output() const
         {
-            if(isNULL()) return;
+            if(isEmpty()) return;
             cout<<initialState -> getID()<<endl;
             for(auto it = states.begin(); it != states.end(); it++)
             {
@@ -481,7 +479,7 @@ namespace cgh {
         }
         void print(string filename) const
         {
-            if(isNULL()) return;
+            if(isEmpty()) return;
             ofstream f;
             f.open(filename);
             f << "digraph {\n";

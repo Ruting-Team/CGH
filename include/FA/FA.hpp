@@ -36,7 +36,7 @@ namespace cgh{
         
     protected:
         Flag flag;                  ///< Records some attributes for this FA.
-        Characters alphabet;      ///< A set of characters which in the label on the transitions.
+        Characters alphabet;        ///< A set of characters which in the label on the transitions.
 
         /// \brief Default construction without arguments, initialize flag to 0.
         FA() : flag(0){
@@ -56,33 +56,33 @@ namespace cgh{
         /// \brief Sets this FA to deterministic or not by param b.
         /// \param b If b is true means deterministic otherwise not.
         void setDeterministicFlag(bool b) {
-            flag = b ? (flag | 1):(flag & ~1);
+            flag = b ? (flag | 1) : (flag & ~1);
         }
 
         /// \brief ss this FA to reachable or not by param b.
         /// \param b If b is true means reachable otherwise not.
         void setReachableFlag(bool b) {
-            flag = b ? (flag | (1 << 1)):(flag & ~(1 << 1));
+            flag = b ? (flag | (1 << 1)) : (flag & ~(1 << 1));
         }
 
         /// \brief ss this FA to minimal or not by param b.
         /// \param b If b is true means minimal otherwise not.
         void setMinimalFlag(bool b) {
-            flag = b ? (flag | (1 << 2)):(flag & ~(1 << 2));
+            flag = b ? (flag | (1 << 2)) : (flag & ~(1 << 2));
         }
 
         virtual FA& copy() = 0;
     private:
-        static void cpNFATransByDFA(NFA<Character>* nfa, DFAState<Character>* state, DFAState2NFAStateMap& state2map) {
-            NFAState<Character>* sourceState = state2map[state];
+        static void cpNFATransByDFA(NFA<Character>* nfa, DFAState<Character>* state, DFAState2NFAStateMap& state2Map) {
+            NFAState<Character>* sourceState = state2Map[state];
             if (state -> isFinal()) nfa -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
                 NFAState<Character>* targetState = nullptr;
-                auto state2MapIt = state2map.find(mapPair.second);
-                if (state2MapIt == state2map.end()) {
+                auto state2MapIt = state2Map.find(mapPair.second);
+                if (state2MapIt == state2Map.end()) {
                     targetState = nfa -> mkState();
-                    state2map[mapPair.second] = targetState;
-                    cpNFATransByDFA(nfa, mapPair.second, state2map);
+                    state2Map[mapPair.second] = targetState;
+                    cpNFATransByDFA(nfa, mapPair.second, state2Map);
                 } else {
                     targetState = state2MapIt -> second;
                 }
@@ -90,17 +90,17 @@ namespace cgh{
             }
         }
 
-        static void cpNFATransByNFA(NFA<Character>* nfa, NFAState<Character>* state, NFAState2Map& state2map) {
-            NFAState<Character>* sourceState = state2map[state];
+        static void cpNFATransByNFA(NFA<Character>* nfa, NFAState<Character>* state, NFAState2Map& state2Map) {
+            NFAState<Character>* sourceState = state2Map[state];
             if (state -> isFinal()) nfa -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
                 for (NFAState<Character>* state : mapPair.second){
                     NFAState<Character>* targetState = nullptr;
-                    auto state2MapIt = state2map.find(state);
-                    if (state2MapIt == state2map.end()) {
+                    auto state2MapIt = state2Map.find(state);
+                    if (state2MapIt == state2Map.end()) {
                         targetState = nfa -> mkState();
-                        state2map[state] = targetState;
-                        cpNFATransByNFA(nfa, state, state2map);
+                        state2Map[state] = targetState;
+                        cpNFATransByNFA(nfa, state, state2Map);
                     } else {
                         targetState = state2MapIt -> second;
                     }
@@ -109,17 +109,17 @@ namespace cgh{
             }
         }
 
-        static void cpDFATransByDFA(DFA<Character>* dfa, DFAState<Character>* state, DFAState2Map& state2map)
+        static void cpDFATransByDFA(DFA<Character>* dfa, DFAState<Character>* state, DFAState2Map& state2Map)
         {
-            DFAState<Character>* sourceState = state2map[state];
+            DFAState<Character>* sourceState = state2Map[state];
             if (state -> isFinal()) dfa -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
                 DFAState<Character>* targetState = nullptr;
-                auto state2MapIt = state2map.find(mapPair.second);
-                if (state2MapIt == state2map.end()) {
+                auto state2MapIt = state2Map.find(mapPair.second);
+                if (state2MapIt == state2Map.end()) {
                     targetState = dfa -> mkState();
-                    state2map[mapPair.second] = targetState;
-                    cpDFATransByDFA(dfa, mapPair.second, state2map);
+                    state2Map[mapPair.second] = targetState;
+                    cpDFATransByDFA(dfa, mapPair.second, state2Map);
                 } else {
                     targetState = state2MapIt -> second;
                 }
@@ -564,70 +564,55 @@ namespace cgh{
         /// \brief Gets the concatenation of param faList.
         /// \param faList A list of FA.
         /// \return A reference of FA.
-        //static DFA<Character>& concatenateFA(const FAList& faList) {
-        //    NFA<Character> nfa;
-        //    NFAState<Character>* iniState = nfa.mkNFAInitialState();
-        //    NFAStates fStates;
-        //    fStates.insert(iniState);
-        //    DFAState2NFAStateMap dfaState2Map;
-        //    NFAState2Map nfaState2Map;
-        //    for (FA* fa : faList) {
-        //        NFAState<Character>* state = nfa -> mkState();
-        //        for (NFAState<Character>* nfaState : fStates)
-        //            nfaState -> addEpsilonTrans(state);
-        //        fStates.clear();
-        //        nfa -> clearFinalStates();
-        //        DFA<Character> dfa = fa -> minimize();
-        //        dfaState2Map.clear();
-        //        DFAState<Character>* iniState = dfa.getInitialState();
-        //        if(iniState->isFinal()) nfa -> addFinalState(state);
-        //        dfaState2Map[iniState] = state;
-        //        nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
-        //        fStates.insert(nfa -> finalStates.begin(), nfa -> finalStates.end());
-        //    }
-        //    nfa -> mkAlphabet();
-        //    return *nfa;
-        //}
+        static DFA<Character>& concatenateFA(const FAList& faList) {
+            if (faList.size() == 0) return FA::EmptyDFA();
+            NFA<Character> nfa(faList.front() -> getAlphabet());
+            NFAState<Character>* iniState = nfa.mkInitialState();
+            NFAState<Character>* finState = nfa.mkFinalState();
+            iniState -> addEpsilonTrans(finState);
+            DFAState2NFAStateMap state2Map;
+            for (const FA* fa : faList) {
+                state2Map.clear();
+                DFA<Character>& dfa = fa -> minimize();
+                NFAState<Character>* nfaState = nfa.mkState();
+                DFAState<Character>* dfaState = dfa.getInitialState();
+                state2Map[dfaState] = nfaState;
+                for (NFAState<Character>* finState : nfa.getFinalStates()) {
+                    finState -> addEpsilonTrans(nfaState);
+                }
+                nfa.clearFinalStates();
+                nfa.cpTransByDFA(dfaState, state2Map);
+            }
+            return nfa.minimize();
+        }
         
-        ///// \brief Gets the union of param fas.
-        ///// \param fas A set of FA.
-        ///// \return A reference of FA.
-        //static FA& unionFA(const FAs& fas) {
-        //    NFA<Character>* nfa = new NFA<Character>();
-        //    NFAState<Character>* iniState = nfa -> mkNFAInitialState();
-        //    DFAState2NFAStateMap dfaState2Map;
-        //    NFAState2Map nfaState2Map;
-        //    for(FA* fa : fas)
-        //    {
-        //        NFAState<Character>* state = nfa -> mkNFAState();
-        //        iniState -> addEpsilonTrans(state);
-        //        if (fa -> isDeterminate()) {
-        //            dfaState2Map.clear();
-        //            DFA<Character>& tempDfa = fa -> determine();
-        //            DFAState<Character>* iniState = tempDfa.getInitialState();
-        //            if(iniState -> isFinal()) nfa->addFinalState(state);
-        //            dfaState2Map[iniState] = state;
-        //            nfa -> makeCopyTransByDFA(iniState, dfaState2Map);
-        //        } else {
-        //            nfaState2Map.clear();
-        //            NFA<Character>& tempNfa = fa -> nondetermine();
-        //            NFAState<Character>* iniState = tempNfa.getInitialState();
-        //            if(iniState -> isFinal()) nfa -> addFinalState(state);
-        //            nfaState2Map[iniState] = state;
-        //            nfa -> makeCopyTransByNFA(iniState, nfaState2Map);
-        //        }
-        //    }
-        //    nfa -> mkAlphabet();
-        //    return *nfa;
-        //}
+        /// \brief Gets the union of param fas.
+        /// \param fas A set of FA.
+        /// \return A reference of FA.
+        static DFA<Character>& unionFA(const FAs& fas) {
+            if (fas.size() == 0) return FA::EmptyDFA();
+            NFA<Character> nfa((*(fas.begin())) -> getAlphabet());
+            NFAState<Character>* iniState = nfa.mkInitialState();
+            DFAState2NFAStateMap state2Map;
+            for (const FA* fa : fas) {
+                state2Map.clear();
+                DFA<Character>& dfa = fa -> minimize();
+                NFAState<Character>* nfaState = nfa.mkState();
+                DFAState<Character>* dfaState = dfa.getInitialState();
+                state2Map[dfaState] = nfaState;
+                iniState -> addEpsilonTrans(nfaState);
+                nfa.cpTransByDFA(dfaState, state2Map);
+            }
+            return nfa.minimize();
+        }
         
         /// \brief Gets a DFA which determinized by this FA.
         /// \return A reference of DFA.
-        virtual DFA<Character>& determinize( void ) = 0;
+        //virtual DFA<Character>& determinize( void ) = 0;
 
         /// \brief Gets a FA which minimalized by this FA.
         /// \return A reference of FA.
-        virtual DFA<Character>& minimize( void ) = 0;
+        //virtual DFA<Character>& minimize( void ) = 0;
 
         /// \brief Gets a DFA which determinized by FA.
         /// \return A reference of DFA.
@@ -636,11 +621,6 @@ namespace cgh{
         /// \brief Gets a DFA which minimalized by FA.
         /// \return A reference of DFA.
         virtual DFA<Character>& minimize( void ) const = 0;
-
-        /// \brief Gets whether this FA is NULL.
-        /// \return A boolean.
-        virtual bool isNULL() = 0;
-        virtual bool isNULL() const = 0;
 
         /// \brief Removes all unreachable states from initial state.
         virtual void removeUnreachableState() = 0;
@@ -665,6 +645,7 @@ namespace cgh{
         virtual void print(string filename) const = 0;
         
         virtual bool isEmpty() = 0;
+        virtual bool isEmpty() const = 0;
         
        
         friend DFA<Character>;

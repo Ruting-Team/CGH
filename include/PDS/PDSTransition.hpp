@@ -19,12 +19,14 @@ namespace cgh {
     template <class Character>
     class PDSTrans {
     protected:
-        PDSState* sourceState;
-        PDSState* targetState;
-        Character character;
+        PDSState* sourceState;      ///< The source state for this PDSTrans.
+        PDSState* targetState;      ///< The target state for this PDSTrans.
+        Character character;        ///< The source chracter for this PDSTrans.
     public:
+
         PDSTrans() : sourceState(nullptr), targetState(nullptr) {}
         PDSTrans(PDSState* sState, PDSState* tState, Character c) : sourceState(sState), targetState(tState), character(c) {}
+
         PDSState* getSourceState() { return sourceState; }
         PDSState* getTargetState() { return targetState; }
         Character getChar() { return character; }

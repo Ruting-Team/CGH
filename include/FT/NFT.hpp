@@ -11,13 +11,12 @@
 
 #include "../FA/NFA.hpp"
 #include "NFTState.hpp"
-#include "NFTParser.hpp"
 
 namespace cgh {
     
     /// \brief A class of Nondeterministic Finite Automaton.
     template <class Character>
-    class NFT : public NFA<Label<Character> >, FT<Character> {
+    class NFT : public NFA<Label<Character> >, public FT<Character> {
     public:
         typedef typename Alias4Char<Character>::Word Word;
         typedef typename Alias4Char<Character>::Words Words;
@@ -78,23 +77,26 @@ namespace cgh {
             return nftState;
         }
 
-        DFA<Label<Character> >& determinize( void ) {
-            if (this -> isNULL()) return FT<Character>::EmptyDFT();
+        //DFA<Label<Character> >& determinize( void ) {
+        //    if (this -> isEmpty()) return FT<Character>::EmptyDFT();
+        //    DFT<Character>* dft = new DFT<Character>(this -> symbols);
+        //    NFA<Label<Character> >::determinize(dft);
+        //    return *dft;
+        //}
+
+        DFA<Label<Character> >& determinize( void ) const {
+            if (this -> isEmpty()) return FT<Character>::EmptyDFT();
             DFT<Character>* dft = new DFT<Character>(this -> symbols);
             NFA<Label<Character> >::determinize(dft);
             return *dft;
         }
 
-        DFA<Label<Character> >& determinize( void ) const {
-            return const_cast<NFT*>(this) -> determinize();
-        }
-
-        DFT<Character>& minimizeFT() {
-            return ((DFT<Character>&)(determinize())).minimizeFT();
-        }
+        //DFT<Character>& minimizeFT() {
+        //    return ((DFT<Character>&)(determinize())).minimizeFT();
+        //}
 
         DFT<Character>& minimizeFT() const{
-            return const_cast<NFT*>(this) -> minimizeFT();
+            return ((DFT<Character>&)(determinize())).minimizeFT();
         }
 
         DFT<Character>& operator & (const FT<Character>& ft) const {

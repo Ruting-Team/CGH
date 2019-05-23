@@ -10,30 +10,35 @@
 #define TrPDS_hpp
 
 #include "TrPDSTransition.hpp"
+#include "../Object.hpp"
 
 namespace cgh {
 
     template <class Character>
-    class TrPDS {
-        typedef typename Alias4FA<Character>::Char2 Char2;
-        typedef typename Alias4FA<Character>::NFAStates NFAStates;
+    class TrPDS : public Object {
+        typedef typename Alias4Char<Character>::Char2 Char2;
+        typedef typename Alias4Char<Character>::Characters Characters;
+        typedef typename Alias4FT<Character>::DFTs DFTs;
+        typedef typename Alias4TrPDS<Character>::TrPDSStates TrPDSStates;
         typedef typename Alias4TrPDS<Character>::TrPDSTransList TrPDSTransList;
         typedef typename Alias4TrPDS<Character>::PopTrPDSTransList PopTrPDSTransList;
         typedef typename Alias4TrPDS<Character>::PushTrPDSTransList PushTrPDSTransList;
         typedef typename Alias4TrPDS<Character>::ReplaceTrPDSTransList ReplaceTrPDSTransList;
-        typedef typename Alias4TrPDS<Character>::TrPDSStates TrPDSStates;
-        typedef typename Alias4FT<Character>::DFTs DFTs;
+
     private:
         TrPDSStates states;                       ///< The set of states for this TrPDS.
-        TrPDSStates controlStates;                ///< The set of control states for this TrPDS.
         PopTrPDSTransList popTransList;           ///< The list of pop transitions for this TrPDS.
         PushTrPDSTransList pushTransList;         ///< The list of push transitions for this TrPDS.
         ReplaceTrPDSTransList replaceTransList;   ///< The list of replace transitions for this TrPDS.
+        Characters alphabet;                      ///< A set of characters which in the label on the transitions.
         DFTs dfts;                                ///> The set of DFT in this TrPDS.
 
     public:
         /// \brief Default construction function.
         TrPDS() {}
+
+        TrPDS(const Characters& chars) : alphabet(chars.begin(), chars.end()) {
+        }
 
         /// \brief Desconstruction function.
         ///
@@ -53,53 +58,23 @@ namespace cgh {
             }
         }
 
-        TrPDSStates& getControlStates() { return controlStates; }
         TrPDSStates& getStates() { return states; }
         PopTrPDSTransList& getPopTransList() { return popTransList;}
         PushTrPDSTransList& getPushTransList() { return pushTransList; }
         ReplaceTrPDSTransList& getReplaceTransList() { return replaceTransList; }
         
-        const TrPDSStates& getControlStates() const { return controlStates; }
         const TrPDSStates& getStates() const { return states; }
         const PopTrPDSTransList& getPopTransList() const { return popTransList;}
         const PushTrPDSTransList& getPushTransList() const { return pushTransList; }
         const ReplaceTrPDSTransList& getReplaceTransList() const { return replaceTransList; }
 
         /// \brief Make a state for this TrPDS.
-        ///
         /// \return A TrPDSState pointer.
         TrPDSState* mkState() {
             TrPDSState* state = new TrPDSState();
             states.insert(state);
             return state;
         }
-
-        /// \brief Make a control state for this TrPDS.
-        ///
-        /// \return A TrPDSState pointer.
-        TrPDSState* mkControlState() {
-            TrPDSState* state = mkState();
-            controlStates.insert(state);
-            return state;
-        }
-
-        ///// \brief Make a state with param id for this TrPDS.
-        ///// \param id The id for this state.
-        ///// \return A TrPDSState pointer.
-        //TrPDSState* mkState(ID id) {
-        //    TrPDSState* state = new TrPDSState(id);
-        //    states.insert(state);
-        //    return state;
-        //}
-
-        ///// \brief Make a control state for this TrPDS.
-        ///// \param id The id for this state.
-        ///// \return A TrPDSState pointer.
-        //TrPDSState* mkControlState(ID id) {
-        //    TrPDSState state = mkState(id);
-        //    controlStates.insert(state);
-        //    return state;
-        //}
 
         /// \brief Make a popTrPDSTrans for this TrPDS.
         /// \param souceState The source state in a popTrPDSTrans.

@@ -1,6 +1,6 @@
 //
 //  NFAState.hpp
-//  CGH-T
+//  CGH
 //
 //  Created by 何锦龙 on 2018/7/2.
 //  Copyright © 2018年 何锦龙. All rights reserved.
@@ -23,8 +23,8 @@ namespace cgh{
     ///    nfaState0 -> delNFATrans('a');
     ///    nfaState0 -> delNFATrans('b', nfaState0);
     ///    NFATransMap& nfaTransMap = nfaState0 -> getTransMap();
-    ///    NFAStates nfaStates = nfaState0 -> getTargets();
-    ///    NFAStates nfaStates = nfaState0 -> getTargets('a');
+    ///    NFAStates nfaStates = nfaState0 -> getTargetStates();
+    ///    NFAStates nfaStates = nfaState0 -> getTargetStatesByChar('a');
     ///    NFAStates nfaStates = nfaState1 -> getEpsilonClosure();
     ///    nfa -> delNFAState(nfaState0);
     template <class Character>
@@ -33,13 +33,32 @@ namespace cgh{
         typedef typename Alias4Char<Character>::Characters Characters;
         typedef typename Alias4FA<Character>::NFAStates NFAStates;
         typedef typename Alias4FA<Character>::NFATransMap NFATransMap;
+        typedef unordered_map<NFAState<Character>*, NFATransMap> ReverseMap;
         
     protected:
-        NFATransMap nfaTransMap; ///< A transition map for this state, the key is character and the value is a set of states.
+        NFATransMap nfaTransMap;        ///< A transition map for this state, from Character to NFAStates. 
         
         void getTargetStates(NFAStates& states) {
             for(auto& mapPair : nfaTransMap)
                 getTargetStatesByChar(states, mapPair.first);
+            getEpsilonClosure(states);
+        }
+
+        void getTargetMap(NFATransMap& targetMap) {
+            NFAStates epsilonClosure, states;
+            getEpsilonClosure(epsilonClosure);
+            epsilonClosure.insert(this);
+            for (NFAState* nfaState : epsilonClosure) {
+                NFATransMap& transMap = nfaState -> getTransMap();
+                for (auto& mapPair : transMap) {
+                    for (NFAState* state : mapPair.second) {
+                        state -> getEpsilonClosure(states);
+                        states.insert(state);
+                    }
+                    targetMap[mapPair.first].insert(states.begin(), states.end());
+                    states.clear();
+                }
+            }
         }
         
         void getTargetStatesByChar(NFAStates& states, Character character) {
@@ -66,33 +85,33 @@ namespace cgh{
             auto mapIt = nfaTransMap.find(FA<Character>::epsilon);
             if (mapIt != nfaTransMap.end()) { 
                 NFAStates works;
-                for (NFAState* state : mapIt -> second)
+                for (NFAState* state : mapIt -> second) {
                     if (epsilonClosure.insert(state).second) works.insert(state);
-                for (NFAState* state : works)
+                }
+                for (NFAState* state : works) {
                     state -> getEpsilonClosure(epsilonClosure);
+                }
             }
         }
 
     public:
-        /// \brief Gets the reference of transition map for this state.
+        /// \brief Gets the transition map for this state.
         ///
-        /// responsibility to use a reference to get this map, otherwise it will call copy construction.
-        /// This reference map can be used to modify.
-        /// \return A map reference. 
+        /// \return A reference of map. 
         NFATransMap& getTransMap() {return nfaTransMap;}
 
-        /// \brief Gets a const transition map for this state.
+        /// \brief Gets the transition map for this state.
         ///
-        /// This map can not be used to modify.
-        /// \return A const map. 
-        const NFATransMap getTransMap() const {return nfaTransMap;}
+        /// Const function.
+        /// \return A const reference of map. 
+        const NFATransMap& getTransMap() const {return nfaTransMap;}
 
-        /// \brief Adds a transition which label is param character and target state is param target for this state.
+        /// \brief Adds a transition which from param character to param target.
         ///
-        /// If this state has the same transition, then do nothing and return false.
+        /// If this state has the same transition, then return false.
         /// Otherwise add transition and return true;
         /// The target state must be created by the same NFA with this state.
-        /// \param character The label in the transition, which is a template class.
+        /// \param character The label in the transition.
         /// \param target The target state in the transition.
         /// \return A boolean representing whether add a transition to a state successfully.
         virtual bool addTrans(Character character, NFAState* target) {
@@ -101,7 +120,7 @@ namespace cgh{
 
         /// \brief Adds a epsilon transition for this state.
         ///
-        /// If this state has the same transition, then do nothing and return false.
+        /// If this state has the same transition, then return false.
         /// Otherwise add transition and return true;
         /// The target state must be created by the same NFA with this state.
         /// \param target The target state in the transition.
@@ -110,14 +129,14 @@ namespace cgh{
             return addTrans(FA<Character>::epsilon, target);
         }
         
-        /// \brief Deletes a transition which label is param character and target state is param target for this state.
+        /// \brief Deletes a transition which from param character to param target.
         ///
         /// If this state has this transition, then delete it and return true;
-        /// Otherwise do nothing and return false;
-        /// \param character The label in the transition, which is a template class.
+        /// Otherwise return false;
+        /// \param character The label in the transition.
         /// \param target The target state in the transition.
-        /// Returns a boolean representing whether the transition is deleted successfully.
-        bool delNFATrans(Character character, const NFAState* target) {
+        /// \return A boolean representing whether the transition is deleted successfully.
+        bool delNFATrans(Character character, NFAState* target) {
             auto mapIt = nfaTransMap.find(character);
             if (mapIt == nfaTransMap.end()) {
                 return false;
@@ -137,15 +156,15 @@ namespace cgh{
         /// \brief Deletes all transitions target to the param target for this state.
         /// 
         /// If the target state in the target states set of thie state, then delete it and return true;
-        /// Otherwise do nothing and return false;
+        /// Otherwise and return false;
         /// \param target The target state in the transition.
         /// \return A boolean representing whether the target state is deleted successfully.
-        bool delNFATrans(const NFAState* target) {
+        bool delNFATrans(NFAState* target) {
             int count = 0;
             Characters chars;
             for (auto& mapPair : nfaTransMap) {
                 NFAStates& states = mapPair.second;
-                auto sIt = states.find(const_cast<NFAState*>(target));
+                auto sIt = states.find(target);
                 if (sIt != states.end()) {
                     count++;
                     if (states.size() == 1) {
@@ -175,8 +194,7 @@ namespace cgh{
         /// \return A const set of states in NFA.
         const NFAStates getTargetStates() {
             NFAStates states;
-            for (auto& mapPair : nfaTransMap)
-                getTargetStatesByChar(states, mapPair.first);
+            getTargetStates(states);
             return states;
         }
 
@@ -186,37 +204,16 @@ namespace cgh{
         /// \param character The label in a transition, which is a template class.
         /// \return A const set of states in NFA.
         const NFAStates getTargetStatesByChar(Character character) {
-            NFAStates epsilonClosure;
-            getEpsilonClosure(epsilonClosure);
-            if (character == FA<Character>::epsilon) return epsilonClosure;
-            epsilonClosure.insert(this);
             NFAStates states;
-            for (NFAState* nfaState : epsilonClosure) {
-                NFATransMap& transMap = nfaState -> getTransMap();
-                auto mapIt = transMap.find(character);
-                if (mapIt != transMap.end()) {
-                    for(NFAState* state : mapIt -> second) {
-                        state -> getEpsilonClosure(states);
-                        states.insert(state);
-                    }
-                }
-            }
+            getTargetStatesByChar(states, character);
             return states;
         }
 
         /// \brief Gets a set of all the states reached by epsilon from this state.
-        ///
-        /// It is a closure.
         /// \return A const set of states in NFA.
         const NFAStates getEpsilonClosure() {
             NFAStates epsilonClosure;
-            auto mapIt = nfaTransMap.find(FA<Character>::epsilon);
-            if (mapIt == nfaTransMap.end()) return epsilonClosure;
-            NFAStates works;
-            for (NFAState* state : mapIt -> second)
-                if (epsilonClosure.insert(state).second) works.insert(state);
-            for (NFAState* state : works)
-                state -> getEpsilonClosure(epsilonClosure);
+            getEpsilonClosure(epsilonClosure);
             return epsilonClosure;
         }
 

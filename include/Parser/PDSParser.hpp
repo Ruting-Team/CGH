@@ -9,8 +9,7 @@
 #ifndef PDSParser_hpp
 #define PDSParser_hpp
 
-#include "../Parser.hpp"
-#include "../State.hpp"
+#include "Parser.hpp"
 
 using namespace std;
 
@@ -40,31 +39,19 @@ namespace cgh {
         }
 
         /// \brief Constructs PDS.
-        PDS<Character>* parse(const string& fileName) {
-            fstream fin;
-            fin.open(fileName, fstream::in);
-            string info = fileName + " not found or open failed!";
-            if (!fin.is_open()) {
-                ErrorReport::report(info, ERROR);
-                exit(-1);
-            }
+        PDS<Character>* parse(fstream& fin) {
+            IDs finalStates;
+            ID stateNumber = this -> parseStateNumber(fin);
             this -> parseAlphabet(fin);
             PDS<Character>* result = new PDS<Character>(this -> alphabet);
-            ID stateNumber = this -> parseStateNumber(fin);
-            this -> parseFinalStates(fin);
             parsePopTransitions(fin);
             parseReplaceTransitions(fin);
             parsePushTransitions(fin);
-            fin.close();
             // construct PDS
             vector<PDSState* > stateVector;
             // update state info
             for (ID pos = 0; pos < stateNumber; pos++) {
-                if (this -> finalStates.find(pos) != this -> finalStates.end()) {
-                    stateVector.push_back(result -> mkControlState());
-                } else {
-                    stateVector.push_back(result -> mkState());
-                }
+                stateVector.push_back(result -> mkState());
             }
             // update transition info
             for (ID i = 0; i < poptransitions.size(); i++) {
@@ -96,33 +83,57 @@ namespace cgh {
         /// \param fin input stream
         /// \param transitions transitions
         void parseReplaceTransitions(fstream& fin) {
-            this -> parseComment(fin);
+            string line;
             int src;
-            Character uc;
-            Character lc;
+            Character sch;
+            Character tch;
             int dst;
-            while(fin >> src >> uc >> lc >> dst) {
-                replacetransitions.push_back(make_tuple(src, Char2(uc, lc), dst));
+            while (getline(fin, line)) {
+                stringstream stream;
+                stream << line;
+                if (line == "$") {
+                    break;
+                } else {
+                    stream >> src >> sch >> tch >> dst;
+                    replacetransitions.push_back(make_tuple(src, Char2(sch, tch), dst));
+                }
             }
         }
+
         void parsePopTransitions(fstream& fin) {
             this -> parseComment(fin);
+            string line;
             int src;
             Character c;
             int dst;
-            while(fin >> src >> c  >> dst) {
-                poptransitions.push_back(make_tuple(src, c, dst));
+            getline(fin, line);
+            while (getline(fin, line)) {
+                stringstream stream;
+                stream << line;
+                if (line == "$") {
+                    break;
+                } else {
+                    stream >> src >> c >> dst;
+                    poptransitions.push_back(make_tuple(src, c, dst));
+                }
             }
         }
         void parsePushTransitions(fstream& fin) {
-            this -> parseComment(fin);
+            string line;
             int src;
             Character sc;
             Character tc1;
             Character tc2;
             int dst;
-            while(fin >> src >> sc >> tc1 >> tc2 >> dst) {
-                replacetransitions.push_back(make_tuple(src, Char3(sc, Char2(tc1, tc2)), dst));
+            while (getline(fin, line)) {
+                stringstream stream;
+                stream << line;
+                if (line == "endPDS") {
+                    break;
+                } else {
+                    stream >> src >> sc >> tc1 >> tc2 >> dst;
+                    pushtransitions.push_back(make_tuple(src, Char3(sc, Char2(tc1, tc2)), dst));
+                }
             }
         }
     };

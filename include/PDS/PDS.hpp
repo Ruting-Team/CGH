@@ -10,12 +10,12 @@
 #define PDS_hpp
 
 #include "PDSTransition.hpp"
-#include "PDSParser.hpp"
+#include "../Object.hpp"
 
 namespace cgh {
 
     template <class Character>
-    class PDS {
+    class PDS :public Object {
         typedef typename Alias4Char<Character>::Char2 Char2;
         typedef typename Alias4Char<Character>::Characters Characters;
         typedef typename Alias4FA<Character>::NFAStates NFAStates;
@@ -26,7 +26,6 @@ namespace cgh {
         typedef typename Alias4PDS<Character>::PDSStates PDSStates;
     private:
         PDSStates states;                       ///< The set of states for this PDS.
-        PDSStates controlStates;                ///< The set of control states for this PDS.
         PopPDSTransList popTransList;           ///< The list of pop transitions for this PDS.
         PushPDSTransList pushTransList;         ///< The list of push transitions for this PDS.
         ReplacePDSTransList replaceTransList;   ///< The list of replace transitions for this PDS.
@@ -39,13 +38,6 @@ namespace cgh {
         /// brief Construction function with param characters.
         /// \param characters The alphabet.
         PDS(const Characters& characters) : alphabet(characters.begin(), characters.end()){
-        }
-
-        /// \brief Construction function from file.
-        /// \param file the file name.
-        PDS(const string& file, const string& type = "-r") {
-            PDSParser<Character> parser;
-            *this = *parser.parse(file);
         }
 
         /// \brief Desconstruction function.
@@ -66,13 +58,11 @@ namespace cgh {
             }
         }
 
-        PDSStates& getControlStates() { return controlStates; }
         PDSStates& getStates() { return states; }
         PopPDSTransList& getPopTransList() { return popTransList;}
         PushPDSTransList& getPushTransList() { return pushTransList; }
         ReplacePDSTransList& getReplaceTransList() { return replaceTransList; }
         
-        const PDSStates& getControlStates() const { return controlStates; }
         const PDSStates& getStates() const { return states; }
         const PopPDSTransList& getPopTransList() const { return popTransList;}
         const PushPDSTransList& getPushTransList() const { return pushTransList; }
@@ -86,33 +76,6 @@ namespace cgh {
             states.insert(state);
             return state;
         }
-
-        /// \brief Make a control state for this PDS.
-        ///
-        /// \return A PDSState pointer.
-        PDSState* mkControlState() {
-            PDSState* state = mkState();
-            controlStates.insert(state);
-            return state;
-        }
-
-        ///// \brief Make a state with param id for this PDS.
-        ///// \param id The id for this state.
-        ///// \return A PDSState pointer.
-        //PDSState* mkState(ID id) {
-        //    PDSState* state = new PDSState(id);
-        //    states.insert(state);
-        //    return state;
-        //}
-
-        ///// \brief Make a control state for this PDS.
-        ///// \param id The id for this state.
-        ///// \return A PDSState pointer.
-        //PDSState* mkControlState(ID id) {
-        //    PDSState state = mkState(id);
-        //    controlStates.insert(state);
-        //    return state;
-        //}
 
         /// \brief Make a popPDSTrans for this PDS.
         /// \param souceState The source state in a popPDSTrans.
