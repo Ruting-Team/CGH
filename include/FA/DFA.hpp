@@ -333,9 +333,9 @@ namespace cgh {
             return dfaState;
         }
 
-        DFA& determinize( void ) {
-            return *this;
-        }
+        //DFA& determinize( void ) {
+        //    return *this;
+        //}
 
         DFA& determinize( void ) const {
             return const_cast<DFA&>(*this);

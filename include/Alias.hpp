@@ -154,10 +154,10 @@ namespace cgh {
         
         /***************** FA  *****************/
         
-        typedef list<FA<Character>*> FAList;
-        typedef unordered_set<FA<Character>*> FAs;
-        typedef unordered_set<DFA<Character>*> DFAs;
-        typedef unordered_set<NFA<Character>*> NFAs;
+        typedef list<const FA<Character>*> FAList;
+        typedef vector<const FA<Character>*> FAVec;
+        typedef unordered_set<const FA<Character>*> FAs;
+        typedef unordered_set<const DFA<Character>*> DFAs;
         typedef unordered_map<Character, ID> Char2IDMap;
 
     };

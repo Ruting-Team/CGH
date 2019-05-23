@@ -77,23 +77,26 @@ namespace cgh {
             return nftState;
         }
 
-        DFA<Label<Character> >& determinize( void ) {
+        //DFA<Label<Character> >& determinize( void ) {
+        //    if (this -> isEmpty()) return FT<Character>::EmptyDFT();
+        //    DFT<Character>* dft = new DFT<Character>(this -> symbols);
+        //    NFA<Label<Character> >::determinize(dft);
+        //    return *dft;
+        //}
+
+        DFA<Label<Character> >& determinize( void ) const {
             if (this -> isEmpty()) return FT<Character>::EmptyDFT();
             DFT<Character>* dft = new DFT<Character>(this -> symbols);
             NFA<Label<Character> >::determinize(dft);
             return *dft;
         }
 
-        DFA<Label<Character> >& determinize( void ) const {
-            return const_cast<NFT*>(this) -> determinize();
-        }
-
-        DFT<Character>& minimizeFT() {
-            return ((DFT<Character>&)(determinize())).minimizeFT();
-        }
+        //DFT<Character>& minimizeFT() {
+        //    return ((DFT<Character>&)(determinize())).minimizeFT();
+        //}
 
         DFT<Character>& minimizeFT() const{
-            return const_cast<NFT*>(this) -> minimizeFT();
+            return ((DFT<Character>&)(determinize())).minimizeFT();
         }
 
         DFT<Character>& operator & (const FT<Character>& ft) const {
