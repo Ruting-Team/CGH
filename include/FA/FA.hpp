@@ -109,8 +109,7 @@ namespace cgh{
             }
         }
 
-        static void cpDFATransByDFA(DFA<Character>* dfa, DFAState<Character>* state, DFAState2Map& state2Map)
-        {
+        static void cpDFATransByDFA(DFA<Character>* dfa, DFAState<Character>* state, DFAState2Map& state2Map) {
             DFAState<Character>* sourceState = state2Map[state];
             if (state -> isFinal()) dfa -> addFinalState(sourceState);
             for (auto& mapPair : state -> getTransMap()) {
@@ -160,7 +159,11 @@ namespace cgh{
         }
 
         
-        static void intersectFA(DFA<Character>& dfa, DFA<Character>& lhsDFA, DFA<Character>& rhsDFA) {
+        static void intersectFA(DFA<Character>& dfa, const DFA<Character>& lhsDFA, const DFA<Character>& rhsDFA) {
+            if (lhsDFA.isEmpty() || rhsDFA.isEmpty()) {
+                dfa.mkInitialState();
+                return;
+            }
             DFAStatePairMap pairMap;
             dfa.setAlphabet(Manage::unionSet(lhsDFA.getAlphabet(), rhsDFA.getAlphabet()));
             intersectFA(&dfa, dfa.mkInitialState(), DFAState2(lhsDFA.getInitialState(), rhsDFA.getInitialState()), pairMap);
@@ -188,12 +191,11 @@ namespace cgh{
                         targetState = pairMapIt -> second;
                     }
                     sourceState -> addTrans(character, targetState);
-                    dfa -> addAlphabet(character);
                 }
             }
         }
 
-        static void unionFA(NFA<Character>& nfa, DFA<Character>& lhsDFA, DFA<Character>& rhsDFA) {
+        static void unionFA(NFA<Character>& nfa, const DFA<Character>& lhsDFA, const DFA<Character>& rhsDFA) {
             nfa.setAlphabet(Manage::unionSet(lhsDFA.getAlphabet(), rhsDFA.getAlphabet()));
             NFAState<Character>* initialState = nfa.mkInitialState();
             DFAState2NFAStateMap lhsState2Map;
@@ -230,12 +232,11 @@ namespace cgh{
             cpNFATransByDFA(&nfa, rhsDFAState, rhsState2Map);
         }
 
-        static void complementFA(DFA<Character>& dfa, DFA<Character>& mdfa) {
-            DFAState<Character>* state = mdfa.getInitialState();
-            DFAState<Character>* initialState = dfa.mkInitialState();
+        static void complementFA(DFA<Character>& dfa, const DFA<Character>& mdfa) {
+            DFAState<Character>* initialState = mdfa.getInitialState();
             DFAState2Map stateMap;
-            stateMap[state] = initialState;
-            dfa.cpTrans(state, stateMap);
+            stateMap[initialState] = dfa.mkInitialState();
+            dfa.cpTrans(initialState, stateMap);
             DFAState<Character>* trapState = dfa.mkState();
             dfa.getFinalStates().clear();
             for (DFAState<Character>* state : dfa.getStates()) {
@@ -370,7 +371,8 @@ namespace cgh{
         /// \return A reference of FA.
         static DFA<Character>& complementFA(const FA& fa) {
             DFA<Character>& mdfa = fa.minimize();
-            DFA<Character> dfa(fa.getAlphabet());
+            if (mdfa.isEmpty()) return FA::SigmaStarFA(mdfa.getAlphabet());
+            DFA<Character> dfa(mdfa.getAlphabet());
             complementFA(dfa, mdfa);
             return dfa.minimize();
         }
@@ -439,6 +441,7 @@ namespace cgh{
             DFA<Character>* dfa = new DFA<Character>();
             Manage::manage(dfa);
             dfa -> mkInitialState();
+            dfa -> setMinimalFlag(1);
             return *dfa;
         }
 
@@ -454,13 +457,12 @@ namespace cgh{
         /// \brief Makes a sigma star DFA.
         /// \return reference of DFA.
         static DFA<Character>& SigmaStarFA(const Characters &chars) {
-            DFA<Character>* dfa = new DFA<Character>();
+            DFA<Character>* dfa = new DFA<Character>(chars);
             Manage::manage(dfa);
-            DFAState<Character>* iniState = dfa->mkDFAInitialState();
-            dfa->addFinalState(iniState);
-            dfa->setAlphabet(chars);
+            DFAState<Character>* initialState = dfa -> mkInitialState();
+            dfa->addFinalState(initialState);
             for(Character character : chars)
-                iniState->addTrans(character, iniState);
+                initialState->addTrans(character, initialState);
             return *dfa;
         }
  
@@ -644,7 +646,7 @@ namespace cgh{
 
         virtual void print(string filename) const = 0;
         
-        virtual bool isEmpty() = 0;
+        //virtual bool isEmpty() = 0;
         virtual bool isEmpty() const = 0;
         
        

@@ -85,7 +85,7 @@ namespace cgh {
             return state;
         }
 
-        bool isEqual(const DFAState<Character>* s1, const DFAState<Character>* s2, DFAState2Map &stateMap) {
+        bool isEqual(const DFAState<Character>* s1, const DFAState<Character>* s2, DFAState2Map &stateMap) const {
             const DFATransMap &transMap1 = s1  ->  getTransMap();
             const DFATransMap &transMap2 = s2  ->  getTransMap();
             if (transMap1.size() != transMap2.size()) return false;
@@ -97,7 +97,7 @@ namespace cgh {
             return true;
         }
 
-        void minimize(DFA* dfa) {
+        void minimize(DFA* dfa) const {
             ID lastSize = 0;
             DFAStates unFinalStates;
             DFAStates finalStatess;
@@ -119,61 +119,78 @@ namespace cgh {
             if (unFinalStates.size() != 0) {
                 equiClass.push(unFinalStates);
             } else {
-                (dfa -> states).erase(unFinalState);
-                delete unFinalState;
+                dfa -> delState(unFinalState);
             }
             if (finalStatess.size() != 0) {
                 equiClass.push(finalStatess);
             } else {
-                (dfa -> states).erase(finalState);
-                delete finalState;
+                dfa -> delState(finalState);
             }
             ID curSize = equiClass.size();
             
             while (curSize != lastSize) {
                 for (ID i = 0; i < curSize; ++i) {
-                    DFAStates set = equiClass.front();
-                    equiClass.pop();
+                    DFAStates& set = equiClass.front();
                     if (set.size() == 0) {
                         continue;
                     }
                     
-                    auto it = set.begin();
-                    DFAState<Character>* lastDfaState = stateMap[*it];
-                    
-                    //对于一个等价类，重新划分等价类
-                    while (set.size() != 0) {
-                        it = set.begin();
-                        auto nextIt = it;
-                        ++nextIt;
+                    while (set.size() > 0) {
+                        DFAState<Character>* state = *(set.begin());
                         DFAStates newEquiClass;
-                        newEquiClass.insert(*it);
-                        set.erase(it);
-                        while (nextIt != set.end()) {
-                            if (DFA::isEqual(*it, *nextIt, stateMap)) {
-                                DFAState<Character>* nextState = *nextIt;
-                                newEquiClass.insert(nextState);
-                                ++nextIt;
-                                set.erase(nextState);
+                        newEquiClass.insert(state);
+                        set.erase(state);
+                        DFAStates delStates;
+                        for (DFAState<Character>* newState : set) {
+                            if (DFA::isEqual(state, newState, stateMap)) {
+                                newEquiClass.insert(newState);
+                                delStates.insert(newState);
                             }
-                            else {
-                                ++nextIt;
-                            }
+                        }
+                        for (DFAState<Character>* delState : delStates) {
+                            set.erase(delState);
                         }
                         equiClass.push(newEquiClass);
                         DFAState<Character>* newMapState = dfa -> mkState();
-                        for (DFAState<Character>* state : newEquiClass) {
-                            stateMap[state] = newMapState;
+                        for (DFAState<Character>* newState : newEquiClass) {
+                            stateMap[newState] = newMapState;
                         }
                     }
-                    (dfa -> states).erase(lastDfaState);
-                    delete lastDfaState;
+                    equiClass.pop();
+                    
+                    //对于一个等价类，重新划分等价类
+                    //while (set.size() != 0) {
+                    //    it = set.begin();
+                    //    auto nextIt = it;
+                    //    ++nextIt;
+                    //    DFAStates newEquiClass;
+                    //    newEquiClass.insert(*it);
+                    //    set.erase(it);
+                    //    while (nextIt != set.end()) {
+                    //        if (DFA::isEqual(*it, *nextIt, stateMap)) {
+                    //            DFAState<Character>* nextState = *nextIt;
+                    //            newEquiClass.insert(nextState);
+                    //            ++nextIt;
+                    //            set.erase(nextState);
+                    //        }
+                    //        else {
+                    //            ++nextIt;
+                    //        }
+                    //    }
+                    //    equiClass.push(newEquiClass);
+                    //    DFAState<Character>* newMapState = dfa -> mkState();
+                    //    for (DFAState<Character>* state : newEquiClass) {
+                    //        stateMap[state] = newMapState;
+                    //    }
+                    //}
+                    //dfa -> delState(lastDfaState);
                 }
                 lastSize = curSize;
                 curSize = equiClass.size();
             }
             //构造新自动机
             for (auto& mapPair : stateMap) {
+                if (!mapPair.first || !mapPair.second) continue;
                 if (mapPair.first == initialState) {
                     dfa -> setInitialState(mapPair.second);
                 }
@@ -188,6 +205,8 @@ namespace cgh {
                     }
                 }
             }
+            if (!dfa -> getInitialState()) dfa -> mkInitialState();
+            dfa -> removeDeadState();
             dfa -> setReachableFlag(1);
             dfa -> setMinimalFlag(1);
             Manage::manage(dfa);
@@ -208,11 +227,12 @@ namespace cgh {
         /// \brief Copy construction function.
         /// \param nfa The copied DFA.
         DFA(const DFA& dfa) {
-            if (dfa.initialState) {
+            DFAState<Character>* iniState = mkInitialState();
+            if (dfa.isEmpty()) {
                 this -> flag = dfa.flag; 
                 this -> setAlphabet(dfa.getAlphabet());
                 DFAState2Map state2Map;
-                state2Map[dfa.initialState] = mkInitialState();
+                state2Map[dfa.initialState] = iniState;
                 cpTrans(dfa.initialState, state2Map);
                 this -> setReachableFlag(1);
             }
@@ -277,7 +297,7 @@ namespace cgh {
 
         /// \brief Gets initialState, a const function.
         /// \return The const DFAState pointer of initialState for this DFA.
-        const DFAState<Character>* getInitialState() const {
+        DFAState<Character>* getInitialState() const {
             return initialState;
         }
 
@@ -317,6 +337,15 @@ namespace cgh {
             return dfaState;
         }
 
+        /// \brief Deletes a state in this DFA.
+        /// \return boolean.
+        virtual void delState(DFAState<Character>* state) {
+            states.erase(state);
+            finalStates.erase(state);
+            if (initialState == state) mkInitialState();
+            delete state;
+        }
+
         /// \brief Makes a initialState in this DFA.
         /// \return A DFAState pointer made by this DFA.
         virtual DFAState<Character>* mkInitialState() {
@@ -341,18 +370,12 @@ namespace cgh {
             return const_cast<DFA&>(*this);
         }
         
-        virtual DFA& minimize(void) {
-            if (this -> isMinimal()) return *this;
-            DFA* dfa = new DFA(this -> alphabet);
-            removeDeadState();
-            removeUnreachableState();
+        virtual DFA& minimize(void) const {
             if (isEmpty()) return FA<Character>::EmptyDFA();
+            if (this -> isMinimal()) return const_cast<DFA&>(*this);
+            DFA* dfa = new DFA(this -> alphabet);
             minimize(dfa);
             return *dfa;
-        }
-
-        virtual DFA& minimize( void ) const {
-            return const_cast<DFA*>(this) -> minimize();
         }
         
         FA<Character>& subset(const DFAState<Character>* iState, const DFAState<Character>* fState) {
@@ -385,7 +408,8 @@ namespace cgh {
                 DFAStates dels;
                 for(DFAState<Character>* state : states ) {
                     if (reachableStates.count(state) == 0) {
-                        DFAStates targetStates = state -> getTargetStates();
+                        DFAStates targetStates;
+                        state -> getTargetStates(targetStates);
                         for (DFAState<Character>* targetState : targetStates) {
                             if (reachableStates.count(targetState) > 0)
                                 state -> delDFATrans(targetState);
@@ -394,8 +418,7 @@ namespace cgh {
                     }
                 }
                 for (DFAState<Character>* state : dels) {
-                    states.erase(state);
-                    delete state;
+                    delState(state);
                 }
             }
             this -> setReachableFlag(1);
@@ -414,7 +437,7 @@ namespace cgh {
             DFAStates dels;
             for (DFAState<Character>* state : states) {
                 if (liveStates.count(state) == 0) {
-                    DFAStates sourceStates = reverseMap.find(state) -> second;
+                    DFAStates& sourceStates = reverseMap[state];
                     for (DFAState<Character>* sourceState : sourceStates) {
                         if (liveStates.count(sourceState) > 0)
                             sourceState -> delDFATrans(state);
@@ -423,8 +446,7 @@ namespace cgh {
                 }
             }
             for(DFAState<Character>* state : dels) {
-                states.erase(state);
-                delete state;
+                delState(state);
             }
         }
         
@@ -450,13 +472,16 @@ namespace cgh {
             return false;
         }
         
-        bool isEmpty() {
-            if (!this -> isReachable()) removeUnreachableState();
-            if (finalStates.size() == 0) return true;
-            return false;
-        }
+        //bool isEmpty() {
+        //    if (this -> getAlphabet().size() == 0) return false;
+        //    if (!this -> isReachable()) removeUnreachableState();
+        //    if (finalStates.size() == 0) return true;
+        //    return false;
+        //}
 
         bool isEmpty() const {
+            if (this -> getAlphabet().size() == 0) return true;
+            if (getFinalStates().size() == 0) return true;
             if (!this -> isReachable()) {
                 DFAStates states;
                 DFAStates works;
