@@ -301,12 +301,12 @@ namespace cgh {
         /// \brief Copy construction function.
         /// \param nfa The copied NFA.
         NFA(const NFA& nfa) {
+            mkInitialState();
             if (!nfa.isEmpty()) {
                 this -> flag = nfa.flag;
                 this -> setAlphabet(nfa.alphabet);
-                NFAState<Character>* iniState = mkInitialState();
                 NFAState2Map state2Map;
-                state2Map[nfa.initialState] = iniState;
+                state2Map[nfa.initialState] = initialState;
                 cpTransByNFA(nfa.initialState, state2Map);
             }
         }
@@ -315,11 +315,11 @@ namespace cgh {
         /// \param nfa The copied NFA.
         /// \param state2Map Records the map for outside.
         NFA(const NFA& nfa, NFAState2Map& state2Map) {
+            mkInitialState();
             if (!nfa.isEmpty()) {
                 this -> flag = nfa.flag;
                 this -> setAlphabet(nfa.alphabet);
-                NFAState<Character>* iniState = mkInitialState();
-                state2Map[nfa.initialState] = iniState;
+                state2Map[nfa.initialState] = initialState;
                 cpTransByNFA(nfa.initialState, state2Map);
             }
         }
@@ -327,14 +327,12 @@ namespace cgh {
         /// \brief Copy construction function by DFA.
         /// \param dfa The copied DFA.
         NFA(const DFA<Character>& dfa) {
+            mkInitialState();
             if(!dfa.isEmpty()) {
                 this -> flag = dfa.flag;
                 this -> setAlphabet(dfa.alphabet);
-                NFAState<Character>* iniState = mkInitialState();
-                if (dfa.initialState -> isFinal())
-                    addFinalState(iniState);
                 DFAState2NFAStateMap state2Map;
-                state2Map[dfa.initialState] = iniState;
+                state2Map[dfa.initialState] = initialState;
                 cpTransByDFA(dfa.initialState, state2Map);
             }
         }
@@ -414,7 +412,7 @@ namespace cgh {
 
         /// \brief Gets initialState, a const function.
         /// \return The const NFAState pointer of initialState for this NFA.
-        const NFAState<Character>* getInitialState() const {
+        NFAState<Character>* getInitialState() const {
             return initialState;
         }
 
@@ -454,12 +452,12 @@ namespace cgh {
             return state;
         }
 
-        /// \brief Deletes a state in this NFA.
-        /// \param state The state to be deleted in this NFA.
-        void delState(NFAState<Character>* state) {
+        /// \brief Deletes a state in this DFA.
+        /// \return boolean.
+        virtual void delState(NFAState<Character>* state) {
             states.erase(state);
             finalStates.erase(state);
-            if (initialState == state) initialState = nullptr;
+            if (initialState == state) mkInitialState();
             delete state;
         }
         
@@ -539,8 +537,7 @@ namespace cgh {
                     }
                 }
                 for (NFAState<Character>* state : dels) {
-                    states.erase(state);
-                    delete state;
+                    delState(state);
                 }
             }
             this -> setReachableFlag(1);
@@ -568,8 +565,7 @@ namespace cgh {
                 }
             }
             for (NFAState<Character>* state : dels) {
-                states.erase(state);
-                delete state;
+                delState(state);
             }
         }
 
@@ -606,13 +602,16 @@ namespace cgh {
             return false;
         }
         
-        bool isEmpty() {
-            if (!this -> isReachable()) removeUnreachableState();
-            if (finalStates.size() == 0) return true;
-            return false;
-        }
+        //bool isEmpty() {
+        //    if (this -> getAlphabet().size() == 0) return false;
+        //    if (!this -> isReachable()) removeUnreachableState();
+        //    if (finalStates.size() == 0) return true;
+        //    return false;
+        //}
 
         bool isEmpty() const {
+            if (this -> getAlphabet().size() == 0) return true;
+            if (getFinalStates().size() == 0) return true;
             if (!this -> isReachable()) {
                 NFAStates states;
                 NFAStates works;
