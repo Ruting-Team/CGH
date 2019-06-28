@@ -4,8 +4,10 @@
 #include "FT/NFT.hpp"
 #include "TrNFA/TrNFA.hpp"
 #include "TrPDS/TrPDS.hpp"
-#include "NuXmv/NuXmv.hpp"
 
 namespace cgh{
+ID State::counter = 0;
+unordered_set<Object*> Manage::buffer;
+Manage manage;
 }
 #endif /* CGH_hpp */
