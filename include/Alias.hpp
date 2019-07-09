@@ -87,23 +87,7 @@ namespace cgh {
     class PDSState;
     class TrPDSState;
 
-    class Var;
-    class Value;
-    class Atomic;
-    class Conjunction;
-    class Condition;
-    class Transition;
-    class NuXmv;
-
-    typedef vector<Value*> Values;
-    typedef vector<Var*> Vars;
-    typedef vector<Atomic*> Atomics;
-    typedef vector<Conjunction*> DNF;
-    typedef vector<Transition*> Transitions;
-    typedef vector<Transition*> Transitions;
-    typedef vector<Condition*> Conditions;
-
-    /****************** Alias4Char ******************/
+     /****************** Alias4Char ******************/
 
     template <class Character>
     class Alias4Char {
