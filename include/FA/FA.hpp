@@ -240,7 +240,7 @@ namespace cgh{
             DFAState<Character>* trapState = dfa.mkState();
             dfa.getFinalStates().clear();
             for (DFAState<Character>* state : dfa.getStates()) {
-                for (Character character : dfa.getAlphabet()) {
+                for (auto& character : dfa.getAlphabet()) {
                     if (state -> getTransMap().count(character) == 0) {
                         state -> addTrans(character, trapState);
                     }
@@ -461,7 +461,7 @@ namespace cgh{
             Manage::manage(dfa);
             DFAState<Character>* initialState = dfa -> mkInitialState();
             dfa->addFinalState(initialState);
-            for(Character character : chars)
+            for(auto& character : chars)
                 initialState->addTrans(character, initialState);
             return *dfa;
         }

@@ -158,7 +158,7 @@ namespace cgh {
 
         void addPreStarTrans(NFAState<Character>* sState, Character c, NFAState<Character>* tState, NeedMap& needMap, Need2Map& need2Map) {
             auto& stateChars = needMap[sState][c];
-            for (StateChar stateChar: stateChars) {
+            for (auto& stateChar: stateChars) {
                 NFAState<Character>* state = stateChar.first;
                 Character character = stateChar.second;
                 if (state -> addTrans(character, tState)) {
@@ -166,7 +166,7 @@ namespace cgh {
                 }
             }
             auto& stateChar2s = need2Map[sState][c];
-            for (StateChar2 stateChar2: stateChar2s) {
+            for (auto& stateChar2: stateChar2s) {
                 addPreStarNeedMap(stateChar2.first, stateChar2.second.first, tState, stateChar2.second.second, needMap, need2Map);
             }
         }
@@ -223,7 +223,7 @@ namespace cgh {
                 if (c == FA<Character>::epsilon) continue;
                 StateChars& stateChars = needMap[sState][c];
                 for (NFAState<Character>* tState : mapPair.second) {
-                    for (StateChar stateChar: stateChars) {
+                    for (auto& stateChar: stateChars) {
                         NFAState<Character>* state = stateChar.first;
                         Character character = stateChar.second;
                         if (state -> addTrans(character, tState)) {
@@ -233,7 +233,7 @@ namespace cgh {
                 }
                 StateChar2s& stateChar2s = need2Map[sState][c];
                 for (NFAState<Character>* tState : mapPair.second) {
-                    for (StateChar2 stateChar2: stateChar2s) {
+                    for (auto& stateChar2: stateChar2s) {
                         NFAState<Character>* state = stateChar2.first;
                         Char2 char2 = stateChar2.second;
                         NFAState<Character>* midState = postStarMap[StateChar(state, char2.first)];
@@ -575,7 +575,7 @@ namespace cgh {
             if (isEmpty()) return false;
             NFAStates works;
             works.insert(initialState);
-            for (Character c : word) {
+            for (auto& c : word) {
                 if (works.size() > 0) {
                     NFAStates newWorks;
                     for(NFAState<Character>* state : works)

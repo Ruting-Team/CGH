@@ -75,7 +75,7 @@ namespace cgh {
 
         DFAState<Character>* getTargetStateByWord(Word& word) {
             DFAState<Character>* state = getInitialState();
-            for (Character& c : word) {
+            for (auto& c : word) {
                 if (state) {
                     state = state -> getTargetStateByChar(c);
                 } else {
@@ -455,7 +455,7 @@ namespace cgh {
         bool isAccepted(const Word &word) {
             if (isEmpty()) return false;
             DFAState<Character>* state = initialState;
-            for (Character c : word) {
+            for (auto& c : word) {
                 state = state -> getTargetStateByChar(c) ;
                 if (!state) return false;
             }

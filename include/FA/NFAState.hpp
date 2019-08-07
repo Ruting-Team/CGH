@@ -175,7 +175,7 @@ namespace cgh{
                 }
             }
             if (count == 0) return false;
-            for(Character character : chars)
+            for(auto& character : chars)
                 nfaTransMap.erase(character);
             return true;
         }

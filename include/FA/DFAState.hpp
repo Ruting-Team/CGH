@@ -92,7 +92,7 @@ namespace cgh{
                 if (mapPair.second == target)
                     chars.insert(mapPair.first);
             if (chars.size() == 0) return false;
-            for (Character character : chars)
+            for (auto& character : chars)
                 dfaTransMap.erase(character);
             return true;
         }
