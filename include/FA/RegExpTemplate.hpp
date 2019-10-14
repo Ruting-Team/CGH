@@ -42,7 +42,7 @@ namespace cgh {
 
         /// \brief Gets whether this CharTemplate is Opt or not.
         /// \return Boolean.
-        bool isOpt() { return isUnitOpt() || isBinaryOpt(); }
+        bool isOpt() { return isUnitOpt() || isBinaryOpt() || isLeftBracketOpt() || isRightBracketOpt(); }
 
         /// \brief Gets the Chracter for this CharTemplate.
         /// \return Chracter.
@@ -190,7 +190,7 @@ namespace cgh {
                 rchars.insert(rc -> getCharTemplate());
             }
             if (!lhsNFA && !rhsNFA) {
-                NFA<Character>* nfa = new NFA<Character>();
+                NFA<Character>* nfa = new NFA<Character>(alphabet);
                 lc -> setNFA(nfa);
                 if (opt -> isCatOpt()) {
                     NFAState<Character>* iniState = nfa -> mkInitialState();
@@ -353,7 +353,7 @@ namespace cgh {
 
         /// \brief Makes NFA.
         /// \return The pointer of NFA.
-        NFA<Character>* mkNFA() {
+        NFA<Character>& mkNFA() {
             if (regEx.size() == 1) {
                 NFA<Character>* nfa = new NFA<Character>(alphabet);
                 NFAState<Character>* iniState = nfa -> mkInitialState();
@@ -367,7 +367,7 @@ namespace cgh {
                 for (Character c : chars) {
                     iniState -> addTrans(c, finState);
                 }
-                return nfa;
+                return *nfa;
             }
             CharTemplates suffixExp;
             toSuffixExp(suffixExp);
@@ -386,7 +386,8 @@ namespace cgh {
                 }
             }
             NFA<Character>* nfa = charStack.top() -> getNFA();
-            return nfa;
+            Manage::manage(nfa);
+            return *nfa;
         }
     };
 }

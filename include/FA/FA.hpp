@@ -465,6 +465,29 @@ namespace cgh{
                 initialState->addTrans(character, initialState);
             return *dfa;
         }
+
+        /// \brief Makes a length DFA.
+        /// \return reference of DFA.
+        static DFA<Character>& LengthFA(ID length, const Characters &chars, bool le = 0) {
+            DFA<Character>* dfa = new DFA<Character>(chars);
+            Manage::manage(dfa);
+            vector<DFAState<Character>*> states;
+            states.push_back(dfa -> mkInitialState());
+            for (ID i = 1; i < length; i++) {
+                if (!le) {
+                    states.push_back(dfa -> mkState());
+                } else {
+                    states.push_back(dfa -> mkFinalState());
+                }
+            }
+            states.push_back(dfa -> mkFinalState());
+            for (ID i = 1; i < states.size(); i++) {
+                for (const auto& c : chars) {
+                    states[i - 1] -> addTrans(c, states[i]);
+                }
+            }
+            return *dfa;
+        }
  
         /// \brief Gets a FA which is the intersection of this FA and param fa.
         /// \param fa A const reference FA.
